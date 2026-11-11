@@ -37,6 +37,7 @@ This repository is an independent implementation. It uses a different architectu
    ```
 
 6. Open `http://localhost:8000`.
+7. Run the encoding test suite with `npm test` (Node.js 20+ recommended).
 
 Do not open `index.html` directly as a `file://` URL; browser ES modules need an HTTP origin.
 
@@ -46,6 +47,7 @@ Do not open `index.html` directly as a `file://` URL; browser ES modules need an
 - The Realtime Presence topic is `syntrix:live`. The migration limits Presence access to authenticated users. In Supabase Realtime settings, disable public access if the project setting currently allows public channels.
 - Hosted Supabase projects commonly require email confirmation. Keep it enabled for real use; for a quick local classroom demo, you may disable confirmation in **Authentication → Providers → Email** and re-enable it before public use.
 - The public profile directory exposes only the handle and display name to signed-in users so that a handle can be resolved when adding a contact.
+- In **Integrations → Data API**, expose the `public` schema and ensure `profiles`, `contacts`, `messages`, plus the three unlock-key RPC functions are available to the authenticated client. The migration includes least-privilege SQL grants; RLS remains the row-level access boundary.
 
 ## Message format and security scope
 

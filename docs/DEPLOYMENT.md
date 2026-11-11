@@ -27,7 +27,7 @@ Push the project to `ZeonPlay/SYNTRIX`. The repository root should contain `inde
    - Framework preset: **None**
    - Build command: leave empty
    - Build output directory: `.`
-   - Root directory: `/` (repository root)
+   - Root directory: leave blank (repository root)
 5. Deploy. The generated `*.pages.dev` URL is your website address.
 
 Every push to `main` will trigger a new static deployment.
