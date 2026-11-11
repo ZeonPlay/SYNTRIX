@@ -337,3 +337,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, .contact-item:focus-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+.empty-signal { width: min(100%, 330px); margin-bottom: 2px; padding: 13px 15px 9px; border: 1px solid var(--line); border-radius: 7px; background: #202324; color: var(--accent-strong); }
+.empty-signal-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+.empty-signal-label span:last-child { color: var(--quiet); font-family: var(--mono); }
+.empty-signal svg { display: block; width: 100%; margin-top: 8px; }
