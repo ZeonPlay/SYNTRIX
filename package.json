@@ -1,0 +1,10 @@
+{
+  "name": "syntrix-realtime-chat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent SYNTRIX implementation for data-communication learning.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

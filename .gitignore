@@ -1,0 +1,13 @@
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+src/config.local.js
+
+# Dependencies and local tooling
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
