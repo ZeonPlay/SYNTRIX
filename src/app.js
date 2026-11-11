@@ -279,8 +279,10 @@ function renderMiniSignal(canvas, bits) {
   ctx.stroke();
 }
 
-function renderMessages() {
+function renderMessages({ scrollToBottom = false } = {}) {
   const container = $('#messages');
+  const previousScrollTop = container.scrollTop;
+  const wasNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 72;
   container.replaceChildren();
   const messages = currentConversationMessages();
 
@@ -319,7 +321,11 @@ function renderMessages() {
     if (decoded) row.querySelector('.decoded-text').textContent = decoded;
     container.append(row);
   }
-  container.scrollTop = container.scrollHeight;
+  if (scrollToBottom || wasNearBottom) {
+    container.scrollTop = container.scrollHeight;
+  } else {
+    container.scrollTop = previousScrollTop;
+  }
 }
 
 function updateConversationHeader() {
@@ -341,7 +347,7 @@ async function selectContact(contactId) {
   $('#messageInput').focus();
   updateConversationHeader();
   renderContacts();
-  renderMessages();
+  renderMessages({ scrollToBottom: true });
 
   const unseen = state.messages.some((message) =>
     message.sender_id === contactId &&
