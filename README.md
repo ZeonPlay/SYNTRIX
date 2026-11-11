@@ -27,7 +27,7 @@ This repository is an independent implementation. It uses a different architectu
 ## Local setup
 
 1. Create or use a Supabase project.
-2. Open `supabase/migrations/202611110001_initial_schema.sql` and run it once in **Supabase Dashboard → SQL Editor**.
+2. Open `supabase/migrations/20261111122920_syntrix_initial_schema.sql` and run it once in **Supabase Dashboard → SQL Editor**.
 3. In **Authentication → URL Configuration**, add your local URL (for example `http://localhost:8000`) to the allowed redirect URLs.
 4. Open `src/config.js`. Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` to the URL and publishable key from your own project. The publishable key is intended for browser use; never put a `service_role` or secret key in this repository.
 5. Serve this directory through a local static web server. For example:

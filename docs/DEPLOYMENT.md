@@ -5,12 +5,13 @@ SYNTRIX is a static website. It does not need a Flask/Gunicorn server, a Socket.
 ## 1. Prepare Supabase
 
 1. Open your Supabase project.
-2. Run `supabase/migrations/202611110001_initial_schema.sql` once in **SQL Editor**.
+2. Run `supabase/migrations/20261111122920_syntrix_initial_schema.sql` once in **SQL Editor**.
 3. Confirm that `profiles`, `contacts`, and `messages` appear in the Table Editor.
 4. Open **Project Settings → API** (or API Keys) and copy the Project URL and publishable key.
 5. Put those two public values in `src/config.js` before deployment.
 6. In **Authentication → URL Configuration**, add both the local development URL and your Cloudflare Pages domain to the allowed redirect URLs.
-7. Under **Realtime → Settings**, turn off public access when available so that the `private: true` Presence channel is required.
+7. In **Integrations → Data API**, ensure the `public` schema and tables `profiles`, `contacts`, and `messages` are exposed; the migration's grants and RLS policies restrict actual access.
+8. Under **Realtime → Settings**, disable public access so that the `private: true` Presence channel requires the authenticated policies from the migration.
 
 Never copy a `service_role` key or secret API key into `src/config.js`, HTML, JavaScript, Cloudflare build variables exposed to the browser, or GitHub.
 
