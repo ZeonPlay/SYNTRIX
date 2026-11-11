@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101522">
+  <meta name="theme-color" content="#18191b">
   <meta name="description" content="SYNTRIX — real-time chat and data communication learning lab.">
   <title>SYNTRIX — Data Communication Lab</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
@@ -14,9 +14,6 @@
   <script type="module" src="/src/app.js"></script>
 </head>
 <body>
-  <div class="ambient ambient-one"></div>
-  <div class="ambient ambient-two"></div>
-
   <main id="authView" class="auth-shell">
     <section class="auth-intro">
       <a class="brand brand-large" href="/" aria-label="SYNTRIX home">
@@ -24,65 +21,43 @@
         <span class="brand-copy"><strong>SYNTRIX</strong><small>DATA COMMUNICATION LAB</small></span>
       </a>
       <div class="intro-copy">
-        <span class="eyebrow"><span class="pulse-dot"></span> LIVE TRANSMISSION ENVIRONMENT</span>
-        <h1>Messages are more than just <em>words.</em></h1>
-        <p>Explore how information travels. Send a message, inspect its binary frames, and watch the NRZ-I signal move in real time.</p>
+        <span class="eyebrow"><span class="pulse-dot"></span> A small lab for digital communication</span>
+        <h1>A chat you can <em>inspect.</em></h1>
+        <p>Send a message, then look inside its ASCII frames and NRZ-I signal. Real conversations, with the transmission details visible.</p>
       </div>
       <div class="intro-bottom">
         <div class="signal-preview" aria-hidden="true">
           <div class="signal-meta"><span>NRZ-I / SAMPLE SIGNAL</span><span>01 10 01 11 00</span></div>
-          <svg viewBox="0 0 520 78" role="img" aria-label="Decorative digital signal waveform">
-            <path d="M0 18 H42 V58 H86 V18 H130 V58 H174 V18 H218 V18 H262 V58 H306 V18 H350 V58 H394 V58 H438 V18 H482 V58 H520" fill="none" stroke="#8fb9bd" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M0 38 H520" stroke="#536273" stroke-width="1" stroke-dasharray="3 7"/>
+          <svg viewBox="0 0 520 78" role="img" aria-label="Digital signal waveform">
+            <path d="M0 18 H42 V58 H86 V18 H130 V58 H174 V18 H218 V18 H262 V58 H306 V18 H350 V58 H394 V58 H438 V18 H482 V58 H520" fill="none" stroke="#a6b4a8" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M0 38 H520" fill="none" stroke="#555b56" stroke-width="1" stroke-dasharray="3 7"/>
           </svg>
         </div>
-        <span class="copyright">AN INDEPENDENT LEARNING PROJECT · 2026</span>
+        <span class="copyright">An independent learning project · 2026</span>
       </div>
     </section>
 
     <section class="auth-panel">
       <div class="auth-card">
         <div class="auth-heading">
-          <span class="eyebrow">WELCOME TO SYNTRIX</span>
+          <span class="eyebrow">Welcome to SYNTRIX</span>
           <h2 id="authTitle">Sign in to your space</h2>
           <p id="authSubtitle">Continue where your conversations left off.</p>
         </div>
-
         <div class="auth-switch" role="tablist" aria-label="Authentication mode">
           <button id="showLoginBtn" class="auth-tab is-active" type="button" role="tab" aria-selected="true">Sign in</button>
           <button id="showRegisterBtn" class="auth-tab" type="button" role="tab" aria-selected="false">Create account</button>
         </div>
-
         <form id="loginForm" class="auth-form">
-          <label class="field">
-            <span>Email address</span>
-            <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254">
-          </label>
-          <label class="field">
-            <span>Password</span>
-            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required minlength="8">
-          </label>
+          <label class="field"><span>Email address</span><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
+          <label class="field"><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required minlength="8"></label>
           <button id="loginSubmit" class="button button-primary button-wide" type="submit">Sign in <span aria-hidden="true">↗</span></button>
         </form>
-
         <form id="registerForm" class="auth-form" hidden>
-          <label class="field">
-            <span>Display name</span>
-            <input id="registerName" type="text" autocomplete="name" placeholder="How should we call you?" required maxlength="60">
-          </label>
-          <label class="field">
-            <span>Unique handle</span>
-            <div class="input-prefix"><span>@</span><input id="registerHandle" type="text" autocomplete="username" placeholder="your_handle" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}"></div>
-            <small>3–24 characters, letters, numbers, and underscore.</small>
-          </label>
-          <label class="field">
-            <span>Email address</span>
-            <input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254">
-          </label>
-          <label class="field">
-            <span>Password</span>
-            <input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" required minlength="8">
-          </label>
+          <label class="field"><span>Display name</span><input id="registerName" type="text" autocomplete="name" placeholder="How should we call you?" required maxlength="60"></label>
+          <label class="field"><span>Unique handle</span><div class="input-prefix"><span>@</span><input id="registerHandle" type="text" autocomplete="username" placeholder="your_handle" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}"></div><small>3–24 characters, letters, numbers, and underscore.</small></label>
+          <label class="field"><span>Email address</span><input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
+          <label class="field"><span>Password</span><input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" required minlength="8"></label>
           <button id="registerSubmit" class="button button-primary button-wide" type="submit">Create account <span aria-hidden="true">↗</span></button>
         </form>
         <p class="auth-footnote"><span class="tiny-lock">⌑</span> Secured by Supabase Authentication</p>
@@ -93,33 +68,20 @@
   <main id="appView" class="app-shell" hidden>
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
-        <a class="brand" href="/" aria-label="SYNTRIX">
-          <span class="brand-mark">S<span class="brand-mark-dot">.</span></span>
-          <span class="brand-copy"><strong>SYNTRIX</strong><small>COMMUNICATION LAB</small></span>
-        </a>
+        <a class="brand" href="/" aria-label="SYNTRIX"><span class="brand-mark">S<span class="brand-mark-dot">.</span></span><span class="brand-copy"><strong>SYNTRIX</strong><small>COMMUNICATION LAB</small></span></a>
         <button id="mobileSidebarClose" class="icon-button mobile-only" type="button" aria-label="Close contacts">×</button>
       </div>
-
       <div class="account-card">
         <div id="myAvatar" class="avatar avatar-self">S</div>
         <div class="account-info"><strong id="myName">SYNTRIX User</strong><span id="myHandle">@username</span></div>
         <button id="accountMenuBtn" class="icon-button" type="button" title="Account settings" aria-label="Account settings">···</button>
       </div>
-
       <div class="sidebar-actions">
         <button id="addContactBtn" class="button button-secondary button-wide" type="button"><span>＋</span> Add contact</button>
-        <label class="search-field">
-          <span aria-hidden="true">⌕</span>
-          <input id="contactSearch" type="search" placeholder="Search conversations..." autocomplete="off">
-          <kbd>/</kbd>
-        </label>
+        <label class="search-field"><span aria-hidden="true">⌕</span><input id="contactSearch" type="search" placeholder="Search conversations..." autocomplete="off"><kbd>/</kbd></label>
       </div>
-
-      <div class="section-heading"><span>MESSAGES</span><span id="contactCount" class="count-pill">0</span></div>
-      <div id="contactList" class="contact-list" aria-label="Contact list">
-        <div class="list-empty">Your conversations will appear here.</div>
-      </div>
-
+      <div class="section-heading"><span>Messages</span><span id="contactCount" class="count-pill">0</span></div>
+      <div id="contactList" class="contact-list" aria-label="Contact list"><div class="list-empty">Your conversations will appear here.</div></div>
       <div class="sidebar-bottom">
         <div class="connection-indicator"><span id="connectionDot" class="connection-dot"></span><span id="connectionLabel">Connecting…</span></div>
         <button id="logoutBtn" class="logout-button" type="button"><span>↪</span> Sign out</button>
@@ -128,15 +90,13 @@
 
     <section class="workspace">
       <div id="emptyState" class="empty-state">
-        <div class="empty-orbit">
-          <div class="orbit-ring orbit-ring-one"></div>
-          <div class="orbit-ring orbit-ring-two"></div>
-          <div class="orbit-core">S<span>.</span></div>
-          <span class="orbit-node node-one">01</span><span class="orbit-node node-two">10</span><span class="orbit-node node-three">NRZ</span>
+        <div class="empty-signal" aria-hidden="true">
+          <div class="empty-signal-label"><span>Signal preview</span><span>Idle</span></div>
+          <svg viewBox="0 0 320 72"><path d="M0 18 H32 V54 H64 V18 H96 V54 H128 V54 H160 V18 H192 V54 H224 V18 H256 V18 H288 V54 H320" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         </div>
-        <span class="eyebrow">YOUR PRIVATE WORKSPACE</span>
+        <span class="eyebrow">Your workspace</span>
         <h2>Select a conversation</h2>
-        <p>Choose someone from your list or add a new contact by their SYNTRIX handle.</p>
+        <p>Choose someone from your list or add a contact using their SYNTRIX handle.</p>
         <button id="emptyAddContactBtn" class="button button-secondary" type="button">＋ Add your first contact</button>
       </div>
 
@@ -145,19 +105,17 @@
           <button id="mobileSidebarOpen" class="icon-button mobile-only" type="button" aria-label="Open contacts">☰</button>
           <div id="chatAvatar" class="avatar">?</div>
           <div class="conversation-person"><strong id="chatName">Contact</strong><span><i id="chatStatusDot" class="status-dot"></i><span id="chatStatus">Offline</span></span></div>
-          <div class="header-tools"><span class="protocol-chip"><span></span> NRZ-I ENABLED</span></div>
+          <div class="header-tools"><span class="protocol-chip"><span></span> NRZ-I enabled</span></div>
         </header>
-
-        <div class="conversation-banner"><span class="banner-icon">⌁</span><span>Messages are transmitted as framed binary data. Select a message to inspect its signal.</span></div>
+        <div class="conversation-banner"><span class="banner-icon">⌁</span><span>Messages are stored as framed binary data. Select one to inspect its signal.</span></div>
         <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
-
         <form id="messageForm" class="composer">
           <div class="composer-inner">
             <input id="messageInput" type="text" autocomplete="off" maxlength="500" placeholder="Write a message… (printable ASCII)" aria-label="Message">
             <span id="messageCounter" class="message-counter">0 / 500</span>
             <button id="sendButton" class="send-button" type="submit" aria-label="Send message"><span>Send</span><b>↗</b></button>
           </div>
-          <div class="composer-hint"><span>ENTER TO SEND</span><span>MAX 500 CHARACTERS · ASCII</span></div>
+          <div class="composer-hint"><span>Enter to send</span><span>Max 500 characters · ASCII</span></div>
         </form>
       </section>
     </section>
@@ -165,7 +123,7 @@
 
   <dialog id="contactDialog" class="modal">
     <form id="contactForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">NEW CONNECTION</span><h2>Add a contact</h2></div><button class="icon-button dialog-close" type="button" data-close="contactDialog" aria-label="Close">×</button></div>
+      <div class="modal-header"><div><span class="eyebrow">New connection</span><h2>Add a contact</h2></div><button class="icon-button dialog-close" type="button" data-close="contactDialog" aria-label="Close">×</button></div>
       <p class="modal-description">Enter the unique SYNTRIX handle of the person you want to talk to.</p>
       <label class="field"><span>Contact handle</span><div class="input-prefix"><span>@</span><input id="contactHandle" type="text" placeholder="friend_handle" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" autocomplete="off"></div></label>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="contactDialog">Cancel</button><button id="contactSubmit" class="button button-primary" type="submit">Add contact</button></div>
@@ -174,7 +132,7 @@
 
   <dialog id="unlockDialog" class="modal">
     <form id="unlockForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">MESSAGE LOCKED</span><h2>Unlock this message</h2></div><button class="icon-button dialog-close" type="button" data-close="unlockDialog" aria-label="Close">×</button></div>
+      <div class="modal-header"><div><span class="eyebrow">Message locked</span><h2>Unlock this message</h2></div><button class="icon-button dialog-close" type="button" data-close="unlockDialog" aria-label="Close">×</button></div>
       <p class="modal-description">Enter your personal message key to decode the stored bitstream.</p>
       <label class="field"><span>Your unlock key</span><input id="unlockKeyInput" type="password" autocomplete="current-password" placeholder="Enter your key" required minlength="6" maxlength="72"></label>
       <div id="unlockedMessage" class="unlocked-message" hidden></div>
@@ -184,7 +142,7 @@
 
   <dialog id="keyDialog" class="modal">
     <form id="keyForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">ACCOUNT SECURITY</span><h2 id="keyDialogTitle">Set your unlock key</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
+      <div class="modal-header"><div><span class="eyebrow">Account security</span><h2 id="keyDialogTitle">Set your unlock key</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
       <p class="modal-description">This is a separate viewing check, not message encryption. Use a key you can remember.</p>
       <label class="field"><span id="keyLabel">New unlock key</span><input id="newUnlockKey" type="password" autocomplete="new-password" required minlength="6" maxlength="72" placeholder="At least 6 characters"></label>
       <label class="field"><span>Confirm key</span><input id="confirmUnlockKey" type="password" autocomplete="new-password" required minlength="6" maxlength="72" placeholder="Type it again"></label>
@@ -194,7 +152,7 @@
 
   <dialog id="inspectorDialog" class="modal modal-wide">
     <div class="modal-card inspector-card">
-      <div class="modal-header"><div><span class="eyebrow">TRANSMISSION ANALYSIS</span><h2>Signal inspector</h2></div><button class="icon-button dialog-close" type="button" data-close="inspectorDialog" aria-label="Close">×</button></div>
+      <div class="modal-header"><div><span class="eyebrow">Transmission analysis</span><h2>Signal inspector</h2></div><button class="icon-button dialog-close" type="button" data-close="inspectorDialog" aria-label="Close">×</button></div>
       <div id="inspectorContent" class="inspector-content"></div>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="inspectorDialog">Close inspector</button></div>
     </div>
@@ -202,14 +160,13 @@
 
   <dialog id="accountDialog" class="modal">
     <div class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">YOUR ACCOUNT</span><h2>Preferences</h2></div><button class="icon-button dialog-close" type="button" data-close="accountDialog" aria-label="Close">×</button></div>
+      <div class="modal-header"><div><span class="eyebrow">Your account</span><h2>Preferences</h2></div><button class="icon-button dialog-close" type="button" data-close="accountDialog" aria-label="Close">×</button></div>
       <div class="settings-profile"><div id="settingsAvatar" class="avatar">S</div><div><strong id="settingsName">SYNTRIX User</strong><span id="settingsHandle">@username</span></div></div>
       <div class="settings-item"><div><strong>Message unlock key</strong><span>Change the key used to view decoded messages.</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Change key</button></div>
       <div class="settings-item"><div><strong>About SYNTRIX</strong><span>Independent data communication learning project.</span></div><span class="version-label">v1.0.0</span></div>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="accountDialog">Done</button></div>
     </div>
   </dialog>
-
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="false"></div>
 </body>
 </html>
