@@ -1,0 +1,31 @@
+name: SYNTRIX checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Run encoding tests
+        run: npm test
+
+      - name: Check JavaScript syntax
+        run: |
+          find src tests -type f -name '*.js' -print0 | xargs -0 -n1 node --check
