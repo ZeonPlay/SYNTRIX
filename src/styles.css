@@ -200,7 +200,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .directory-inner { display: flex; flex-direction: column; width: min(100%,1120px); min-height: 100%; margin: 0 auto; padding: 34px clamp(22px,3.6vw,58px) 30px; }
 .directory-header { display: flex; align-items: center; gap: 9px; width: min(100%,880px); margin: 0 auto; }
 .directory-heading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 4px rgba(36,183,203,.1); }
-.directory-header h1 { margin: 0; color: var(--navy); font-size: 20px; font-weight: 850; letter-spacing: -.045em; }\n.directory-add-button { margin-left: 12px; }
+.directory-header h1 { margin: 0; color: var(--navy); font-size: 20px; font-weight: 850; letter-spacing: -.045em; }
+.directory-add-button { margin-left: 12px; }
 .directory-count { margin-left: auto; color: #9aa3b5; font: 9px var(--mono); letter-spacing: .08em; }
 .directory-content { display: grid; grid-template-columns: minmax(0,500px) minmax(300px,350px); justify-content: center; align-items: start; gap: 27px; width: 100%; margin: 25px auto 0; }
 .directory-list-column { display: flex; flex-direction: column; min-width: 0; }
@@ -226,7 +227,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .status-indicator.online { background: var(--green); box-shadow: 0 0 0 3px rgba(22,181,138,.1); }
 .contact-detail { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
 .contact-name-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; }
-.contact-name-row strong { overflow: hidden; color: #303149; font-size: 11px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }\n.contact-handle { flex: 0 0 auto; color: #9ca5b3; font: 8px var(--mono); white-space: nowrap; }
+.contact-name-row strong { overflow: hidden; color: #303149; font-size: 11px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.contact-handle { flex: 0 0 auto; color: #9ca5b3; font: 8px var(--mono); white-space: nowrap; }
 .contact-preview { display: -webkit-box; overflow: hidden; color: #778299; font-size: 9px; line-height: 1.4; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
 .unread-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 7px; background: var(--indigo); color: #fff; font: 700 9px var(--mono); }
 .contact-item::after { content: "›"; display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 24px; border-radius: 9px; background: #f2f5f9; color: #78839a; font-size: 19px; transition: background .2s,color .2s,transform .25s; }
@@ -282,7 +284,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .app-shell.has-chat .workspace { display: flex; grid-column: 3; }
 .app-shell[data-view="security"], .app-shell[data-view="settings"] { grid-template-columns: 260px minmax(0,1fr); }
 .app-shell[data-view="security"] .directory-view, .app-shell[data-view="settings"] .directory-view { display: none; }
-.app-shell[data-view="security"] .workspace, .app-shell[data-view="settings"] .workspace { display: flex; grid-column: 2; }\n.app-shell[data-view="security"] #emptyState, .app-shell[data-view="settings"] #emptyState, .app-shell[data-view="security"] #conversationView, .app-shell[data-view="settings"] #conversationView { display: none !important; }
+.app-shell[data-view="security"] .workspace, .app-shell[data-view="settings"] .workspace { display: flex; grid-column: 2; }
+.app-shell[data-view="security"] #emptyState, .app-shell[data-view="settings"] #emptyState, .app-shell[data-view="security"] #conversationView, .app-shell[data-view="settings"] #conversationView { display: none !important; }
 .empty-state { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 32px; text-align: center; }
 .empty-state-icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; background: var(--navy); color: #fff; font-size: 26px; font-weight: 800; }
 .empty-state h2 { margin: 18px 0 5px; color: var(--navy); font-size: 22px; letter-spacing: -.04em; }
@@ -436,8 +439,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 @media (max-width: 1100px) {
   .app-shell.has-chat { grid-template-columns: 80px 286px minmax(0,1fr); }
   .directory-inner { padding-inline: 25px; }
-  .directory-content { grid-template-columns: minmax(0,460px) minmax(270px,320px); gap: 20px; }
-  .directory-welcome { min-height: 300px; padding-inline: 20px; }
+  .directory-content { grid-template-columns: minmax(0,1fr); max-width: 520px; gap: 20px; }
+  .directory-welcome { display: none; }
 }
 @media (max-width: 850px) and (min-width: 701px) {
   .app-shell { --nav-width: 220px; }
