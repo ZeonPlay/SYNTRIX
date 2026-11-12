@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1e1b4b">
+  <meta name="theme-color" content="#191847">
   <meta name="description" content="SYNTRIX — real-time chat and data communication learning lab.">
   <title>SYNTRIX — Data Communication Lab</title>
   <link rel="icon" type="image/png" href="/assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./src/styles.css?v=chat-workspace-v2">
-  <script type="module" src="/src/app.js"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=two-stage-cutout-v3">
+  <script type="module" src="/src/app.js?v=two-stage-cutout-v3"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -113,13 +113,14 @@
           <span class="directory-heading-dot"></span>
           <h1 id="directoryTitle">DAFTAR KONTAK</h1>
           <span class="directory-count" id="contactCount">0 CONTACTS</span>
+          <button id="addContactBtn" class="add-contact-button directory-add-button" type="button" aria-label="Tambah kontak"><span>＋</span><b>Tambah kontak</b></button>
         </header>
 
         <div class="directory-content">
           <section class="directory-list-column" aria-label="Daftar orang dan percakapan">
             <div class="directory-list-heading">
               <div><span class="directory-overline">PEOPLE & NETWORK</span><h2>Kontak kamu</h2></div>
-              <button id="addContactBtn" class="add-contact-button" type="button" aria-label="Tambah kontak"><span>＋</span><b>Tambah</b></button>
+              <button id="drawerAddContactBtn" class="add-contact-button" type="button" aria-label="Tambah kontak"><span>＋</span><b>Tambah</b></button>
             </div>
             <label class="search-field">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
