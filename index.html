@@ -108,10 +108,11 @@
 
     <section id="sidebar" class="directory-view" aria-label="Direktori kontak">
       <div class="directory-inner">
+        <div hidden><span id="myAvatar"></span><span id="myName"></span><span id="myHandle"></span></div>
         <header class="directory-header">
           <span class="directory-heading-dot"></span>
           <h1 id="directoryTitle">DAFTAR KONTAK</h1>
-          <span class="directory-count" id="directoryCount">0 CONTACTS</span>
+          <span class="directory-count" id="contactCount">0 CONTACTS</span>
         </header>
 
         <div class="directory-content">
@@ -155,6 +156,7 @@
         <span class="empty-state-icon">S.</span>
         <h2>Pilih percakapan</h2>
         <p>Pilih kontak untuk membuka ruang pesan real-time.</p>
+        <button id="emptyAddContactBtn" class="button button-primary" type="button">Tambah kontak</button>
       </div>
 
       <section id="conversationView" class="conversation" hidden>
