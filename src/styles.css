@@ -688,6 +688,7 @@ body { background: var(--canvas); color: var(--ink); }
    the drawer when that track grows to 314px in stage two. */
 .directory-view {
   grid-column: 2 / 4;
+  grid-row: 1;
   z-index: 2;
   overflow: auto;
   background: var(--directory-bg);
@@ -848,6 +849,7 @@ body { background: var(--canvas); color: var(--ink); }
 .workspace {
   display: flex;
   grid-column: 3;
+  grid-row: 1;
   z-index: 0;
   min-width: 0;
   min-height: 0;
@@ -937,6 +939,8 @@ body { background: var(--canvas); color: var(--ink); }
 @media (max-width: 1100px) and (min-width: 851px) {
   .app-shell { grid-template-columns: 260px 0px minmax(0,1fr); }
   .app-shell.has-chat { grid-template-columns: 80px 286px minmax(0,1fr); }
+  .directory-content { grid-template-columns: minmax(0,1fr) 0px; max-width: 520px; }
+  .directory-welcome { display: none; }
 }
 @media (max-width: 850px) and (min-width: 701px) {
   .app-shell { grid-template-columns: 220px 0px minmax(0,1fr); }
