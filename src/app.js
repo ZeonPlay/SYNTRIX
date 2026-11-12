@@ -30,13 +30,30 @@ const unlockDialog = $('#unlockDialog');
 const keyDialog = $('#keyDialog');
 const inspectorDialog = $('#inspectorDialog');
 const navRail = $('#navRail');
+const navItems = navRail.querySelector('.nav-items');
+const navActivePill = navRail.querySelector('.nav-active-pill');
+
+function updateNavActivePill() {
+  const active = navRail.querySelector('.nav-item[data-view].is-active');
+  if (!active || !navActivePill) return;
+
+  if (window.innerWidth <= 700) {
+    navActivePill.style.width = `${active.offsetWidth}px`;
+    navActivePill.style.height = `${active.offsetHeight}px`;
+    navActivePill.style.transform = `translateX(${active.offsetLeft}px)`;
+  } else {
+    navActivePill.style.width = '';
+    navActivePill.style.height = `${active.offsetHeight}px`;
+    navActivePill.style.transform = `translateY(${active.offsetTop}px)`;
+  }
+}
 
 function setAppView(view) {
   const allowedViews = ['contacts', 'security', 'settings'];
   if (!allowedViews.includes(view)) return;
 
   appView.dataset.view = view;
-  // On narrow screens, returning to Contacts should show the contact list first.
+  // Returning to Contacts always restores the expanded directory stage.
   appView.classList.remove('has-chat');
 
   navRail.querySelectorAll('.nav-item[data-view]').forEach((button) => {
@@ -45,11 +62,15 @@ function setAppView(view) {
     if (active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
+
+  window.requestAnimationFrame(updateNavActivePill);
 }
 
 navRail.querySelectorAll('.nav-item[data-view]').forEach((button) => {
   button.addEventListener('click', () => setAppView(button.dataset.view));
 });
+window.addEventListener('resize', updateNavActivePill);
+window.requestAnimationFrame(updateNavActivePill);
 
 function setAuthMode(mode) {
   const isRegister = mode === 'register';
@@ -230,13 +251,18 @@ function renderContacts() {
     item.className = `contact-item${contact.id === state.activeContactId ? ' is-active' : ''}`;
     const isOnline = state.onlineUsers.has(contact.id);
     const unread = unreadCountFor(contact.id);
+    const avatarHue = [...String(contact.id)].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 360;
+    item.setAttribute('aria-label', `Open conversation with ${contact.display_name}`);
     item.innerHTML = `
       <span class="contact-avatar-wrap">
-        <span class="avatar contact-avatar">${escapeHTML(initials(contact.display_name))}</span>
+        <span class="avatar contact-avatar" style="--avatar-hue: ${avatarHue}">${escapeHTML(initials(contact.display_name))}</span>
         <i class="status-indicator ${isOnline ? 'online' : ''}"></i>
       </span>
       <span class="contact-detail">
-        <span class="contact-name-row"><strong>${escapeHTML(contact.display_name)}</strong></span>
+        <span class="contact-name-row">
+          <strong>${escapeHTML(contact.display_name)}</strong>
+          <span class="contact-handle">@${escapeHTML(contact.handle)}</span>
+        </span>
         <span class="contact-preview">${escapeHTML(contactPreview(contact.id))}</span>
       </span>
       ${unread ? `<span class="unread-count">${unread > 99 ? '99+' : unread}</span>` : ''}
@@ -520,6 +546,7 @@ async function enterApp(user) {
   state.user = user;
   authView.hidden = true;
   appView.hidden = false;
+  window.requestAnimationFrame(updateNavActivePill);
   $('#emptyState').hidden = false;
   $('#conversationView').hidden = true;
   $('#messages').replaceChildren();
@@ -623,6 +650,7 @@ $('#addContactBtn').addEventListener('click', () => {
   $('#contactHandle').focus();
 });
 $('#emptyAddContactBtn').addEventListener('click', () => $('#addContactBtn').click());
+$('#drawerAddContactBtn').addEventListener('click', () => $('#addContactBtn').click());
 
 $('#contactForm').addEventListener('submit', async (event) => {
   event.preventDefault();
