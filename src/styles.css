@@ -1030,6 +1030,31 @@ body { background: var(--canvas); color: var(--ink); }
   transform: translateX(0);
 }
 
+
+/* Compact desktop rail: keep every icon on the same left-side motion path.
+   The mobile bottom bar keeps its independent centered layout. */
+@media (min-width: 701px) {
+  .app-shell.has-chat .nav-item {
+    justify-content: flex-start;
+    padding-inline: 10px;
+  }
+
+  .app-shell.has-chat .nav-footer {
+    align-items: flex-start;
+    padding-inline: 20px 0;
+  }
+
+  .app-shell.has-chat .node-status {
+    justify-content: flex-start;
+  }
+
+  .app-shell.has-chat .logout-button {
+    justify-content: flex-start;
+    width: 44px;
+    padding-inline: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-shell, .nav-active-pill, .nav-item, .nav-label, .directory-inner,
   .directory-header, .directory-content, .directory-welcome, .workspace,
