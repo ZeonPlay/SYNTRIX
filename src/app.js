@@ -767,10 +767,16 @@ $('#changeKeyBtn').addEventListener('click', () => {
   openDialog(keyDialog);
 });
 $('#logoutBtn').addEventListener('click', async () => {
+  const button = $('#logoutBtn');
+  button.disabled = true;
   try {
     await signOut();
+    // Always leave the /chat route after the local session is cleared.
+    window.location.replace('/');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal keluar.'), 'error');
+  } finally {
+    button.disabled = false;
   }
 });
 
