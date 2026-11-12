@@ -29,6 +29,27 @@ const contactDialog = $('#contactDialog');
 const unlockDialog = $('#unlockDialog');
 const keyDialog = $('#keyDialog');
 const inspectorDialog = $('#inspectorDialog');
+const navRail = $('#navRail');
+
+function setAppView(view) {
+  const allowedViews = ['contacts', 'security', 'settings'];
+  if (!allowedViews.includes(view)) return;
+
+  appView.dataset.view = view;
+  // On narrow screens, returning to Contacts should show the contact list first.
+  appView.classList.remove('has-chat');
+
+  navRail.querySelectorAll('.nav-item[data-view]').forEach((button) => {
+    const active = button.dataset.view === view;
+    button.classList.toggle('is-active', active);
+    if (active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+}
+
+navRail.querySelectorAll('.nav-item[data-view]').forEach((button) => {
+  button.addEventListener('click', () => setAppView(button.dataset.view));
+});
 
 function setAuthMode(mode) {
   const isRegister = mode === 'register';
@@ -341,9 +362,12 @@ function updateConversationHeader() {
 }
 
 async function selectContact(contactId) {
-  state.activeContactId = contactId;
   const contact = state.contacts.find((item) => item.id === contactId);
   if (!contact) return;
+
+  state.activeContactId = contactId;
+  if (appView.dataset.view !== 'contacts') setAppView('contacts');
+  appView.classList.add('has-chat');
   $('#emptyState').hidden = true;
   $('#conversationView').hidden = false;
   $('#messageInput').focus();
@@ -918,8 +942,12 @@ $('#messages').addEventListener('click', (event) => {
   if (button.dataset.action === 'inspect') openInspector(message);
 });
 
-$('#mobileSidebarOpen').addEventListener('click', () => $('#sidebar').classList.add('mobile-open'));
-$('#mobileSidebarClose')?.addEventListener('click', () => $('#sidebar').classList.remove('mobile-open'));
+$('#mobileSidebarOpen').addEventListener('click', () => {
+  setAppView('contacts');
+});
+$('#mobileSidebarClose')?.addEventListener('click', () => {
+  setAppView('contacts');
+});
 
 document.addEventListener('keydown', (event) => {
   if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -929,7 +957,10 @@ document.addEventListener('keydown', (event) => {
       $('#contactSearch').focus();
     }
   }
-  if (event.key === 'Escape') $('#sidebar').classList.remove('mobile-open');
+  if (event.key === 'Escape') {
+    $('#sidebar').classList.remove('mobile-open');
+    if (!document.querySelector('dialog[open]')) appView.classList.remove('has-chat');
+  }
 });
 
 initialize();
