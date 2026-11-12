@@ -153,6 +153,8 @@ registerForm.addEventListener('submit', async (event) => {
 function setConnection(status) {
   const dot = $('#connectionDot');
   const label = $('#connectionLabel');
+  // Sidebar connection status is optional; the indicator is no longer rendered.
+  if (!dot || !label) return;
   dot.classList.remove('connected', 'disconnected');
   if (status === 'SUBSCRIBED') {
     dot.classList.add('connected');
