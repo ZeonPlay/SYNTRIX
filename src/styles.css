@@ -343,3 +343,54 @@ button:focus-visible, a:focus-visible, input:focus-visible, .contact-item:focus-
 .empty-signal-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
 .empty-signal-label span:last-child { color: var(--quiet); font-family: var(--mono); }
 .empty-signal svg { display: block; width: 100%; margin-top: 8px; }
+
+/* ---------- Navigation rail + pages ---------- */
+.nav-rail { width: 224px; flex: 0 0 224px; min-height: 0; display: flex; flex-direction: column; padding: 18px 12px; overflow: hidden; background: #1b1d1f; border-right: 1px solid var(--line); transition: width .18s ease, flex-basis .18s ease; }
+.app-shell[data-view="contacts"] .nav-rail { width: 68px; flex-basis: 68px; align-items: center; }
+.app-shell[data-view="contacts"] .nav-label { display: none; }
+.nav-rail .brand { padding: 2px 4px 0; }
+.nav-items { display: flex; flex-direction: column; gap: 6px; margin-top: 26px; width: 100%; }
+.nav-bottom { display: flex; flex-direction: column; gap: 10px; margin-top: auto; width: 100%; }
+.nav-item { display: flex; align-items: center; gap: 12px; width: 100%; height: 42px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.nav-item svg { width: 20px; height: 20px; flex: 0 0 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nav-item:hover { background: #26292b; color: var(--text); }
+.nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nav-item.is-active { background: var(--accent-soft); color: var(--accent-strong); }
+.nav-logout:hover { color: var(--red); }
+.app-shell[data-view="contacts"] .nav-item { justify-content: center; padding: 0; }
+.nav-bottom .connection-indicator { padding: 0 12px; }
+.app-shell[data-view="contacts"] .nav-bottom .connection-indicator { padding: 0; justify-content: center; }
+.panel-title { font-size: 15px; letter-spacing: -.02em; }
+.app-shell:not([data-view="contacts"]) .sidebar,
+.app-shell:not([data-view="contacts"]) .empty-state,
+.app-shell:not([data-view="contacts"]) .conversation { display: none !important; }
+.page-view { display: none; height: 100%; overflow-y: auto; padding: 34px clamp(18px, 4vw, 52px); }
+.app-shell[data-view="security"] #securityView,
+.app-shell[data-view="settings"] #settingsView { display: block; }
+.page-inner { max-width: 640px; }
+.page-view h1 { margin: 10px 0 6px; font-size: 24px; letter-spacing: -.035em; }
+.page-lead { margin: 0 0 8px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.page-card { margin-top: 16px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: #202225; }
+.page-card.settings-item { border-top: 1px solid var(--line); }
+.page-card.settings-profile { margin: 18px 0 0; }
+.page-card > strong { font-size: 12px; }
+.page-card > p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.75; }
+.version-label { color: var(--quiet); font: 10px var(--mono); }
+.sidebar-top { padding: 18px 19px 14px; }
+
+@media (max-width: 680px) {
+  .app-shell { flex-direction: column; }
+  .app-shell[data-view] .nav-rail { order: 2; width: 100%; flex: 0 0 auto; flex-direction: row; align-items: center; padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)); border-right: 0; border-top: 1px solid var(--line); }
+  .app-shell[data-view] .nav-rail .brand,
+  .app-shell[data-view] .nav-label { display: none; }
+  .app-shell[data-view] .nav-items { flex-direction: row; flex: 1; margin: 0; gap: 4px; }
+  .app-shell[data-view] .nav-bottom { flex-direction: row; width: auto; margin: 0; align-items: center; gap: 2px; }
+  .app-shell[data-view] .nav-item { justify-content: center; padding: 0; height: 44px; }
+  .app-shell[data-view] .nav-bottom .nav-item { width: 44px; }
+  .app-shell[data-view] .nav-bottom .connection-indicator { padding: 0 8px; }
+  .app-shell[data-view="contacts"] .sidebar { position: static; transform: none; width: 100%; flex: 1 1 auto; z-index: auto; border-right: 0; box-shadow: none; }
+  .app-shell[data-view="contacts"].has-chat .sidebar { display: none; }
+  .app-shell[data-view="contacts"]:not(.has-chat) .workspace { display: none; }
+  .workspace { flex: 1 1 auto; min-height: 0; }
+  .page-view { padding: 24px 16px; }
+}

@@ -65,16 +65,25 @@
     </section>
   </main>
 
-  <main id="appView" class="app-shell" hidden>
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-top">
-        <a class="brand" href="/" aria-label="SYNTRIX"><span class="brand-mark">S<span class="brand-mark-dot">.</span></span><span class="brand-copy"><strong>SYNTRIX</strong><small>COMMUNICATION LAB</small></span></a>
-        <button id="mobileSidebarClose" class="icon-button mobile-only" type="button" aria-label="Close contacts">×</button>
+  <main id="appView" class="app-shell" data-view="contacts" hidden>
+    <nav id="navRail" class="nav-rail" aria-label="Main navigation">
+      <a class="brand" href="/" aria-label="SYNTRIX"><span class="brand-mark">S<span class="brand-mark-dot">.</span></span><span class="brand-copy nav-label"><strong>SYNTRIX</strong><small>COMMUNICATION LAB</small></span></a>
+      <div class="nav-items">
+        <button type="button" class="nav-item is-active" data-view="contacts" aria-current="page" title="Contact"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.6-.8L3 21l1.9-5.1A8.4 8.4 0 1 1 21 11.5z"/></svg><span class="nav-label">Contact</span></button>
+        <button type="button" class="nav-item" data-view="security" title="Keamanan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span class="nav-label">Keamanan</span></button>
+        <button type="button" class="nav-item" data-view="settings" title="Pengaturan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="nav-label">Pengaturan</span></button>
       </div>
+      <div class="nav-bottom">
+        <div class="connection-indicator" title="Status koneksi"><span id="connectionDot" class="connection-dot"></span><span id="connectionLabel" class="nav-label">Connecting…</span></div>
+        <button id="logoutBtn" class="nav-item nav-logout" type="button" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span class="nav-label">Sign out</span></button>
+      </div>
+    </nav>
+
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-top"><strong class="panel-title">Contact</strong></div>
       <div class="account-card">
         <div id="myAvatar" class="avatar avatar-self">S</div>
         <div class="account-info"><strong id="myName">SYNTRIX User</strong><span id="myHandle">@username</span></div>
-        <button id="accountMenuBtn" class="icon-button" type="button" title="Account settings" aria-label="Account settings">···</button>
       </div>
       <div class="sidebar-actions">
         <button id="addContactBtn" class="button button-secondary button-wide" type="button"><span>＋</span> Add contact</button>
@@ -82,10 +91,6 @@
       </div>
       <div class="section-heading"><span>Messages</span><span id="contactCount" class="count-pill">0</span></div>
       <div id="contactList" class="contact-list" aria-label="Contact list"><div class="list-empty">Your conversations will appear here.</div></div>
-      <div class="sidebar-bottom">
-        <div class="connection-indicator"><span id="connectionDot" class="connection-dot"></span><span id="connectionLabel">Connecting…</span></div>
-        <button id="logoutBtn" class="logout-button" type="button"><span>↪</span> Sign out</button>
-      </div>
     </aside>
 
     <section class="workspace">
@@ -102,7 +107,7 @@
 
       <section id="conversationView" class="conversation" hidden>
         <header class="conversation-header">
-          <button id="mobileSidebarOpen" class="icon-button mobile-only" type="button" aria-label="Open contacts">☰</button>
+          <button id="mobileSidebarOpen" class="icon-button mobile-only" type="button" aria-label="Back to contacts">←</button>
           <div id="chatAvatar" class="avatar">?</div>
           <div class="conversation-person"><strong id="chatName">Contact</strong><span><i id="chatStatusDot" class="status-dot"></i><span id="chatStatus">Offline</span></span></div>
           <div class="header-tools"><span class="protocol-chip"><span></span> NRZ-I enabled</span></div>
@@ -117,6 +122,25 @@
           </div>
           <div class="composer-hint"><span>Enter to send</span><span>Max 500 characters · ASCII</span></div>
         </form>
+      </section>
+
+      <section id="securityView" class="page-view" aria-labelledby="securityTitle">
+        <div class="page-inner">
+          <span class="eyebrow">Keamanan</span>
+          <h1 id="securityTitle">Keamanan akun</h1>
+          <p class="page-lead">Atur kunci pembuka yang melindungi isi pesanmu.</p>
+          <div class="page-card settings-item"><div><strong>Kunci pembuka pesan</strong><span id="keyStatus">Memeriksa…</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Atur kunci</button></div>
+          <div class="page-card"><strong>Cara kerjanya</strong><p>Server hanya mengirim isi pesan setelah kunci kamu terbukti benar, dan percobaan yang salah dibatasi dengan jeda yang makin lama. Ini bukan enkripsi end-to-end, jadi jangan dipakai untuk data yang sangat sensitif.</p></div>
+        </div>
+      </section>
+
+      <section id="settingsView" class="page-view" aria-labelledby="settingsTitle">
+        <div class="page-inner">
+          <span class="eyebrow">Pengaturan</span>
+          <h1 id="settingsTitle">Pengaturan akun</h1>
+          <div class="page-card settings-profile"><div id="settingsAvatar" class="avatar">S</div><div><strong id="settingsName">SYNTRIX User</strong><span id="settingsHandle">@username</span></div></div>
+          <div class="page-card settings-item"><div><strong>Tentang SYNTRIX</strong><span>Proyek belajar komunikasi data.</span></div><span class="version-label">v1.0.0</span></div>
+        </div>
       </section>
     </section>
   </main>
@@ -159,15 +183,6 @@
     </div>
   </dialog>
 
-  <dialog id="accountDialog" class="modal">
-    <div class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">Your account</span><h2>Preferences</h2></div><button class="icon-button dialog-close" type="button" data-close="accountDialog" aria-label="Close">×</button></div>
-      <div class="settings-profile"><div id="settingsAvatar" class="avatar">S</div><div><strong id="settingsName">SYNTRIX User</strong><span id="settingsHandle">@username</span></div></div>
-      <div class="settings-item"><div><strong>Message unlock key</strong><span>Change the key used to view decoded messages.</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Change key</button></div>
-      <div class="settings-item"><div><strong>About SYNTRIX</strong><span>Independent data communication learning project.</span></div><span class="version-label">v1.0.0</span></div>
-      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="accountDialog">Done</button></div>
-    </div>
-  </dialog>
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="false"></div>
 </body>
 </html>
