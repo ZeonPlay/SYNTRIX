@@ -76,66 +76,91 @@
 
   <main id="appView" class="app-shell" data-view="contacts" hidden>
     <nav id="navRail" class="nav-rail" aria-label="Main navigation">
-      <a class="brand" href="/" aria-label="SYNTRIX"><span class="brand-mark">S<span class="brand-mark-dot">.</span></span><span class="brand-copy nav-label"><strong>SYNTRIX</strong><small>COMMUNICATION LAB</small></span></a>
+      <a class="rail-brand" href="/" aria-label="SYNTRIX home"><span>S<span>.</span></span></a>
       <div class="nav-items">
-        <button type="button" class="nav-item is-active" data-view="contacts" aria-current="page" title="Contact"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.6-.8L3 21l1.9-5.1A8.4 8.4 0 1 1 21 11.5z"/></svg><span class="nav-label">Contact</span></button>
-        <button type="button" class="nav-item" data-view="security" title="Keamanan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span class="nav-label">Keamanan</span></button>
-        <button type="button" class="nav-item" data-view="settings" title="Pengaturan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="nav-label">Pengaturan</span></button>
+        <button type="button" class="nav-item is-active" data-view="contacts" aria-current="page" title="Messages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.4a7.8 7.8 0 0 1-8.3 7.8 8.7 8.7 0 0 1-3.4-.7L3 20l1.7-4.8A7.7 7.7 0 1 1 20 11.4Z"/></svg><span class="nav-label">Messages</span>
+        </button>
+        <button type="button" class="nav-item" data-view="security" title="Security">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Security</span>
+        </button>
+        <button type="button" class="nav-item" data-view="settings" title="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5v.2a2 2 0 1 1-4 0V19a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4 15.1l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H2.8a2 2 0 1 1 0-4H3a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8L4 5.2a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V1.2a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.5 1.1 1.7 1.7 0 0 0-.1 1.6Z"/></svg><span class="nav-label">Settings</span>
+        </button>
       </div>
       <div class="nav-bottom">
-        <div class="connection-indicator" title="Status koneksi"><span id="connectionDot" class="connection-dot"></span><span id="connectionLabel" class="nav-label">Connecting…</span></div>
-        <button id="logoutBtn" class="nav-item nav-logout" type="button" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span class="nav-label">Sign out</span></button>
+        <div class="connection-indicator" title="Connection status"><span id="connectionDot" class="connection-dot"></span><span id="connectionLabel" class="nav-label">Connecting…</span></div>
+        <button id="logoutBtn" class="nav-item nav-logout" type="button" title="Sign out">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span class="nav-label">Sign out</span>
+        </button>
       </div>
     </nav>
 
     <aside id="sidebar" class="sidebar">
-      <div class="sidebar-top"><strong class="panel-title">Contact</strong></div>
-      <div class="account-card">
-        <div id="myAvatar" class="avatar avatar-self">S</div>
-        <div class="account-info"><strong id="myName">SYNTRIX User</strong><span id="myHandle">@username</span></div>
-      </div>
+      <header class="sidebar-header">
+        <div class="sidebar-heading">
+          <span class="sidebar-kicker">YOUR SPACE</span>
+          <div class="sidebar-title-row"><h1>Messages</h1><span id="contactCount" class="count-pill">0</span></div>
+        </div>
+        <div class="account-card">
+          <div id="myAvatar" class="avatar avatar-self">S</div>
+          <div class="account-info"><strong id="myName">SYNTRIX User</strong><span id="myHandle">@username</span></div>
+          <span class="account-presence" aria-label="Connected"></span>
+        </div>
+      </header>
+
       <div class="sidebar-actions">
-        <button id="addContactBtn" class="button button-secondary button-wide" type="button"><span>＋</span> Add contact</button>
-        <label class="search-field"><span aria-hidden="true">⌕</span><input id="contactSearch" type="search" placeholder="Search conversations..." autocomplete="off"><kbd>/</kbd></label>
+        <button id="addContactBtn" class="button button-primary button-wide" type="button"><span aria-hidden="true">＋</span> New conversation</button>
+        <label class="search-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="contactSearch" type="search" placeholder="Search people or messages" autocomplete="off"><kbd>/</kbd></label>
       </div>
-      <div class="section-heading"><span>Messages</span><span id="contactCount" class="count-pill">0</span></div>
-      <div id="contactList" class="contact-list" aria-label="Contact list"><div class="list-empty">Your conversations will appear here.</div></div>
+
+      <div class="section-heading"><span>RECENT CONVERSATIONS</span><span class="section-rule"></span></div>
+      <div id="contactList" class="contact-list" aria-label="Contact list"><div class="list-empty">Your conversations will appear here. Add a contact to begin.</div></div>
+      <div class="sidebar-footer"><span class="footer-mark">S.</span><span>Private conversations<br><small>Data Communication Lab</small></span></div>
     </aside>
 
     <section class="workspace">
       <div id="emptyState" class="empty-state">
-        <div class="empty-signal" aria-hidden="true">
-          <div class="empty-signal-label"><span>Signal preview</span><span>Idle</span></div>
-          <svg viewBox="0 0 320 72"><path d="M0 18 H32 V54 H64 V18 H96 V54 H128 V54 H160 V18 H192 V54 H224 V18 H256 V18 H288 V54 H320" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <div class="empty-graphic">
+          <div class="empty-graphic-orbit orbit-one"></div>
+          <div class="empty-graphic-orbit orbit-two"></div>
+          <div class="empty-graphic-core">S<span>.</span></div>
+          <span class="graphic-node node-one"></span><span class="graphic-node node-two"></span><span class="graphic-node node-three"></span>
         </div>
-        <span class="eyebrow">Your workspace</span>
-        <h2>Select a conversation</h2>
-        <p>Choose someone from your list or add a contact using their SYNTRIX handle.</p>
-        <button id="emptyAddContactBtn" class="button button-secondary" type="button">＋ Add your first contact</button>
+        <span class="eyebrow"><span class="eyebrow-dot"></span> SYNTRIX WORKSPACE</span>
+        <h2>Your conversations,<br><span>in a clearer signal.</span></h2>
+        <p>Choose a conversation from the left, or create a new one to start exchanging messages.</p>
+        <button id="emptyAddContactBtn" class="button button-primary" type="button">＋ Start a conversation</button>
       </div>
 
       <section id="conversationView" class="conversation" hidden>
         <header class="conversation-header">
-          <button id="mobileSidebarOpen" class="icon-button mobile-only" type="button" aria-label="Back to contacts">←</button>
-          <div id="chatAvatar" class="avatar">?</div>
-          <div class="conversation-person"><strong id="chatName">Contact</strong><span><i id="chatStatusDot" class="status-dot"></i><span id="chatStatus">Offline</span></span></div>
-          <div class="header-tools"><span class="protocol-chip"><span></span> NRZ-I enabled</span></div>
+          <button id="mobileSidebarOpen" class="icon-button mobile-only" type="button" aria-label="Back to contacts">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div id="chatAvatar" class="avatar chat-avatar">?</div>
+          <div class="conversation-person">
+            <strong id="chatName">Contact</strong>
+            <span><i id="chatStatusDot" class="status-dot"></i><span id="chatStatus">Offline</span><span class="status-divider">·</span><span class="conversation-caption">Conversation</span></span>
+          </div>
+          <div class="header-tools"><span class="protocol-chip"><span class="protocol-chip-dot"></span> NRZ-I <b>ACTIVE</b></span></div>
         </header>
-        <div class="conversation-banner"><span class="banner-icon">⌁</span><span>Messages are stored as framed binary data. Select one to inspect its signal.</span></div>
+        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>Signal protection enabled</strong> Messages are stored as framed ASCII data and encoded with NRZ-I.</span><span class="banner-learn">10-bit frames</span></div>
         <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
         <form id="messageForm" class="composer">
           <div class="composer-inner">
-            <input id="messageInput" type="text" autocomplete="off" maxlength="500" placeholder="Write a message… (printable ASCII)" aria-label="Message">
+            <span class="composer-leading" aria-hidden="true">＋</span>
+            <input id="messageInput" type="text" autocomplete="off" maxlength="500" placeholder="Write a message…" aria-label="Message">
             <span id="messageCounter" class="message-counter">0 / 500</span>
-            <button id="sendButton" class="send-button" type="submit" aria-label="Send message"><span>Send</span><b>↗</b></button>
+            <button id="sendButton" class="send-button" type="submit" aria-label="Send message"><span>Send</span><b aria-hidden="true">↗</b></button>
           </div>
-          <div class="composer-hint"><span>Enter to send</span><span>Max 500 characters · ASCII</span></div>
+          <div class="composer-hint"><span><kbd>Enter</kbd> to send <i>·</i> Printable ASCII only</span><span>Maximum 500 characters</span></div>
         </form>
       </section>
 
       <section id="securityView" class="page-view" aria-labelledby="securityTitle">
         <div class="page-inner">
-          <span class="eyebrow">Keamanan</span>
+          <span class="eyebrow"><span class="eyebrow-dot"></span> ACCOUNT PROTECTION</span>
           <h1 id="securityTitle">Keamanan akun</h1>
           <p class="page-lead">Atur kunci pembuka yang melindungi isi pesanmu.</p>
           <div class="page-card settings-item"><div><strong>Kunci pembuka pesan</strong><span id="keyStatus">Memeriksa…</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Atur kunci</button></div>
@@ -145,13 +170,39 @@
 
       <section id="settingsView" class="page-view" aria-labelledby="settingsTitle">
         <div class="page-inner">
-          <span class="eyebrow">Pengaturan</span>
+          <span class="eyebrow"><span class="eyebrow-dot"></span> PREFERENCES</span>
           <h1 id="settingsTitle">Pengaturan akun</h1>
           <div class="page-card settings-profile"><div id="settingsAvatar" class="avatar">S</div><div><strong id="settingsName">SYNTRIX User</strong><span id="settingsHandle">@username</span></div></div>
           <div class="page-card settings-item"><div><strong>Tentang SYNTRIX</strong><span>Proyek belajar komunikasi data.</span></div><span class="version-label">v1.0.0</span></div>
         </div>
       </section>
     </section>
+
+    <aside id="protocolPanel" class="protocol-sidebar" aria-label="Communication protocol overview">
+      <div class="protocol-side-head">
+        <span class="sidebar-kicker">TRANSMISSION LAB</span>
+        <span class="live-indicator"><i></i> LIVE</span>
+      </div>
+      <div class="protocol-intro">
+        <span class="protocol-overline">LINE ENCODING</span>
+        <h2>NRZ-I <span>signal</span></h2>
+        <p>Every message becomes a sequence of frames before it reaches the other side.</p>
+      </div>
+      <div class="protocol-preview">
+        <div class="preview-top"><span>WAVEFORM PREVIEW</span><span>01 · 10 · 01 · 11</span></div>
+        <svg viewBox="0 0 260 78" role="img" aria-label="NRZ-I waveform preview">
+          <path class="wave-grid" d="M0 19.5H260M0 58.5H260M32.5 0V78M65 0V78M97.5 0V78M130 0V78M162.5 0V78M195 0V78M227.5 0V78"/>
+          <path class="wave-line" d="M0 20H32V58H65V20H97V58H130V58H162V20H195V58H227V20H260"/>
+        </svg>
+        <div class="preview-labels"><span>HIGH</span><span>LOW</span></div>
+      </div>
+      <div class="protocol-steps">
+        <div class="protocol-step"><span class="step-number">01</span><div><strong>ASCII framing</strong><small>One character · 10 bits</small></div></div>
+        <div class="protocol-step"><span class="step-number">02</span><div><strong>Even parity</strong><small>Error-checking bit</small></div></div>
+        <div class="protocol-step"><span class="step-number">03</span><div><strong>NRZ-I encoding</strong><small>1 toggles · 0 holds</small></div></div>
+      </div>
+      <div class="protocol-note"><span class="note-icon">i</span><p>This is reversible data framing, not end-to-end encryption.</p></div>
+    </aside>
   </main>
 
   <dialog id="contactDialog" class="modal">
