@@ -546,6 +546,7 @@ async function enterApp(user) {
   state.user = user;
   authView.hidden = true;
   appView.hidden = false;
+  window.requestAnimationFrame(updateNavActivePill);
   $('#emptyState').hidden = false;
   $('#conversationView').hidden = true;
   $('#messages').replaceChildren();
@@ -649,6 +650,7 @@ $('#addContactBtn').addEventListener('click', () => {
   $('#contactHandle').focus();
 });
 $('#emptyAddContactBtn').addEventListener('click', () => $('#addContactBtn').click());
+$('#drawerAddContactBtn').addEventListener('click', () => $('#addContactBtn').click());
 
 $('#contactForm').addEventListener('submit', async (event) => {
   event.preventDefault();
