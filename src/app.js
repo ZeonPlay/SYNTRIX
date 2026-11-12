@@ -265,6 +265,8 @@ function renderContacts() {
         </span>
         <span class="contact-preview">${escapeHTML(contactPreview(contact.id))}</span>
       </span>
+      <span class="active-cutout active-cutout-top" aria-hidden="true"></span>
+      <span class="active-cutout active-cutout-bottom" aria-hidden="true"></span>
       ${unread ? `<span class="unread-count">${unread > 99 ? '99+' : unread}</span>` : ''}
     `;
     item.addEventListener('click', () => selectContact(contact.id));
@@ -394,6 +396,7 @@ async function selectContact(contactId) {
   state.activeContactId = contactId;
   if (appView.dataset.view !== 'contacts') setAppView('contacts');
   appView.classList.add('has-chat');
+  window.requestAnimationFrame(updateNavActivePill);
   $('#emptyState').hidden = true;
   $('#conversationView').hidden = false;
   $('#messageInput').focus();
