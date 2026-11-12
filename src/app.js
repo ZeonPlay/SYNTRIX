@@ -29,7 +29,6 @@ const contactDialog = $('#contactDialog');
 const unlockDialog = $('#unlockDialog');
 const keyDialog = $('#keyDialog');
 const inspectorDialog = $('#inspectorDialog');
-const accountDialog = $('#accountDialog');
 
 function setAuthMode(mode) {
   const isRegister = mode === 'register';
@@ -757,9 +756,7 @@ $('#keyForm').addEventListener('submit', async (event) => {
   }
 });
 
-$('#accountMenuBtn').addEventListener('click', () => openDialog(accountDialog));
 $('#changeKeyBtn').addEventListener('click', () => {
-  closeDialog(accountDialog);
   $('#keyForm').reset();
   $('#oldKeyField').hidden = false;
   $('#keyDialogTitle').textContent = 'Change your unlock key';
@@ -784,7 +781,7 @@ document.querySelectorAll('[data-close]').forEach((button) => {
   button.addEventListener('click', () => closeDialog(document.getElementById(button.dataset.close)));
 });
 
-for (const dialog of [contactDialog, unlockDialog, keyDialog, inspectorDialog, accountDialog]) {
+for (const dialog of [contactDialog, unlockDialog, keyDialog, inspectorDialog]) {
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) closeDialog(dialog);
   });
@@ -883,16 +880,16 @@ function openInspector(storedMessage) {
     <section class="inspector-section">
       <h3>Transmission format</h3>
       <p>Each character is framed as <strong>0</strong> start bit + <strong>7</strong> ASCII data bits + <strong>1</strong> even-parity bit + <strong>1</strong> stop bit. NRZ-I toggles the signal level when the encoded bit is 1; a 0 keeps the previous level.</p>
-      <p style="margin-top:7px;color:#a5c8c2;font-family:var(--mono)">FRAME = START · DATA[7] · PARITY · STOP</p>
+      <p class="inspector-frame-format">FRAME = START · DATA[7] · PARITY · STOP</p>
     </section>
     <section class="inspector-section">
       <h3>NRZ-I waveform</h3>
       <div class="signal-scroll"><canvas id="inspectorSignal" class="signal-large"></canvas></div>
-      <p style="margin-top:8px">${truncated ? 'Waveform preview shows the first 120 frames to keep the browser responsive.' : 'Complete waveform for this message.'} The level begins at HIGH.</p>
+      <p class="inspector-wave-note">${truncated ? 'Waveform preview shows the first 120 frames to keep the browser responsive.' : 'Complete waveform for this message.'} The level begins at HIGH.</p>
     </section>
     <section class="inspector-section">
       <h3>Binary payload</h3>
-      <p style="font-family:var(--mono);overflow-wrap:anywhere;color:#a8c2c1">${escapeHTML(firstBits)}${message.payload_bits.length > firstBits.length ? ' …' : ''}</p>
+      <p class="inspector-binary-payload">${escapeHTML(firstBits)}${message.payload_bits.length > firstBits.length ? ' …' : ''}</p>
     </section>
     <section class="inspector-section">
       <h3>Frame breakdown</h3>
@@ -905,7 +902,7 @@ function openInspector(storedMessage) {
     </section>
     <section class="inspector-section">
       <h3>Validation result</h3>
-      <p style="color:var(--green)">✓ Start bits, stop bits, frame length, and even parity are valid. ${levels.length} signal levels generated.</p>
+      <p class="inspector-validation">✓ Start bits, stop bits, frame length, and even parity are valid. ${levels.length} signal levels generated.</p>
     </section>
   `;
   openDialog(inspectorDialog);
@@ -922,7 +919,7 @@ $('#messages').addEventListener('click', (event) => {
 });
 
 $('#mobileSidebarOpen').addEventListener('click', () => $('#sidebar').classList.add('mobile-open'));
-$('#mobileSidebarClose').addEventListener('click', () => $('#sidebar').classList.remove('mobile-open'));
+$('#mobileSidebarClose')?.addEventListener('click', () => $('#sidebar').classList.remove('mobile-open'));
 
 document.addEventListener('keydown', (event) => {
   if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
