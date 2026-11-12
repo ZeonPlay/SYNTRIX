@@ -645,9 +645,9 @@ body { background: var(--canvas); color: var(--ink); }
   transition: max-width .58s var(--ease), opacity .22s ease, transform .5s var(--ease);
 }
 .app-shell.has-chat .nav-item {
-  justify-content: flex-start;
+  justify-content: center;
   gap: 0;
-  padding: 0 0 0 20px;
+  padding: 0;
   border-radius: 16px;
 }
 .app-shell.has-chat .nav-label {
