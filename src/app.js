@@ -486,6 +486,10 @@ async function loadWorkspace() {
   });
 }
 
+function isChatRoute() {
+  return window.location.pathname.replace(/\\/+$/, '') === '/chat';
+}
+
 async function enterApp(user) {
   if (!user || state.bootingUserId === user.id) return;
   if (state.user?.id === user.id && !appView.hidden) return;
@@ -529,9 +533,27 @@ async function leaveApp() {
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     leaveApp();
+    if (isChatRoute()) window.history.replaceState({}, '', '/');
     return;
   }
-  if (session?.user && ['SIGNED_IN', 'INITIAL_SESSION', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
+
+  if (!session?.user) return;
+
+  // A fresh login is an explicit request to enter the workspace.
+  if (event === 'SIGNED_IN') {
+    window.history.replaceState({}, '', '/chat');
+    window.setTimeout(() => enterApp(session.user), 0);
+    return;
+  }
+
+  // Restoring or refreshing a saved session must never hijack the public homepage.
+  if (event === 'INITIAL_SESSION' && isChatRoute()) {
+    window.setTimeout(() => enterApp(session.user), 0);
+    return;
+  }
+
+  // Keep an already-open workspace alive when Supabase refreshes its session.
+  if (['TOKEN_REFRESHED', 'USER_UPDATED'].includes(event) && state.user?.id === session.user.id) {
     window.setTimeout(() => enterApp(session.user), 0);
   }
 });
@@ -540,11 +562,37 @@ async function initialize() {
   try {
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
-    if (data.session?.user) await enterApp(data.session.user);
+
+    // The homepage is the default route, even when a valid session exists.
+    // The workspace is restored only when the user opens /chat explicitly.
+    if (data.session?.user && isChatRoute()) {
+      await enterApp(data.session.user);
+    }
   } catch (error) {
     showToast(friendlyError(error, 'Gagal memeriksa sesi login.'), 'error');
   }
 }
+
+window.addEventListener('popstate', async () => {
+  if (isChatRoute()) {
+    if (state.user) {
+      await enterApp(state.user);
+      return;
+    }
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      showToast(friendlyError(error, 'Gagal memeriksa sesi login.'), 'error');
+      return;
+    }
+    if (data.session?.user) await enterApp(data.session.user);
+    return;
+  }
+
+  if (!appView.hidden) {
+    appView.hidden = true;
+    authView.hidden = false;
+  }
+});
 
 $('#addContactBtn').addEventListener('click', () => {
   $('#contactForm').reset();
