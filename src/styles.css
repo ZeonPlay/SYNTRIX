@@ -1016,7 +1016,7 @@ body { background: var(--canvas); color: var(--ink); }
 .app-shell.has-chat .brand-lockup {
   justify-content: flex-start;
   gap: 0;
-  padding-inline: max(15px, calc((100% - 38px) / 2));
+  padding-inline: 20px;
 }
 .app-shell.has-chat .brand-mark {
   width: 38px;
