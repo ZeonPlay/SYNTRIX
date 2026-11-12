@@ -3,64 +3,73 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#18191b">
+  <meta name="theme-color" content="#1e1b4b">
   <meta name="description" content="SYNTRIX — real-time chat and data communication learning lab.">
   <title>SYNTRIX — Data Communication Lab</title>
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles.css">
   <script type="module" src="/src/app.js"></script>
 </head>
 <body>
-  <main id="authView" class="auth-shell">
-    <section class="auth-intro">
-      <a class="brand brand-large" href="/" aria-label="SYNTRIX home">
-        <span class="brand-mark">S<span class="brand-mark-dot">.</span></span>
-        <span class="brand-copy"><strong>SYNTRIX</strong><small>DATA COMMUNICATION LAB</small></span>
+  <main id="authView" class="login-page">
+    <section class="login-side">
+      <a class="login-brand" href="/" aria-label="SYNTRIX home">
+        <img src="./assets/logo.png" alt="" width="84" height="84">
+        <span class="login-brand-text"><strong>SYNTRIX</strong><small>DIGITAL SIGNAL</small></span>
       </a>
-      <div class="intro-copy">
-        <span class="eyebrow"><span class="pulse-dot"></span> A small lab for digital communication</span>
+
+      <div class="login-copy">
+        <span class="login-badge"><span class="login-dot"></span> A small lab for digital communication</span>
         <h1>A chat you can <em>inspect.</em></h1>
         <p>Send a message, then look inside its ASCII frames and NRZ-I signal. Real conversations, with the transmission details visible.</p>
       </div>
-      <div class="intro-bottom">
-        <div class="signal-preview" aria-hidden="true">
-          <div class="signal-meta"><span>NRZ-I / SAMPLE SIGNAL</span><span>01 10 01 11 00</span></div>
+
+      <div class="login-monitor" aria-hidden="true">
+        <div class="login-monitor-head">
+          <div><strong>NRZ-I Signal Monitor</strong><small>SAMPLE SIGNAL · 01 10 01 11 00</small></div>
+          <span class="login-tag">SAMPLE</span>
+        </div>
+        <div class="login-monitor-screen">
           <svg viewBox="0 0 520 78" role="img" aria-label="Digital signal waveform">
-            <path d="M0 18 H42 V58 H86 V18 H130 V58 H174 V18 H218 V18 H262 V58 H306 V18 H350 V58 H394 V58 H438 V18 H482 V58 H520" fill="none" stroke="#a6b4a8" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M0 38 H520" fill="none" stroke="#555b56" stroke-width="1" stroke-dasharray="3 7"/>
+            <path d="M0 18 H42 V58 H86 V18 H130 V58 H174 V18 H218 V18 H262 V58 H306 V18 H350 V58 H394 V58 H438 V18 H482 V58 H520" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linejoin="round"/>
           </svg>
         </div>
-        <span class="copyright">An independent learning project · 2026</span>
       </div>
+
+      <span class="login-copyright">An independent learning project · 2026</span>
     </section>
 
-    <section class="auth-panel">
-      <div class="auth-card">
-        <div class="auth-heading">
-          <span class="eyebrow">Welcome to SYNTRIX</span>
+    <section class="login-main">
+      <div class="login-card">
+        <div class="login-heading">
+          <span class="login-eyebrow">Welcome to SYNTRIX</span>
           <h2 id="authTitle">Sign in to your space</h2>
           <p id="authSubtitle">Continue where your conversations left off.</p>
         </div>
-        <div class="auth-switch" role="tablist" aria-label="Authentication mode">
-          <button id="showLoginBtn" class="auth-tab is-active" type="button" role="tab" aria-selected="true">Sign in</button>
-          <button id="showRegisterBtn" class="auth-tab" type="button" role="tab" aria-selected="false">Create account</button>
+
+        <div class="login-tabs" role="tablist" aria-label="Authentication mode">
+          <button id="showLoginBtn" class="login-tab is-active" type="button" role="tab" aria-selected="true">Sign in</button>
+          <button id="showRegisterBtn" class="login-tab" type="button" role="tab" aria-selected="false">Create account</button>
         </div>
-        <form id="loginForm" class="auth-form">
-          <label class="field"><span>Email address</span><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
-          <label class="field"><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required minlength="8"></label>
-          <button id="loginSubmit" class="button button-primary button-wide" type="submit">Sign in <span aria-hidden="true">↗</span></button>
+
+        <form id="loginForm" class="login-form">
+          <label class="login-field"><span>Email address</span><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
+          <label class="login-field"><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required minlength="8"></label>
+          <button id="loginSubmit" class="login-btn" type="submit">Sign in <span aria-hidden="true">↗</span></button>
         </form>
-        <form id="registerForm" class="auth-form" hidden>
-          <label class="field"><span>Display name</span><input id="registerName" type="text" autocomplete="name" placeholder="How should we call you?" required maxlength="60"></label>
-          <label class="field"><span>Unique handle</span><div class="input-prefix"><span>@</span><input id="registerHandle" type="text" autocomplete="username" placeholder="your_handle" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}"></div><small>3–24 characters, letters, numbers, and underscore.</small></label>
-          <label class="field"><span>Email address</span><input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
-          <label class="field"><span>Password</span><input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" required minlength="8"></label>
-          <button id="registerSubmit" class="button button-primary button-wide" type="submit">Create account <span aria-hidden="true">↗</span></button>
+
+        <form id="registerForm" class="login-form" hidden>
+          <label class="login-field"><span>Display name</span><input id="registerName" type="text" autocomplete="name" placeholder="How should we call you?" required maxlength="60"></label>
+          <label class="login-field"><span>Unique handle</span><div class="login-prefix"><span>@</span><input id="registerHandle" type="text" autocomplete="username" placeholder="your_handle" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}"></div><small>3–24 characters, letters, numbers, and underscore.</small></label>
+          <label class="login-field"><span>Email address</span><input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
+          <label class="login-field"><span>Password</span><input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" required minlength="8"></label>
+          <button id="registerSubmit" class="login-btn" type="submit">Create account <span aria-hidden="true">↗</span></button>
         </form>
-        <p class="auth-footnote"><span class="tiny-lock">⌑</span> Secured by Supabase Authentication</p>
+
+        <p class="login-footnote">Secured by Supabase Authentication</p>
       </div>
     </section>
   </main>

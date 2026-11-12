@@ -394,3 +394,153 @@ button:focus-visible, a:focus-visible, input:focus-visible, .contact-item:focus-
   .workspace { flex: 1 1 auto; min-height: 0; }
   .page-view { padding: 24px 16px; }
 }
+
+/* =====================================================================
+   TEMA BARU (navy + terang) - TAHAP 1: warna & halaman login
+   Bagian di atas ini masih tema lama dan akan diganti tahap demi tahap.
+   ===================================================================== */
+:root {
+  --navy: #1e1b4b;
+  --navy-hover: #2a2766;
+  --nav-text: #a5b4fc;
+  --page: #f1f5f9;
+  --card: #ffffff;
+  --panel: #eef2ff;
+  --edge: #dde1fd;
+  --ink: #0f172a;
+  --slate: #64748b;
+  --primary: #4f46e5;
+  --cyan: #22d3ee;
+  --cyan-soft: #d6f9fd;
+  --ok: #10b981;
+  --ok-text: #059669;
+  --dark: #020617;
+  --dark-2: #0c1327;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* ---------- Halaman login ---------- */
+.login-page {
+  display: grid;
+  grid-template-columns: minmax(380px, 1.05fr) minmax(420px, 1fr);
+  min-height: 100svh;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+/* kolom kiri (navy) */
+.login-side {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
+  padding: clamp(28px, 4.5vw, 64px);
+  background:
+    radial-gradient(520px 320px at 85% 8%, rgba(34, 211, 238, .14), transparent 70%),
+    var(--navy);
+  color: #fff;
+}
+.login-brand { display: inline-flex; align-items: center; gap: 2px; margin-left: -12px; }
+.login-brand img { width: 84px; height: 84px; object-fit: contain; }
+.login-brand-text { display: flex; flex-direction: column; gap: 4px; }
+.login-brand-text strong { font-size: 20px; font-weight: 800; letter-spacing: .1em; }
+.login-brand-text small { font: 500 10px var(--font-code); letter-spacing: .14em; color: var(--nav-text); }
+
+.login-copy { max-width: 520px; }
+.login-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(165, 180, 252, .14); color: #c7d2fe;
+  font: 500 11px var(--font-code);
+}
+.login-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 3px rgba(34, 211, 238, .25); }
+.login-copy h1 {
+  margin: 22px 0 16px;
+  font-size: clamp(38px, 5vw, 62px); line-height: 1.04;
+  font-weight: 800; letter-spacing: -.045em;
+}
+.login-copy h1 em { font-style: normal; color: var(--cyan); }
+.login-copy p { max-width: 440px; margin: 0; color: #c7d2fe; font-size: 15px; line-height: 1.75; }
+
+.login-monitor {
+  max-width: 540px; padding: 18px;
+  border-radius: 20px; background: var(--dark);
+  border: 1px solid rgba(165, 180, 252, .16);
+}
+.login-monitor-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.login-monitor-head strong { display: block; font-size: 13px; font-weight: 700; }
+.login-monitor-head small { display: block; margin-top: 5px; color: #94a3b8; font: 400 10px var(--font-code); }
+.login-tag {
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid rgba(34, 211, 238, .45); background: rgba(34, 211, 238, .1);
+  color: var(--cyan); font: 700 9px var(--font-code); letter-spacing: .06em;
+}
+.login-monitor-screen {
+  margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+  background:
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, .07) 0 1px, transparent 1px 42px),
+    var(--dark-2);
+}
+.login-monitor-screen svg { display: block; width: 100%; }
+.login-copyright { color: #818cf8; font-size: 11px; }
+
+/* kolom kanan (kartu form) */
+.login-main { display: flex; align-items: center; justify-content: center; padding: clamp(24px, 4vw, 56px); }
+.login-card {
+  width: min(100%, 440px); padding: clamp(24px, 3.5vw, 38px);
+  border-radius: 24px; background: var(--card);
+  border: 1px solid var(--edge);
+  box-shadow: 0 18px 48px -24px rgba(30, 27, 75, .28);
+}
+.login-eyebrow { color: var(--primary); font: 600 11px var(--font-code); letter-spacing: .06em; text-transform: uppercase; }
+.login-heading h2 { margin: 10px 0 6px; font-size: 27px; font-weight: 800; letter-spacing: -.035em; }
+.login-heading p { margin: 0; color: var(--slate); font-size: 13px; line-height: 1.6; }
+
+.login-tabs { display: flex; gap: 4px; margin: 24px 0 20px; padding: 4px; border-radius: 12px; background: var(--panel); }
+.login-tab { flex: 1; border: 0; padding: 11px; border-radius: 9px; background: transparent; color: var(--slate); font-size: 13px; font-weight: 600; transition: background .15s, color .15s; }
+.login-tab:hover { color: var(--ink); }
+.login-tab.is-active { background: var(--card); color: var(--navy); box-shadow: 0 1px 4px rgba(30, 27, 75, .12); }
+
+.login-form { display: flex; flex-direction: column; gap: 15px; }
+.login-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.login-field > span { font-size: 12px; font-weight: 600; color: var(--ink); }
+.login-field small { color: var(--slate); font-size: 11px; }
+.login-field input {
+  width: 100%; min-width: 0; height: 46px; padding: 0 14px;
+  border: 1px solid var(--edge); border-radius: 12px; outline: none;
+  background: #f8fafc; color: var(--ink); font-size: 14px;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.login-field input::placeholder { color: #94a3b8; }
+.login-field input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+.login-prefix {
+  display: flex; align-items: center; height: 46px;
+  border: 1px solid var(--edge); border-radius: 12px; background: #f8fafc;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.login-prefix:focus-within { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+.login-prefix > span { padding-left: 14px; color: var(--primary); font: 500 14px var(--font-code); }
+.login-prefix input { height: 44px; border: 0; background: transparent; box-shadow: none !important; }
+
+.login-btn {
+  border: 0; min-height: 48px; margin-top: 4px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  border-radius: 14px; background: var(--navy); color: #fff;
+  font-size: 14px; font-weight: 700; transition: background .15s;
+}
+.login-btn:hover:not(:disabled) { background: var(--primary); }
+.login-btn:disabled { opacity: .65; cursor: wait; }
+.login-btn .button-spinner { border-color: rgba(255, 255, 255, .35); border-top-color: #fff; }
+.login-footnote { margin: 22px 0 0; text-align: center; color: var(--slate); font-size: 11px; }
+
+.login-page :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* HP / layar kecil */
+@media (max-width: 820px) {
+  .login-page { grid-template-columns: 1fr; }
+  .login-side { gap: 20px; padding: 24px 20px 28px; }
+  .login-monitor, .login-copyright { display: none; }
+  .login-copy h1 { margin: 16px 0 10px; font-size: clamp(34px, 9vw, 44px); }
+  .login-copy p { font-size: 13px; line-height: 1.65; }
+  .login-main { padding: 20px 14px 32px; }
+  .login-card { margin-top: -8px; }
+}
