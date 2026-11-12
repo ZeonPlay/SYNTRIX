@@ -282,7 +282,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .app-shell.has-chat .workspace { display: flex; grid-column: 3; }
 .app-shell[data-view="security"], .app-shell[data-view="settings"] { grid-template-columns: 260px minmax(0,1fr); }
 .app-shell[data-view="security"] .directory-view, .app-shell[data-view="settings"] .directory-view { display: none; }
-.app-shell[data-view="security"] .workspace, .app-shell[data-view="settings"] .workspace { display: flex; grid-column: 2; }
+.app-shell[data-view="security"] .workspace, .app-shell[data-view="settings"] .workspace { display: flex; grid-column: 2; }\n.app-shell[data-view="security"] #emptyState, .app-shell[data-view="settings"] #emptyState, .app-shell[data-view="security"] #conversationView, .app-shell[data-view="settings"] #conversationView { display: none !important; }
 .empty-state { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 32px; text-align: center; }
 .empty-state-icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; background: var(--navy); color: #fff; font-size: 26px; font-weight: 800; }
 .empty-state h2 { margin: 18px 0 5px; color: var(--navy); font-size: 22px; letter-spacing: -.04em; }
