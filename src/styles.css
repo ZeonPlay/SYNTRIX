@@ -614,7 +614,12 @@ body { background: var(--canvas); color: var(--ink); }
 .nav-active-pill::after {
   display: block;
   opacity: 1;
-  transition: opacity .38s ease, box-shadow .3s ease;
+  transform: scale(1);
+  transform-origin: right center;
+  will-change: transform;
+  transition:
+    transform .64s var(--ease),
+    box-shadow .64s var(--ease);
 }
 .nav-active-pill::before {
   box-shadow: 7px 7px 0 7px var(--directory-bg);
@@ -628,10 +633,11 @@ body { background: var(--canvas); color: var(--ink); }
   left: 10px;
   border-radius: 17px;
 }
+/* Retract the concave edge pieces into the pill as the rail narrows.
+   Keeping opacity fixed avoids a fade: the right edge changes shape instead. */
 .app-shell.has-chat .nav-active-pill::before,
 .app-shell.has-chat .nav-active-pill::after {
-  display: block !important;
-  opacity: 0;
+  transform: scale(0);
 }
 .nav-item {
   transition:
