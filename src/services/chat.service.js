@@ -2,6 +2,16 @@ import { supabase } from '../core/supabase.js';
 import { textToBitStream } from '../core/encoding.js';
 
 const PROFILE_FIELDS = 'id, handle, display_name';
+// payload_bits is deliberately NOT selectable; it is only returned by get_message_bits().
+const MESSAGE_FIELDS = 'id, sender_id, receiver_id, frame_count, created_at, read_at';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function assertUuid(value) {
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value)) {
+    throw new Error('Identitas pengguna tidak valid.');
+  }
+  return value;
+}
 
 export async function listContactIds(userId) {
   const { data, error } = await supabase
@@ -26,13 +36,9 @@ export async function getProfilesByIds(ids) {
 
 export async function findProfileByHandle(handle) {
   const normalized = handle.trim().replace(/^@/, '').toLowerCase();
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(PROFILE_FIELDS)
-    .eq('handle', normalized)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('find_profile_by_handle', { p_handle: normalized });
   if (error) throw error;
-  return data;
+  return data?.[0] ?? null;
 }
 
 export async function saveContact(ownerId, contactId) {
@@ -44,9 +50,10 @@ export async function saveContact(ownerId, contactId) {
 }
 
 export async function listRecentMessages(userId) {
+  assertUuid(userId);
   const { data, error } = await supabase
     .from('messages')
-    .select('id, sender_id, receiver_id, payload_bits, created_at, read_at')
+    .select(MESSAGE_FIELDS)
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
     .order('created_at', { ascending: false })
     .limit(1000);
@@ -55,9 +62,11 @@ export async function listRecentMessages(userId) {
 }
 
 export async function listConversation(userId, partnerId) {
+  assertUuid(userId);
+  assertUuid(partnerId);
   const { data, error } = await supabase
     .from('messages')
-    .select('id, sender_id, receiver_id, payload_bits, created_at, read_at')
+    .select(MESSAGE_FIELDS)
     .or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`)
     .order('created_at', { ascending: false })
     .limit(300);
@@ -65,15 +74,35 @@ export async function listConversation(userId, partnerId) {
   return (data ?? []).reverse();
 }
 
+export async function fetchMessageMeta(messageId) {
+  const { data, error } = await supabase
+    .from('messages')
+    .select(MESSAGE_FIELDS)
+    .eq('id', messageId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function insertMessage(senderId, receiverId, text) {
   const payloadBits = textToBitStream(text);
   const { data, error } = await supabase
     .from('messages')
     .insert({ sender_id: senderId, receiver_id: receiverId, payload_bits: payloadBits })
-    .select('id, sender_id, receiver_id, payload_bits, created_at, read_at')
+    .select(MESSAGE_FIELDS)
     .single();
   if (error) throw error;
   return data;
+}
+
+/** Returns the stored bitstream, or null when the key is wrong / locked. */
+export async function fetchMessageBits(messageId, key) {
+  const { data, error } = await supabase.rpc('get_message_bits', {
+    p_message_id: messageId,
+    p_key: key,
+  });
+  if (error) throw error;
+  return typeof data === 'string' && data.length > 0 ? data : null;
 }
 
 export async function markConversationRead(userId, partnerId) {

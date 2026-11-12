@@ -47,6 +47,15 @@ export async function setUnlockKey(key) {
   if (error) throw error;
 }
 
+export async function changeUnlockKey(oldKey, newKey) {
+  const { data, error } = await supabase.rpc('change_message_unlock_key', {
+    p_old_key: oldKey,
+    p_new_key: newKey,
+  });
+  if (error) throw error;
+  return data === true;
+}
+
 export async function verifyUnlockKey(key) {
   const { data, error } = await supabase.rpc('verify_message_unlock_key', { p_key: key });
   if (error) throw error;

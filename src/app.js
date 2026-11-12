@@ -7,17 +7,17 @@ import {
   $, escapeHTML, formatTime, initials, openDialog, closeDialog, setBusy, showToast,
 } from './core/dom.js';
 import {
-  getProfile, hasUnlockKey, setUnlockKey, signIn, signOut, signUp, verifyUnlockKey,
+  changeUnlockKey, getProfile, hasUnlockKey, setUnlockKey, signIn, signOut, signUp,
 } from './services/auth.service.js';
 import {
-  findProfileByHandle, getProfilesByIds, insertMessage, listContactIds,
-  listRecentMessages, markConversationRead, saveContact,
+  fetchMessageBits, fetchMessageMeta, findProfileByHandle, getProfilesByIds, insertMessage,
+  listContactIds, listRecentMessages, markConversationRead, saveContact,
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
 
 const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
-  onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(),
+  onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(), bitsByMessage: new Map(),
   unlockTarget: null, bootingUserId: null, sending: false, keyReady: false,
 };
 
@@ -54,10 +54,12 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/email not confirmed/i.test(message)) return 'Email belum dikonfirmasi. Periksa kotak masuk email kamu.';
   if (/user already registered/i.test(message)) return 'Email ini sudah terdaftar. Silakan masuk.';
   if (/duplicate key|unique constraint|profiles_handle_key/i.test(message)) return 'Handle tersebut sudah digunakan. Pilih handle lain.';
-  if (/rate limit/i.test(message)) return 'Terlalu banyak percobaan. Coba lagi nanti.';
+  if (/rate[ _]?limit/i.test(message)) return 'Terlalu banyak percobaan. Coba lagi nanti.';
+  if (/database error saving new user/i.test(message)) return 'Pendaftaran gagal. Coba handle lain.';
   if (/failed to fetch|networkerror|load failed/i.test(message)) return 'Tidak dapat terhubung ke server. Periksa internet dan konfigurasi Supabase.';
   if (/row-level security|permission denied/i.test(message)) return 'Akses database ditolak. Periksa migration dan kebijakan RLS Supabase.';
-  return message || fallback;
+  console.warn('Unhandled error:', error);
+  return fallback;
 }
 
 loginForm.addEventListener('submit', async (event) => {
@@ -174,7 +176,7 @@ function contactPreview(contactId) {
   if (!message) return 'Start a conversation';
   const decoded = state.decodedMessages.get(message.id);
   if (decoded) return decoded;
-  return `🔒 Encoded transmission · ${message.payload_bits.length / 10} frames`;
+  return `🔒 Encoded transmission · ${message.frame_count} frames`;
 }
 
 function renderContacts() {
@@ -297,7 +299,8 @@ function renderMessages({ scrollToBottom = false } = {}) {
   for (const message of messages) {
     const mine = message.sender_id === state.user.id;
     const decoded = state.decodedMessages.get(message.id);
-    const frameCount = message.payload_bits.length / 10;
+    const frameCount = message.frame_count;
+    const bits = state.bitsByMessage.get(message.id);
     const row = document.createElement('article');
     row.className = `message-row${mine ? ' mine' : ''}`;
     const timestamp = formatTime(message.created_at);
@@ -309,15 +312,15 @@ function renderMessages({ scrollToBottom = false } = {}) {
       <span class="message-author">${mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')}</span>
       <div class="message-bubble">
         <div class="message-lockline"><span class="message-lockicon">⌑</span><span>Encoded message</span></div>
-        <div class="message-stats">${frameCount} FRAMES · ${message.payload_bits.length} BITS</div>
-        <div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I waveform preview"></canvas></div>
+        <div class="message-stats">${frameCount} FRAMES · ${frameCount * 10} BITS</div>
+        ${bits ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I waveform preview"></canvas></div>' : ''}
         ${decoded ? '<div class="decode-result"><div class="decode-result-label">DECODED TEXT</div><span class="decoded-text"></span></div>' : ''}
         <div class="message-actions">${action}</div>
       </div>
       <div class="message-bottom"><span>${escapeHTML(timestamp)}</span>${mine && message.read_at ? '<span class="message-read">· Read</span>' : ''}</div>
     `;
 
-    renderMiniSignal(row.querySelector('canvas'), message.payload_bits);
+    renderMiniSignal(row.querySelector('canvas'), bits);
     if (decoded) row.querySelector('.decoded-text').textContent = decoded;
     container.append(row);
   }
@@ -397,8 +400,19 @@ function upsertMessage(message) {
   return true;
 }
 
-async function handleIncomingMessage(message) {
-  if (message.sender_id !== state.user.id && message.receiver_id !== state.user.id) return;
+async function handleIncomingMessage(rawMessage) {
+  if (rawMessage.sender_id !== state.user.id && rawMessage.receiver_id !== state.user.id) return;
+  // Realtime does not carry payload_bits or frame_count, so load the safe metadata row.
+  let message = rawMessage;
+  if (!message.frame_count) {
+    try {
+      message = await fetchMessageMeta(rawMessage.id);
+    } catch (error) {
+      console.warn('Unable to load incoming message:', error.message);
+      return;
+    }
+    if (!message) return;
+  }
   const inserted = upsertMessage(message);
   const otherId = partnerId(message);
   await ensureContactForUser(otherId);
@@ -435,6 +449,7 @@ async function loadWorkspace() {
   state.profile = profile;
   state.messages = messages;
   state.decodedMessages.clear();
+  state.bitsByMessage.clear();
 
   const partnerIds = new Set(contactIds);
   for (const message of messages) partnerIds.add(partnerId(message, userId));
@@ -442,7 +457,8 @@ async function loadWorkspace() {
 
   const profiles = await getProfilesByIds([...partnerIds]);
   normalizeContacts(profiles);
-  await Promise.all([...partnerIds].map((id) => saveContact(userId, id)));
+  const knownContacts = new Set(contactIds);
+  await Promise.all([...partnerIds].filter((id) => !knownContacts.has(id)).map((id) => saveContact(userId, id)));
   sortMessages();
   renderAccount();
   renderContacts();
@@ -450,6 +466,7 @@ async function loadWorkspace() {
   const keyExists = await hasUnlockKey();
   state.keyReady = keyExists;
   if (!keyExists) {
+    $('#oldKeyField').hidden = true;
     $('#keyDialogTitle').textContent = 'Create your unlock key';
     $('#keyLabel').textContent = 'New unlock key';
     openDialog(keyDialog);
@@ -458,7 +475,6 @@ async function loadWorkspace() {
   state.disconnectRealtime?.();
   state.disconnectRealtime = connectRealtime({
     userId,
-    handle: profile.handle,
     onMessage: handleIncomingMessage,
     onMessageUpdate: handleMessageUpdate,
     onPresence: (entries) => {
@@ -500,6 +516,7 @@ async function leaveApp() {
   state.activeContactId = null;
   state.onlineUsers.clear();
   state.decodedMessages.clear();
+  state.bitsByMessage.clear();
   state.keyReady = false;
   appView.hidden = true;
   authView.hidden = false;
@@ -629,12 +646,13 @@ $('#unlockForm').addEventListener('submit', async (event) => {
   const button = $('#unlockSubmit');
   setBusy(button, true, 'Checking key...');
   try {
-    const valid = await verifyUnlockKey($('#unlockKeyInput').value);
-    if (!valid) {
+    const bits = await fetchMessageBits(state.unlockTarget.id, $('#unlockKeyInput').value);
+    if (!bits) {
       showToast('Kunci salah atau sedang dikunci sementara karena terlalu banyak percobaan.', 'error');
       return;
     }
-    const messageText = decodeBitStream(state.unlockTarget.payload_bits);
+    const messageText = decodeBitStream(bits);
+    state.bitsByMessage.set(state.unlockTarget.id, bits);
     state.decodedMessages.set(state.unlockTarget.id, messageText);
     const output = $('#unlockedMessage');
     output.hidden = false;
@@ -653,6 +671,10 @@ $('#unlockForm').addEventListener('submit', async (event) => {
 $('#keyForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const key = $('#newUnlockKey').value;
+  if (state.keyReady && !$('#oldUnlockKey').value) {
+    showToast('Masukkan kunci lama terlebih dahulu.', 'error');
+    return;
+  }
   const confirmation = $('#confirmUnlockKey').value;
   if (key !== confirmation) {
     showToast('Konfirmasi kunci tidak cocok.', 'error');
@@ -666,8 +688,17 @@ $('#keyForm').addEventListener('submit', async (event) => {
   const button = $('#keySubmit');
   setBusy(button, true, 'Saving key...');
   try {
-    await setUnlockKey(key);
+    if (state.keyReady) {
+      const changed = await changeUnlockKey($('#oldUnlockKey').value, key);
+      if (!changed) {
+        showToast('Kunci lama salah atau sedang dikunci sementara.', 'error');
+        return;
+      }
+    } else {
+      await setUnlockKey(key);
+    }
     state.keyReady = true;
+    $('#oldKeyField').hidden = true;
     $('#keyForm').reset();
     closeDialog(keyDialog);
     showToast('Kunci pembuka berhasil disimpan.', 'success');
@@ -682,6 +713,7 @@ $('#accountMenuBtn').addEventListener('click', () => openDialog(accountDialog));
 $('#changeKeyBtn').addEventListener('click', () => {
   closeDialog(accountDialog);
   $('#keyForm').reset();
+  $('#oldKeyField').hidden = false;
   $('#keyDialogTitle').textContent = 'Change your unlock key';
   $('#keyLabel').textContent = 'New unlock key';
   openDialog(keyDialog);
@@ -769,7 +801,13 @@ function drawSignal(canvas, bits, maxFrames = 120) {
   ctx.stroke();
 }
 
-function openInspector(message) {
+function openInspector(storedMessage) {
+  const payload = state.bitsByMessage.get(storedMessage.id);
+  if (!payload) {
+    showToast('Buka kunci pesan terlebih dahulu.', 'error');
+    return;
+  }
+  const message = { ...storedMessage, payload_bits: payload };
   const issue = validateBitStream(message.payload_bits);
   if (issue) {
     showToast(`Frame tidak valid: ${issue}`, 'error');

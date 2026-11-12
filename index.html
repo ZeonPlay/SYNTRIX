@@ -134,7 +134,7 @@
     <form id="unlockForm" class="modal-card">
       <div class="modal-header"><div><span class="eyebrow">Message locked</span><h2>Unlock this message</h2></div><button class="icon-button dialog-close" type="button" data-close="unlockDialog" aria-label="Close">×</button></div>
       <p class="modal-description">Enter your personal message key to decode the stored bitstream.</p>
-      <label class="field"><span>Your unlock key</span><input id="unlockKeyInput" type="password" autocomplete="current-password" placeholder="Enter your key" required minlength="6" maxlength="72"></label>
+      <label class="field"><span>Your unlock key</span><input id="unlockKeyInput" type="password" autocomplete="off" placeholder="Enter your key" required minlength="6" maxlength="72"></label>
       <div id="unlockedMessage" class="unlocked-message" hidden></div>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="unlockDialog">Close</button><button id="unlockSubmit" class="button button-primary" type="submit">Unlock message</button></div>
     </form>
@@ -143,9 +143,10 @@
   <dialog id="keyDialog" class="modal">
     <form id="keyForm" class="modal-card">
       <div class="modal-header"><div><span class="eyebrow">Account security</span><h2 id="keyDialogTitle">Set your unlock key</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
-      <p class="modal-description">This is a separate viewing check, not message encryption. Use a key you can remember.</p>
-      <label class="field"><span id="keyLabel">New unlock key</span><input id="newUnlockKey" type="password" autocomplete="new-password" required minlength="6" maxlength="72" placeholder="At least 6 characters"></label>
-      <label class="field"><span>Confirm key</span><input id="confirmUnlockKey" type="password" autocomplete="new-password" required minlength="6" maxlength="72" placeholder="Type it again"></label>
+      <p class="modal-description">The server only releases a message's bitstream after this key is verified. It is not end-to-end encryption. Use a key you can remember.</p>
+      <label id="oldKeyField" class="field" hidden><span>Current unlock key</span><input id="oldUnlockKey" type="password" autocomplete="off" maxlength="72" placeholder="Your current key"></label>
+      <label class="field"><span id="keyLabel">New unlock key</span><input id="newUnlockKey" type="password" autocomplete="off" required minlength="6" maxlength="72" placeholder="At least 6 characters"></label>
+      <label class="field"><span>Confirm key</span><input id="confirmUnlockKey" type="password" autocomplete="off" required minlength="6" maxlength="72" placeholder="Type it again"></label>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Cancel</button><button id="keySubmit" class="button button-primary" type="submit">Save key</button></div>
     </form>
   </dialog>

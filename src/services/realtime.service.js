@@ -1,6 +1,6 @@
 import { supabase } from '../core/supabase.js';
 
-export function connectRealtime({ userId, handle, onMessage, onMessageUpdate, onPresence, onStatus }) {
+export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence, onStatus }) {
   const channel = supabase
     .channel('syntrix:live', {
       config: {
@@ -25,11 +25,8 @@ export function connectRealtime({ userId, handle, onMessage, onMessageUpdate, on
     .subscribe(async (status) => {
       onStatus?.(status);
       if (status === 'SUBSCRIBED') {
-        const { error } = await channel.track({
-          user_id: userId,
-          handle,
-          connected_at: new Date().toISOString(),
-        });
+        // Only the user id is shared; handle and timestamps stay out of Presence.
+        const { error } = await channel.track({ user_id: userId });
         if (error) console.error('Presence tracking failed:', error.message);
       }
     });
