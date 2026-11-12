@@ -487,7 +487,7 @@ async function loadWorkspace() {
 }
 
 function isChatRoute() {
-  return window.location.pathname.replace(/\\/+$/, '') === '/chat';
+  return window.location.pathname.replace(/\/+$/, '') === '/chat';
 }
 
 async function enterApp(user) {
