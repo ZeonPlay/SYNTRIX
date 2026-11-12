@@ -973,6 +973,11 @@ function openInspector(storedMessage) {
       <div class="inspector-decoded-message">${escapeHTML(decodedText)}</div>
     </section>
     <section class="inspector-section">
+      <h3>Transmission format</h3>
+      <p>Each printable ASCII character uses one 10-bit frame: start bit <strong>0</strong>, seven data bits, one even-parity bit, then stop bit <strong>1</strong>. NRZ-I changes the signal level for bit 1 and keeps the previous level for bit 0.</p>
+      <p class="inspector-frame-format">FRAME = START · DATA[7] · PARITY · STOP</p>
+    </section>
+    <section class="inspector-section">
       <h3>NRZ-I waveform</h3>
       <div class="signal-scroll"><canvas id="inspectorSignal" class="signal-large"></canvas></div>
       <p class="inspector-wave-note">${truncated ? 'Waveform preview shows the first 120 frames to keep the browser responsive.' : 'Complete waveform for this message.'} The initial signal level is HIGH.</p>
@@ -980,7 +985,7 @@ function openInspector(storedMessage) {
     <section class="inspector-section">
       <h3>Hexadecimal bytes</h3>
       <p class="inspector-code-block">${hexBytes}${truncated ? ' …' : ''}</p>
-      <p class="inspector-wave-note">One hexadecimal byte for each printable ASCII character.</p>
+      <p class="inspector-wave-note">${truncated ? 'Showing the first 120 characters; the complete list is available in the frame table.' : 'One hexadecimal byte for each printable ASCII character.'}</p>
     </section>
     <section class="inspector-section">
       <h3>ASCII binary · 7 bit per character</h3>
