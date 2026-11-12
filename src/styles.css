@@ -989,6 +989,47 @@ body { background: var(--canvas); color: var(--ink); }
   .app-shell.has-chat .contact-item.is-active { margin-right: 0; border-radius: 14px; }
   .active-cutout { display: none; }
 }
+
+/* Brand lockup: keep the mark anchored while the wordmark folds away.
+   The label reveals through its width instead of fading/sliding independently. */
+.brand-lockup {
+  justify-content: flex-start;
+  gap: 12px;
+  transition: gap .76s var(--ease), padding .76s var(--ease), flex-basis .76s var(--ease);
+}
+.brand-mark {
+  transition: width .76s var(--ease), height .76s var(--ease);
+}
+.brand-copy {
+  width: 150px;
+  max-width: 150px;
+  flex: 0 1 150px;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    width .76s var(--ease),
+    max-width .76s var(--ease),
+    flex-basis .76s var(--ease);
+}
+.app-shell.has-chat .brand-lockup {
+  justify-content: flex-start;
+  gap: 0;
+  padding-inline: max(15px, calc((100% - 38px) / 2));
+}
+.app-shell.has-chat .brand-mark {
+  width: 38px;
+  height: 38px;
+}
+.app-shell.has-chat .brand-copy {
+  width: 0;
+  max-width: 0;
+  flex-basis: 0;
+  opacity: 1;
+  transform: translateX(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-shell, .nav-active-pill, .nav-item, .nav-label, .directory-inner,
   .directory-header, .directory-content, .directory-welcome, .workspace,
