@@ -18,8 +18,20 @@ import { connectRealtime } from './services/realtime.service.js';
 const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
   onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(), bitsByMessage: new Map(),
-  unlockTarget: null, bootingUserId: null, sending: false, keyReady: false,
+  messageViewModes: new Map(), unlockTarget: null, bootingUserId: null, sending: false, keyReady: false,
 };
+
+// A safe sample waveform is shown while the real payload is protected by the key.
+// The real NRZ-I waveform is rendered only after the payload has been authorized.
+const LOCKED_SIGNAL_SAMPLE = textToBitStream('NRZI SAMPLE');
+
+function createLockedSignalPreview(frameCount) {
+  const previewFrames = Math.min(Math.max(Number(frameCount) || 1, 1), 24);
+  const previewLength = previewFrames * 10;
+  return LOCKED_SIGNAL_SAMPLE
+    .repeat(Math.ceil(previewLength / LOCKED_SIGNAL_SAMPLE.length))
+    .slice(0, previewLength);
+}
 
 const authView = $('#authView');
 const appView = $('#appView');
@@ -286,7 +298,7 @@ function currentConversationMessages() {
 
 function renderMiniSignal(canvas, bits) {
   if (!canvas || !bits) return;
-  const previewBits = bits.slice(0, 100 * 10);
+  const previewBits = bits.slice(0, 24 * 10);
   const levels = nrziEncode(previewBits);
   const bitWidth = 4;
   const height = 36;
@@ -302,7 +314,7 @@ function renderMiniSignal(canvas, bits) {
   const yHigh = 10;
   const yLow = 26;
 
-  ctx.strokeStyle = 'rgba(184,210,212,.12)';
+  ctx.strokeStyle = 'rgba(86,105,126,.16)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= levels.length; i += 10) {
     const x = 6 + i * bitWidth;
@@ -312,7 +324,7 @@ function renderMiniSignal(canvas, bits) {
     ctx.stroke();
   }
 
-  ctx.strokeStyle = '#83b9b3';
+  ctx.strokeStyle = '#477d83';
   ctx.lineWidth = 1.5;
   ctx.lineJoin = 'round';
   ctx.beginPath();
@@ -348,30 +360,48 @@ function renderMessages({ scrollToBottom = false } = {}) {
 
   for (const message of messages) {
     const mine = message.sender_id === state.user.id;
+    const isUnlocked = state.decodedMessages.has(message.id);
     const decoded = state.decodedMessages.get(message.id);
     const frameCount = message.frame_count;
     const bits = state.bitsByMessage.get(message.id);
+    const displayMode = isUnlocked ? (state.messageViewModes.get(message.id) || 'decoded') : 'signal';
+    const showSignal = !isUnlocked || displayMode === 'signal';
     const row = document.createElement('article');
     row.className = `message-row${mine ? ' mine' : ''}`;
     const timestamp = formatTime(message.created_at);
-    const action = decoded
-      ? `<button class="inspect-button" type="button" data-action="inspect" data-message-id="${message.id}">⌁ Transmission inspector</button>`
-      : `<button class="inspect-button" type="button" data-action="unlock" data-message-id="${message.id}">⌑ Unlock message</button>`;
+    const action = isUnlocked
+      ? `
+        <button class="inspect-button" type="button" data-action="toggle-view" data-message-id="${message.id}">${showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I'}</button>
+        <button class="inspect-button" type="button" data-action="inspect" data-message-id="${message.id}">Detail data</button>
+      `
+      : `<button class="inspect-button" type="button" data-action="unlock" data-message-id="${message.id}">Masukkan kunci</button>`;
+    const signalCaption = isUnlocked
+      ? 'NRZ-I SIGNAL · PAYLOAD DECODED'
+      : 'NRZ-I SAMPLE · PAYLOAD LOCKED';
 
     row.innerHTML = `
       <span class="message-author">${mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')}</span>
       <div class="message-bubble">
-        <div class="message-lockline"><span class="message-lockicon">⌑</span><span>Encoded message</span></div>
-        <div class="message-stats">${frameCount} FRAMES · ${frameCount * 10} BITS</div>
-        ${bits ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I waveform preview"></canvas></div>' : ''}
-        ${decoded ? '<div class="decode-result"><div class="decode-result-label">DECODED TEXT</div><span class="decoded-text"></span></div>' : ''}
+        <div class="message-lockline">
+          <span class="message-lockicon">⌁</span>
+          <span>NRZ-I transmission</span>
+          <span class="message-lock-state">${isUnlocked ? 'UNLOCKED' : 'LOCKED'}</span>
+        </div>
+        <div class="message-stats">${frameCount} CHARACTERS · ${frameCount * 10} BITS</div>
+        ${showSignal
+          ? `<div class="wave-mini-wrap"><div class="wave-mini-caption">${signalCaption}</div><canvas class="wave-mini" aria-label="NRZ-I waveform"></canvas></div>`
+          : '<div class="decode-result"><div class="decode-result-label">DECODED MESSAGE</div><span class="decoded-text"></span></div>'}
         <div class="message-actions">${action}</div>
       </div>
       <div class="message-bottom"><span>${escapeHTML(timestamp)}</span>${mine && message.read_at ? '<span class="message-read">· Read</span>' : ''}</div>
     `;
 
-    renderMiniSignal(row.querySelector('canvas'), bits);
-    if (decoded) row.querySelector('.decoded-text').textContent = decoded;
+    if (showSignal) {
+      const signalBits = isUnlocked && bits ? bits : createLockedSignalPreview(frameCount);
+      renderMiniSignal(row.querySelector('canvas'), signalBits);
+    } else {
+      row.querySelector('.decoded-text').textContent = decoded;
+    }
     container.append(row);
   }
   if (scrollToBottom || wasNearBottom) {
@@ -504,6 +534,7 @@ async function loadWorkspace() {
   state.messages = messages;
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
+  state.messageViewModes.clear();
 
   const partnerIds = new Set(contactIds);
   for (const message of messages) partnerIds.add(partnerId(message, userId));
@@ -576,6 +607,7 @@ async function leaveApp() {
   state.onlineUsers.clear();
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
+  state.messageViewModes.clear();
   state.keyReady = false;
   appView.hidden = true;
   authView.hidden = false;
@@ -737,8 +769,6 @@ function openUnlockDialog(message) {
   }
   state.unlockTarget = message;
   $('#unlockForm').reset();
-  $('#unlockedMessage').hidden = true;
-  $('#unlockedMessage').replaceChildren();
   $('#unlockSubmit').hidden = false;
   openDialog(unlockDialog);
   $('#unlockKeyInput').focus();
@@ -755,14 +785,13 @@ $('#unlockForm').addEventListener('submit', async (event) => {
       showToast('Kunci salah atau sedang dikunci sementara karena terlalu banyak percobaan.', 'error');
       return;
     }
+    const messageId = state.unlockTarget.id;
     const messageText = decodeBitStream(bits);
-    state.bitsByMessage.set(state.unlockTarget.id, bits);
-    state.decodedMessages.set(state.unlockTarget.id, messageText);
-    const output = $('#unlockedMessage');
-    output.hidden = false;
-    output.innerHTML = '<div class="decode-result-label">DECODED TEXT</div><div class="decode-result"></div>';
-    output.querySelector('.decode-result').textContent = messageText;
-    $('#unlockSubmit').hidden = true;
+    state.bitsByMessage.set(messageId, bits);
+    state.decodedMessages.set(messageId, messageText);
+    state.messageViewModes.set(messageId, 'decoded');
+    closeDialog(unlockDialog);
+    $('#unlockKeyInput').value = '';
     renderMessages();
     showToast('Pesan berhasil dibuka.', 'success');
   } catch (error) {
@@ -862,11 +891,11 @@ function drawSignal(canvas, bits, maxFrames = 120) {
   const yHigh = 42;
   const yLow = 104;
   ctx.font = '9px DM Mono, monospace';
-  ctx.fillStyle = '#718795';
+  ctx.fillStyle = '#56657a';
   ctx.fillText('HIGH', 2, yHigh - 9);
   ctx.fillText('LOW', 2, yLow - 9);
 
-  ctx.strokeStyle = 'rgba(173,203,208,.12)';
+  ctx.strokeStyle = 'rgba(89,108,132,.16)';
   ctx.lineWidth = 1;
   ctx.setLineDash([3, 5]);
   for (const y of [yHigh, yLow]) {
@@ -879,18 +908,18 @@ function drawSignal(canvas, bits, maxFrames = 120) {
 
   for (let i = 0; i <= levels.length; i += 10) {
     const x = 22 + i * bitWidth;
-    ctx.strokeStyle = 'rgba(173,203,208,.18)';
+    ctx.strokeStyle = 'rgba(89,108,132,.2)';
     ctx.beginPath();
     ctx.moveTo(x, 20);
     ctx.lineTo(x, 126);
     ctx.stroke();
     if (i < levels.length) {
-      ctx.fillStyle = '#748895';
+      ctx.fillStyle = '#617087';
       ctx.fillText(String(i / 10 + 1), x + 2, 140);
     }
   }
 
-  ctx.strokeStyle = '#91c6bd';
+  ctx.strokeStyle = '#477d83';
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
   ctx.beginPath();
@@ -915,45 +944,73 @@ function openInspector(storedMessage) {
     showToast('Buka kunci pesan terlebih dahulu.', 'error');
     return;
   }
-  const message = { ...storedMessage, payload_bits: payload };
-  const issue = validateBitStream(message.payload_bits);
+  const issue = validateBitStream(payload);
   if (issue) {
     showToast(`Frame tidak valid: ${issue}`, 'error');
     return;
   }
-  const frames = summarizeFrames(message.payload_bits);
-  const levels = nrziEncode(message.payload_bits);
+
+  const frames = summarizeFrames(payload);
+  const decodedText = state.decodedMessages.get(storedMessage.id) ?? decodeBitStream(payload);
+  const levels = nrziEncode(payload);
   const content = $('#inspectorContent');
-  const firstBits = message.payload_bits.slice(0, 200);
-  const truncated = frames.length > 120;
+  const visibleFrames = frames.slice(0, 120);
+  const truncated = frames.length > visibleFrames.length;
+  const hexBytes = visibleFrames.map((frame) => frame.code.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+  const asciiBits = visibleFrames.map((frame) => frame.data).join(' ');
+  const framedBits = visibleFrames.map((frame) => frame.bits).join(' ');
+  const levelPreview = levels.slice(0, 240).map((level) => level === 1 ? 'H' : 'L').join(' ');
 
   content.innerHTML = `
     <div class="inspector-summary">
       <div class="metric-card"><span>Characters</span><strong>${frames.length}</strong></div>
-      <div class="metric-card"><span>Total bits</span><strong>${message.payload_bits.length}</strong></div>
+      <div class="metric-card"><span>Payload bits</span><strong>${payload.length}</strong></div>
+      <div class="metric-card"><span>Hex bytes</span><strong>${frames.length}</strong></div>
       <div class="metric-card"><span>Frame size</span><strong>10 bit</strong></div>
-      <div class="metric-card"><span>Line code</span><strong>NRZ-I</strong></div>
     </div>
     <section class="inspector-section">
+      <h3>Decoded message</h3>
+      <div class="inspector-decoded-message">${escapeHTML(decodedText)}</div>
+    </section>
+    <section class="inspector-section">
       <h3>Transmission format</h3>
-      <p>Each character is framed as <strong>0</strong> start bit + <strong>7</strong> ASCII data bits + <strong>1</strong> even-parity bit + <strong>1</strong> stop bit. NRZ-I toggles the signal level when the encoded bit is 1; a 0 keeps the previous level.</p>
+      <p>Each printable ASCII character uses one 10-bit frame: start bit <strong>0</strong>, seven data bits, one even-parity bit, then stop bit <strong>1</strong>. NRZ-I changes the signal level for bit 1 and keeps the previous level for bit 0.</p>
       <p class="inspector-frame-format">FRAME = START · DATA[7] · PARITY · STOP</p>
     </section>
     <section class="inspector-section">
       <h3>NRZ-I waveform</h3>
       <div class="signal-scroll"><canvas id="inspectorSignal" class="signal-large"></canvas></div>
-      <p class="inspector-wave-note">${truncated ? 'Waveform preview shows the first 120 frames to keep the browser responsive.' : 'Complete waveform for this message.'} The level begins at HIGH.</p>
+      <p class="inspector-wave-note">${truncated ? 'Waveform preview shows the first 120 frames to keep the browser responsive.' : 'Complete waveform for this message.'} The initial signal level is HIGH.</p>
     </section>
     <section class="inspector-section">
-      <h3>Binary payload</h3>
-      <p class="inspector-binary-payload">${escapeHTML(firstBits)}${message.payload_bits.length > firstBits.length ? ' …' : ''}</p>
+      <h3>Hexadecimal bytes</h3>
+      <p class="inspector-code-block">${hexBytes}${truncated ? ' …' : ''}</p>
+      <p class="inspector-wave-note">${truncated ? 'Showing the first 120 characters; the complete list is available in the frame table.' : 'One hexadecimal byte for each printable ASCII character.'}</p>
+    </section>
+    <section class="inspector-section">
+      <h3>ASCII binary · 7 bit per character</h3>
+      <p class="inspector-code-block">${asciiBits}${truncated ? ' …' : ''}</p>
+    </section>
+    <section class="inspector-section">
+      <h3>Framed binary · 10 bit per character</h3>
+      <p class="inspector-code-block">${framedBits}${truncated ? ' …' : ''}</p>
+      <p class="inspector-wave-note">Each frame = start bit + 7 data bits + even parity + stop bit.</p>
+    </section>
+    <section class="inspector-section">
+      <h3>NRZ-I signal levels · HIGH / LOW</h3>
+      <p class="inspector-code-block">${levelPreview}${levels.length > 240 ? ' …' : ''}</p>
+      <p class="inspector-wave-note">H = HIGH and L = LOW. A transmitted 1 changes the level; a 0 keeps it.</p>
     </section>
     <section class="inspector-section">
       <h3>Frame breakdown</h3>
       <div class="inspector-table-wrap">
         <table class="inspector-table">
-          <thead><tr><th>#</th><th>ASCII</th><th>Code</th><th>Data (7)</th><th>Parity</th><th>Frame (10)</th></tr></thead>
-          <tbody>${frames.map((frame) => `<tr><td>${frame.index}</td><td>${escapeHTML(frame.character)}</td><td>${frame.code}</td><td>${frame.data}</td><td>${frame.parity}</td><td>${frame.bits}</td></tr>`).join('')}</tbody>
+          <thead><tr><th>#</th><th>ASCII</th><th>Decimal</th><th>Hex</th><th>Data (7)</th><th>Parity</th><th>Frame (10)</th></tr></thead>
+          <tbody>${frames.map((frame) => {
+            const hex = frame.code.toString(16).padStart(2, '0').toUpperCase();
+            const character = frame.character === ' ' ? 'SPACE' : frame.character;
+            return `<tr><td>${frame.index}</td><td>${escapeHTML(character)}</td><td>${frame.code}</td><td>${hex}</td><td>${frame.data}</td><td>${frame.parity}</td><td>${frame.bits}</td></tr>`;
+          }).join('')}</tbody>
         </table>
       </div>
     </section>
@@ -963,7 +1020,7 @@ function openInspector(storedMessage) {
     </section>
   `;
   openDialog(inspectorDialog);
-  drawSignal($('#inspectorSignal'), message.payload_bits);
+  drawSignal($('#inspectorSignal'), payload);
 }
 
 $('#messages').addEventListener('click', (event) => {
@@ -971,7 +1028,17 @@ $('#messages').addEventListener('click', (event) => {
   if (!button) return;
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
   if (!message) return;
-  if (button.dataset.action === 'unlock') openUnlockDialog(message);
+  if (button.dataset.action === 'unlock') {
+    openUnlockDialog(message);
+    return;
+  }
+  if (button.dataset.action === 'toggle-view') {
+    if (!state.bitsByMessage.has(message.id) || !state.decodedMessages.has(message.id)) return;
+    const currentMode = state.messageViewModes.get(message.id) || 'decoded';
+    state.messageViewModes.set(message.id, currentMode === 'signal' ? 'decoded' : 'signal');
+    renderMessages();
+    return;
+  }
   if (button.dataset.action === 'inspect') openInspector(message);
 });
 

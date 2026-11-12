@@ -1008,22 +1008,28 @@ body { background: var(--canvas); color: var(--ink); }
 }
 
 
-/* Compact rail: center the remaining icons in their own controls. */
+/* Fixed icon anchors: the compact state only applies a small offset,
+   never a justify-content switch that would snap the icons. */
 @media (min-width: 701px) {
+  .nav-footer .logout-button {
+    padding-left: 14px;
+    transition: padding .68s var(--ease), color .2s, background .2s;
+  }
+
   .app-shell.has-chat .nav-item {
-    justify-content: center;
-    padding-inline: 0;
+    justify-content: flex-start;
+    padding: 0 0 0 20px;
   }
 
   .app-shell.has-chat .nav-footer {
-    align-items: center;
-    padding-inline: 8px;
+    align-items: flex-start;
+    padding-inline: 20px 0;
   }
 
   .app-shell.has-chat .logout-button {
-    justify-content: center;
+    justify-content: flex-start;
     width: 44px;
-    padding-inline: 0;
+    padding-left: 0;
   }
 }
 
@@ -1033,4 +1039,149 @@ body { background: var(--canvas); color: var(--ink); }
   .brand-copy, .brand-lockup, .nav-items {
     transition-duration: .01ms !important;
   }
+}
+
+
+/* Comfortable message reading: neutral light surfaces and consistent ink
+   for both incoming and outgoing bubbles. */
+:root {
+  --chat-surface: #f1f3f6;
+  --message-ink: #29364b;
+  --message-muted: #637188;
+}
+.messages {
+  background: var(--chat-surface);
+  color: var(--message-ink);
+}
+.message-author {
+  color: #5e6d83;
+  font-size: 10px;
+}
+.message-bubble,
+.message-row.mine .message-bubble {
+  border: 1px solid #d9e0e9;
+  background: #ffffff;
+  color: var(--message-ink);
+}
+.message-row.mine .message-bubble {
+  border-color: #d3dce9;
+  background: #e9eef6;
+}
+.message-lockline,
+.message-row.mine .message-lockline {
+  color: #40516a;
+  font-size: 11px;
+}
+.message-lockicon,
+.message-row.mine .message-lockicon {
+  background: #e7edf5;
+  color: #4d6283;
+}
+.message-stats,
+.message-row.mine .message-stats {
+  color: var(--message-muted);
+  font-size: 9px;
+}
+.message-lock-state {
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid #dbe2eb;
+  border-radius: 999px;
+  background: #f6f8fb;
+  color: #62718a;
+  font: 700 8px var(--mono);
+  letter-spacing: .05em;
+}
+.wave-mini-wrap,
+.message-row.mine .wave-mini-wrap {
+  border-color: #d8e0e9;
+  background: #f8fafc;
+}
+.wave-mini-caption {
+  margin: 0 0 5px;
+  color: #65738a;
+  font: 700 8px var(--mono);
+  letter-spacing: .06em;
+}
+.decode-result,
+.message-row.mine .decode-result {
+  border-color: #d9e1eb;
+  background: #f8fafc;
+  color: var(--message-ink);
+}
+.decode-result-label,
+.message-row.mine .decode-result-label {
+  color: #52658f;
+  font-size: 9px;
+}
+.decoded-text {
+  display: block;
+  color: var(--message-ink);
+  font-size: 13px;
+  line-height: 1.75;
+}
+.message-actions { flex-wrap: wrap; gap: 7px; }
+.inspect-button,
+.message-row.mine .inspect-button {
+  min-height: 31px;
+  border-color: #ccd6e3;
+  background: #f9fafc;
+  color: #40516a;
+  font-size: 10px;
+}
+.inspect-button:hover,
+.message-row.mine .inspect-button:hover {
+  border-color: #aebbd0;
+  background: #eef2f7;
+  color: #273a58;
+}
+.message-bottom {
+  color: #65738a;
+  font-size: 9px;
+}
+.message-read { color: #39775f; }
+.workspace, .messages { background: var(--chat-surface); }
+
+/* Higher contrast transmission details without harsh black-on-white glare. */
+.inspector-section {
+  background: #fbfcfd;
+  border-color: #d9e1ea;
+}
+.inspector-section h3 { color: #34445c; font-size: 12px; }
+.inspector-section p { color: #526178; font-size: 11px; }
+.metric-card {
+  background: #f3f6fa;
+  border-color: #d8e0e9;
+}
+.metric-card span { color: #62718a; font-size: 10px; }
+.metric-card strong { color: #2f4059; }
+.inspector-table th {
+  background: #eaf0f6;
+  color: #3a4b63;
+}
+.inspector-table td { color: #3d4d63; }
+.inspector-binary-payload { color: #34445c !important; }
+.inspector-validation { color: #34745b !important; }
+.signal-scroll {
+  background: #f8fafc;
+  border-color: #d8e0e9;
+}
+.inspector-decoded-message {
+  padding: 12px 13px;
+  border: 1px solid #dce3ec;
+  border-radius: 9px;
+  background: #f2f5f9;
+  color: #29364b;
+  font-size: 13px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.inspector-code-block {
+  overflow-wrap: anywhere;
+  padding: 11px 12px;
+  border: 1px solid #dce3ec;
+  border-radius: 9px;
+  background: #f2f5f9;
+  color: #34445c;
+  font: 11px/1.8 var(--mono);
 }
