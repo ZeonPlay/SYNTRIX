@@ -26,7 +26,7 @@ const state = {
 const LOCKED_SIGNAL_SAMPLE = textToBitStream('NRZI SAMPLE');
 
 function createLockedSignalPreview(frameCount) {
-  const previewFrames = Math.min(Math.max(Number(frameCount) || 1, 1), 100);
+  const previewFrames = Math.min(Math.max(Number(frameCount) || 1, 1), 24);
   const previewLength = previewFrames * 10;
   return LOCKED_SIGNAL_SAMPLE
     .repeat(Math.ceil(previewLength / LOCKED_SIGNAL_SAMPLE.length))
@@ -298,7 +298,7 @@ function currentConversationMessages() {
 
 function renderMiniSignal(canvas, bits) {
   if (!canvas || !bits) return;
-  const previewBits = bits.slice(0, 100 * 10);
+  const previewBits = bits.slice(0, 24 * 10);
   const levels = nrziEncode(previewBits);
   const bitWidth = 4;
   const height = 36;
