@@ -544,3 +544,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, .contact-item:focus-
   .login-main { padding: 20px 14px 32px; }
   .login-card { margin-top: -8px; }
 }
+
+/* Transmission inspector: keep presentation in the stylesheet for CSP compatibility. */
+.inspector-frame-format { margin-top: 7px; color: #a5c8c2; font-family: var(--mono); }
+.inspector-wave-note { margin-top: 8px; }
+.inspector-binary-payload { font-family: var(--mono); overflow-wrap: anywhere; color: #a8c2c1; }
+.inspector-validation { color: var(--green); }
