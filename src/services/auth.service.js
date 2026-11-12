@@ -23,7 +23,12 @@ export async function signIn(email, password) {
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  if (!error) return;
+
+  // If global revocation fails (for example, a stale refresh token or network
+  // issue), still clear this browser's persisted session so the user can exit.
+  const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
+  if (localError) throw error;
 }
 
 export async function getProfile(userId) {
