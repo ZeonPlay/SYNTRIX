@@ -607,6 +607,7 @@ async function leaveApp() {
   state.onlineUsers.clear();
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
+  state.messageViewModes.clear();
   state.keyReady = false;
   appView.hidden = true;
   authView.hidden = false;
