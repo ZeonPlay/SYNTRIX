@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v11">
-  <script type="module" src="/src/app.js?v=poppins-motion-v6"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v12">
+  <script type="module" src="/src/app.js?v=poppins-motion-v7"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -218,7 +218,6 @@
       <div class="modal-header"><div><span class="eyebrow">Message locked</span><h2>Unlock this message</h2></div><button class="icon-button dialog-close" type="button" data-close="unlockDialog" aria-label="Close">×</button></div>
       <p class="modal-description">Enter your personal message key to decode the stored bitstream.</p>
       <label class="field"><span>Your unlock key</span><input id="unlockKeyInput" type="password" autocomplete="off" placeholder="Enter your key" required minlength="6" maxlength="72"></label>
-      <div id="unlockedMessage" class="unlocked-message" hidden></div>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="unlockDialog">Close</button><button id="unlockSubmit" class="button button-primary" type="submit">Unlock message</button></div>
     </form>
   </dialog>
