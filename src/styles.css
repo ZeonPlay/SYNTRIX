@@ -617,9 +617,8 @@ body { background: var(--canvas); color: var(--ink); }
   transform: scale(1);
   transform-origin: right center;
   will-change: transform;
-  transition:
-    transform .64s var(--ease),
-    box-shadow .64s var(--ease);
+  /* Match the pill's horizontal edge transition exactly. */
+  transition: transform .68s var(--ease);
 }
 .nav-active-pill::before {
   box-shadow: 7px 7px 0 7px var(--directory-bg);
@@ -637,6 +636,9 @@ body { background: var(--canvas); color: var(--ink); }
    Keeping opacity fixed avoids a fade: the right edge changes shape instead. */
 .app-shell.has-chat .nav-active-pill::before,
 .app-shell.has-chat .nav-active-pill::after {
+  /* Keep these rendered: display:none would prevent the reverse morph. */
+  display: block !important;
+  opacity: 1;
   transform: scale(0);
 }
 .nav-item {
