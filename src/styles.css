@@ -161,15 +161,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .nav-item svg { display: block; width: 20px; height: 20px; flex: 0 0 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .nav-label { overflow: hidden; font-size: 12px; font-weight: 650; white-space: nowrap; opacity: 1; transition: opacity .18s,transform .35s var(--ease); }
 .nav-footer { display: flex; flex-direction: column; gap: 12px; margin-top: auto; padding: 14px 16px 18px; }
-.node-status { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 0; }
-.node-pulse { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: rgba(36,183,203,.14); }
-.node-pulse i { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 4px rgba(36,183,203,.14); }
-.node-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; overflow: hidden; }
-.node-copy strong { color: #f5f6ff; font-size: 9px; font-weight: 750; white-space: nowrap; }
-.node-copy small { color: #69cddd; font: 8px var(--mono); letter-spacing: .08em; white-space: nowrap; }
-.connection-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #9094b5; }
-.connection-dot.connected { background: #27d59d; box-shadow: 0 0 0 4px rgba(39,213,157,.12); }
-.connection-dot.disconnected { background: #ee7487; box-shadow: 0 0 0 4px rgba(238,116,135,.12); }
 .logout-button { display: inline-flex; align-items: center; gap: 12px; width: 100%; min-height: 38px; padding: 0 5px; border: 0; border-radius: 11px; background: transparent; color: #a5a8ca; font-size: 11px; cursor: pointer; transition: color .2s,background .2s; }
 .logout-button:hover { background: rgba(255,255,255,.08); color: #fff; }
 .logout-button svg { width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -185,7 +176,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .app-shell.has-chat .nav-label { display: none; }
 .app-shell.has-chat .nav-footer { align-items: center; padding-inline: 8px; }
 .app-shell.has-chat .node-status { justify-content: center; padding: 7px 0; }
-.app-shell.has-chat .node-copy, .app-shell.has-chat .logout-button span { display: none; }
+.app-shell.has-chat .logout-button span { display: none; }
 .app-shell.has-chat .logout-button { justify-content: center; width: 44px; }
 
 /* Directory stage: one-column people list + welcome preview */
@@ -468,9 +459,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .nav-item { justify-content: center; width: 48px; height: 46px; flex: 0 0 48px; padding: 0; border-radius: 14px; }
   .nav-item .nav-label { display: none; }
   .nav-footer { flex: 0 0 auto; flex-direction: row; align-items: center; gap: 8px; margin: 0; padding: 0 0 0 8px; }
-  .node-status { padding: 0; }
-  .node-pulse { width: 25px; height: 25px; flex-basis: 25px; }
-  .node-copy, .logout-button span { display: none; }
+  .logout-button span { display: none; }
   .logout-button { justify-content: center; width: 38px; min-height: 40px; padding: 0; }
   .directory-view { order: 1; flex: 1; width: 100%; min-height: 0; border: 0; overflow: auto; }
   .directory-inner { width: 100%; min-height: 100%; padding: 24px 16px; }
@@ -670,18 +659,7 @@ body { background: var(--canvas); color: var(--ink); }
 .nav-footer {
   transition: padding .65s var(--ease), gap .5s var(--ease);
 }
-.node-copy {
-  max-width: 160px;
-  opacity: 1;
-  transition: max-width .58s var(--ease), opacity .2s ease;
-}
 .app-shell.has-chat .nav-footer { align-items: center; padding-inline: 8px; }
-.app-shell.has-chat .node-status { justify-content: center; padding: 7px 0; }
-.app-shell.has-chat .node-copy {
-  display: flex;
-  max-width: 0;
-  opacity: 0;
-}
 .app-shell.has-chat .logout-button span {
   display: inline-block;
   max-width: 0;
@@ -1031,25 +1009,20 @@ body { background: var(--canvas); color: var(--ink); }
 }
 
 
-/* Compact desktop rail: keep every icon on the same left-side motion path.
-   The mobile bottom bar keeps its independent centered layout. */
+/* Compact rail: center the remaining icons in their own controls. */
 @media (min-width: 701px) {
   .app-shell.has-chat .nav-item {
-    justify-content: flex-start;
-    padding-inline: 10px;
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .app-shell.has-chat .nav-footer {
-    align-items: flex-start;
-    padding-inline: 20px 0;
-  }
-
-  .app-shell.has-chat .node-status {
-    justify-content: flex-start;
+    align-items: center;
+    padding-inline: 8px;
   }
 
   .app-shell.has-chat .logout-button {
-    justify-content: flex-start;
+    justify-content: center;
     width: 44px;
     padding-inline: 0;
   }
