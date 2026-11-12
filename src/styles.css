@@ -523,3 +523,468 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* ==========================================================================
+   Poppins + motion polish
+   Refined soft-surface palette and synchronized three-track layout animation.
+   ========================================================================== */
+:root {
+  color-scheme: light;
+  --surface: #f5f6fa;
+  --canvas: #eaedf4;
+  --panel: #f0f2f7;
+  --line: #d5dbe6;
+  --line-strong: #c3ccda;
+  --ink: #25283d;
+  --muted: #59667f;
+  --quiet: #77839a;
+  --directory-bg: #eff1f7;
+  --directory-card: #f8f9fc;
+  --chat-surface: #f1f3f8;
+  --nav-pill-fill: #eff2f8;
+  --sans: "Poppins", system-ui, sans-serif;
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+
+body,
+button,
+input {
+  font-family: var(--sans);
+}
+
+body { background: var(--canvas); color: var(--ink); }
+
+/* Keep the same three grid tracks in both modes. Unlike changing from two
+   tracks to three, this allows the rail and contact drawer to interpolate. */
+.app-shell {
+  grid-template-columns: 260px 0px minmax(0,1fr);
+  background: var(--canvas);
+  transition: grid-template-columns .76s var(--ease);
+}
+.app-shell.has-chat {
+  grid-template-columns: 80px 314px minmax(0,1fr);
+}
+.app-shell[data-view="security"],
+.app-shell[data-view="settings"] {
+  grid-template-columns: 260px 0px minmax(0,1fr);
+}
+
+.nav-rail {
+  overflow: visible;
+  z-index: 12;
+  transition: background-color .3s ease;
+}
+.brand-lockup {
+  gap: 12px;
+  transition: gap .65s var(--ease), padding .65s var(--ease), flex-basis .65s var(--ease);
+}
+.brand-copy {
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width .62s var(--ease), opacity .24s ease, transform .62s var(--ease);
+}
+.app-shell.has-chat .brand-lockup {
+  gap: 0;
+  padding-inline: 0;
+}
+.app-shell.has-chat .brand-copy {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-9px);
+}
+
+.nav-items {
+  padding: 0 0 0 16px;
+  transition: padding .68s var(--ease);
+}
+.nav-active-pill {
+  background: var(--nav-pill-fill);
+  will-change: transform, left, right, border-radius;
+  transition:
+    transform .72s var(--ease),
+    height .55s var(--ease),
+    left .68s var(--ease),
+    right .68s var(--ease),
+    border-radius .55s var(--ease),
+    background-color .3s ease;
+}
+.nav-active-pill::before,
+.nav-active-pill::after {
+  display: block;
+  opacity: 1;
+  transition: opacity .38s ease, box-shadow .3s ease;
+}
+.nav-active-pill::before {
+  box-shadow: 7px 7px 0 7px var(--directory-bg);
+}
+.nav-active-pill::after {
+  box-shadow: 7px -7px 0 7px var(--directory-bg);
+}
+.app-shell.has-chat .nav-items { padding: 0 10px; }
+.app-shell.has-chat .nav-active-pill {
+  right: 10px;
+  left: 10px;
+  border-radius: 17px;
+}
+.app-shell.has-chat .nav-active-pill::before,
+.app-shell.has-chat .nav-active-pill::after {
+  display: block !important;
+  opacity: 0;
+}
+.nav-item {
+  transition:
+    color .25s ease,
+    transform .32s var(--ease),
+    padding .68s var(--ease),
+    border-radius .56s var(--ease),
+    gap .56s var(--ease);
+}
+.nav-label {
+  display: block;
+  max-width: 128px;
+  opacity: 1;
+  transform: translateX(0);
+  transition: max-width .58s var(--ease), opacity .22s ease, transform .5s var(--ease);
+}
+.app-shell.has-chat .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 16px;
+}
+.app-shell.has-chat .nav-label {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-7px);
+}
+.nav-footer {
+  transition: padding .65s var(--ease), gap .5s var(--ease);
+}
+.node-copy {
+  max-width: 160px;
+  opacity: 1;
+  transition: max-width .58s var(--ease), opacity .2s ease;
+}
+.app-shell.has-chat .nav-footer { align-items: center; padding-inline: 8px; }
+.app-shell.has-chat .node-status { justify-content: center; padding: 7px 0; }
+.app-shell.has-chat .node-copy {
+  display: flex;
+  max-width: 0;
+  opacity: 0;
+}
+.app-shell.has-chat .logout-button span {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  transition: max-width .5s var(--ease), opacity .18s ease;
+}
+.app-shell.has-chat .logout-button { justify-content: center; width: 44px; }
+
+/* Directory spans the zero-width middle track in stage one. It then becomes
+   the drawer when that track grows to 314px in stage two. */
+.directory-view {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  z-index: 2;
+  overflow: auto;
+  background: var(--directory-bg);
+}
+.directory-inner {
+  width: min(100%,1120px);
+  transition: padding .72s var(--ease), width .72s var(--ease);
+}
+.directory-header {
+  max-height: 46px;
+  overflow: hidden;
+  transform: translateY(0);
+  opacity: 1;
+  transition: max-height .55s var(--ease), opacity .22s ease, transform .55s var(--ease), margin .55s var(--ease);
+}
+.directory-content {
+  grid-template-columns: minmax(0,1fr) minmax(0,350px);
+  max-width: 880px;
+  transition: margin .62s var(--ease), gap .62s var(--ease);
+}
+.directory-list-column {
+  width: 100%;
+  max-width: 500px;
+  justify-self: end;
+}
+.directory-list-heading {
+  display: flex;
+  max-height: 0;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: max-height .5s var(--ease), opacity .2s ease, transform .5s var(--ease), padding .5s var(--ease);
+}
+.directory-welcome {
+  width: 350px;
+  max-width: 100%;
+  background: var(--directory-card);
+  border-color: var(--line);
+  transition: opacity .25s ease, transform .62s var(--ease), background-color .3s ease;
+}
+.app-shell.has-chat .directory-view {
+  grid-column: 2;
+  overflow: visible;
+  border-right: 1px solid var(--line);
+  background: var(--directory-bg);
+}
+.app-shell.has-chat .directory-inner {
+  width: 100%;
+  min-height: 0;
+  padding: 19px 0 16px 15px;
+  margin: 0;
+}
+.app-shell.has-chat .directory-header {
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(-9px);
+  pointer-events: none;
+}
+.app-shell.has-chat .directory-content {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 0px;
+  gap: 0;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+}
+.app-shell.has-chat .directory-list-column {
+  max-width: none;
+  min-height: 0;
+}
+.app-shell.has-chat .directory-list-heading {
+  max-height: 52px;
+  padding: 3px 13px 13px 2px;
+  opacity: 1;
+  transform: translateY(0);
+}
+.app-shell.has-chat .directory-welcome {
+  width: 0;
+  min-width: 0;
+  min-height: 0;
+  max-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border-width: 0;
+  opacity: 0;
+  transform: translateX(18px) scale(.98);
+  pointer-events: none;
+}
+.app-shell.has-chat .search-field {
+  min-height: 42px;
+  margin-right: 13px;
+  padding-inline: 11px;
+  border-radius: 12px;
+  background: var(--directory-card);
+}
+.app-shell.has-chat .contact-list {
+  flex: 1;
+  min-height: 0;
+  gap: 6px;
+  margin-top: 11px;
+  padding: 0 24px 12px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.app-shell.has-chat .contact-item {
+  min-height: 67px;
+  margin-right: 0;
+  padding: 9px 10px;
+  border-color: transparent;
+  border-right: 0;
+  border-radius: 13px 0 0 13px;
+  background: transparent;
+  box-shadow: none;
+}
+.app-shell.has-chat .contact-item:hover {
+  transform: translateX(2px);
+  border-color: transparent;
+  background: #e7ebf3;
+  box-shadow: none;
+}
+.app-shell.has-chat .contact-item.is-active {
+  position: relative;
+  z-index: 1;
+  margin-right: -16px;
+  border-color: #d6dce7;
+  border-right: 0;
+  border-radius: 16px 0 0 16px;
+  background: var(--chat-surface);
+  box-shadow: 0 5px 16px rgba(29,38,79,.045);
+}
+.app-shell.has-chat .contact-item.is-active .contact-name-row strong { color: var(--navy); }
+.app-shell.has-chat .contact-item::after { content: "›"; }
+
+/* Cutout pieces are dedicated spans, not the row's arrow pseudo-element.
+   Their surface color is exactly the chat canvas, so no white hairline can
+   show between the active contact and the conversation panel. */
+.active-cutout {
+  position: absolute;
+  right: -8px;
+  z-index: 3;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--chat-surface);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+.active-cutout-top { top: -8px; }
+.active-cutout-bottom { bottom: -8px; }
+.app-shell.has-chat .contact-item.is-active .active-cutout { opacity: 1; }
+
+/* The chat canvas is underneath the directory while stage one is active.
+   Keeping it mounted lets opacity + translate animate on selection. */
+.workspace {
+  display: flex;
+  grid-column: 3;
+  grid-row: 1;
+  z-index: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--chat-surface);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(16px);
+  transition:
+    opacity .38s ease,
+    transform .72s var(--ease),
+    visibility 0s linear .72s,
+    background-color .3s ease;
+}
+.app-shell.has-chat .workspace {
+  display: flex;
+  grid-column: 3;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition:
+    opacity .42s ease .13s,
+    transform .72s var(--ease),
+    visibility 0s linear 0s,
+    background-color .3s ease;
+}
+.app-shell[data-view="security"] .directory-view,
+.app-shell[data-view="settings"] .directory-view { display: none; }
+.app-shell[data-view="security"] .workspace,
+.app-shell[data-view="settings"] .workspace {
+  display: flex;
+  grid-column: 2 / 4;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition: opacity .32s ease, transform .52s var(--ease), visibility 0s;
+}
+.app-shell[data-view="security"] #emptyState,
+.app-shell[data-view="settings"] #emptyState,
+.app-shell[data-view="security"] #conversationView,
+.app-shell[data-view="settings"] #conversationView { display: none !important; }
+
+/* Softer surfaces with clearer text and separators. */
+.login-card { background: var(--surface); border-color: var(--line); }
+.login-field input, .login-prefix { background: #eceff5; border-color: var(--line-strong); color: var(--ink); }
+.login-heading p, .login-field small { color: var(--muted); }
+.directory-header h1, .directory-list-heading h2, .directory-welcome h2 { color: var(--navy); }
+.directory-list-heading h2 { font-family: var(--sans); }
+.search-field, .contact-item, .directory-welcome, .page-card {
+  background-color: var(--directory-card);
+  border-color: var(--line);
+}
+.contact-item { color: var(--ink); }
+.contact-name-row strong, .conversation-person strong { color: var(--ink); }
+.contact-preview, .directory-welcome p, .conversation-person > span { color: var(--muted); }
+.search-field input { color: var(--ink); }
+.search-field input::placeholder { color: #7c879c; }
+.search-field kbd { background: #e9edf4; border-color: #ccd4e1; color: #5f6b82; }
+.contact-item:hover { border-color: #c4cddd; background: #f0f3f8; }
+.directory-list-footer { border-color: #d4dbe7; color: #68758d; }
+.directory-welcome { border-color: #d6dce7; }
+.workspace, .messages { background: var(--chat-surface); }
+.conversation-header, .composer { background: #f6f7fb; border-color: var(--line); }
+.conversation-banner { background: #eceff5; border-color: #d9dfe9; color: #59677e; }
+.message-bubble { background: #e9edf4; border-color: #d1d9e5; }
+.message-lockline { color: #47546c; }
+.message-stats, .message-bottom { color: #66738b; }
+.message-row.mine .message-bubble { background: var(--navy); border-color: #34316c; }
+.composer-inner { background: #edf0f6; border-color: #cbd3e0; }
+.composer-inner:focus-within { background: #f8f9fc; border-color: #86cdd7; }
+.composer-inner input { color: var(--ink); }
+.composer-inner input::placeholder { color: #77839a; }
+.message-counter, .composer-hint { color: #68758b; }
+.protocol-chip, .search-field, .page-card { box-shadow: 0 4px 14px rgba(25,24,71,.035); }
+.page-view { background: var(--surface); }
+.page-view h1, .metric-card strong { color: var(--navy); }
+.page-card > p, .page-lead { color: var(--muted); }
+.metric-card, .inspector-section { background: #f0f2f7; border-color: #d2d9e5; }
+.inspector-section p { color: #59667f; }
+.signal-scroll { background: #eceff5; border-color: #cbd3df; }
+
+/* Intermediate desktop and tablet tracks stay aligned with the same 3-column
+   model so they animate instead of snapping. */
+@media (max-width: 1100px) and (min-width: 851px) {
+  .app-shell { grid-template-columns: 260px 0px minmax(0,1fr); }
+  .app-shell.has-chat { grid-template-columns: 80px 286px minmax(0,1fr); }
+  .directory-content { grid-template-columns: minmax(0,1fr) 0px; max-width: 520px; }
+  .directory-welcome { display: none; }
+}
+@media (max-width: 850px) and (min-width: 701px) {
+  .app-shell { grid-template-columns: 220px 0px minmax(0,1fr); }
+  .app-shell.has-chat { grid-template-columns: 72px 250px minmax(0,1fr); }
+  .app-shell[data-view="security"], .app-shell[data-view="settings"] { grid-template-columns: 220px 0px minmax(0,1fr); }
+  .directory-content { grid-template-columns: minmax(0,1fr) 0px; max-width: 520px; }
+  .directory-welcome { display: none; }
+}
+@media (max-width: 700px) {
+  .app-shell, .app-shell.has-chat, .app-shell[data-view="security"], .app-shell[data-view="settings"] {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    transition: none;
+  }
+  .nav-rail { overflow: hidden; }
+  .workspace { display: none; }
+  .app-shell.has-chat .workspace,
+  .app-shell[data-view="security"] .workspace,
+  .app-shell[data-view="settings"] .workspace {
+    display: flex;
+    grid-column: auto;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition: none;
+  }
+  .app-shell:not(.has-chat):not([data-view="security"]):not([data-view="settings"]) .workspace { display: none; }
+  .directory-view { grid-column: auto; }
+  .app-shell.has-chat .directory-view { display: none; }
+  .directory-inner { transition: none; }
+  .app-shell.has-chat .directory-content { display: flex; }
+  .app-shell.has-chat .directory-welcome { display: none; }
+  .app-shell.has-chat .directory-header { display: none; }
+  .app-shell.has-chat .directory-list-heading { max-height: 52px; opacity: 1; }
+  .app-shell.has-chat .contact-list { padding-right: 0; }
+  .app-shell.has-chat .contact-item.is-active { margin-right: 0; border-radius: 14px; }
+  .active-cutout { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell, .nav-active-pill, .nav-item, .nav-label, .directory-inner,
+  .directory-header, .directory-content, .directory-welcome, .workspace,
+  .brand-copy, .brand-lockup, .nav-items {
+    transition-duration: .01ms !important;
+  }
+}
