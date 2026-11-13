@@ -10,8 +10,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v12">
-  <script type="module" src="/src/app.js?v=poppins-motion-v7"></script>
+  <script>
+    try {
+      if (localStorage.getItem('syntrix-theme') === 'dark') {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v13">
+  <script type="module" src="/src/app.js?v=poppins-motion-v8"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -198,6 +205,19 @@
           <span class="eyebrow"><span class="eyebrow-dot"></span> ACCOUNT PREFERENCES</span>
           <h1 id="settingsTitle">Pengaturan</h1>
           <div class="page-card settings-profile"><div id="settingsAvatar" class="avatar">S</div><div><strong id="settingsName">SYNTRIX User</strong><span id="settingsHandle">@username</span></div></div>
+          <div class="page-card settings-item theme-setting">
+            <div>
+              <strong>Dark mode</strong>
+              <span>Gunakan tampilan gelap yang lebih nyaman untuk sesi panjang.</span>
+            </div>
+            <div class="theme-setting-control">
+              <span id="themeModeLabel" class="theme-mode-label">Light</span>
+              <label class="theme-toggle" for="themeToggle">
+                <input id="themeToggle" type="checkbox" role="switch" aria-label="Aktifkan dark mode">
+                <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-thumb"></span></span>
+              </label>
+            </div>
+          </div>
           <div class="page-card settings-item"><div><strong>Tentang SYNTRIX</strong><span>Ruang belajar komunikasi data digital.</span></div><span class="version-label">v1.0.0</span></div>
         </div>
       </section>
