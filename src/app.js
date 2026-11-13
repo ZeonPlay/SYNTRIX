@@ -15,13 +15,14 @@ import {
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
 import {
-  acknowledgeDevices, fetchDeviceAlerts, isSessionRevoked, registerDevice, rejectDevices,
+  acknowledgeDevice, fetchDevices, isSessionRevoked, registerDevice, rejectDevice,
 } from './services/device.service.js';
 
 const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
   onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(), bitsByMessage: new Map(),
   messageViewModes: new Map(), unlockTarget: null, bootingUserId: null, sending: false, keyReady: false,
+  deviceRowId: null, knownPendingIds: null, endingSession: false,
 };
 
 // A safe sample waveform is shown while the real payload is protected by the key.
@@ -180,6 +181,8 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/row-level security|permission denied/i.test(message)) return 'Akses database ditolak. Periksa migration dan kebijakan RLS Supabase.';
   if (/device_not_trusted/i.test(message)) return 'Perangkat ini belum dikonfirmasi sebagai milikmu, jadi belum bisa mengelola perangkat lain.';
   if (/session_revoked/i.test(message)) return 'Sesi ini sudah dikeluarkan dari perangkat lain.';
+  if (/device_limit/i.test(message)) return 'Terlalu banyak perangkat tercatat di akun ini. Keluarkan perangkat yang tidak dipakai.';
+  if (/cannot_reject_self/i.test(message)) return 'Perangkat yang sedang kamu pakai tidak bisa dikeluarkan dari sini. Gunakan tombol Keluar.';
   console.warn('Unhandled error:', error);
   return fallback;
 }
@@ -293,6 +296,14 @@ function renderAccount() {
   $('#settingsName').textContent = name;
   $('#settingsHandle').textContent = `@${handle}`;
   $('#settingsAvatar').textContent = initials(name);
+}
+
+function renderKeyStatus() {
+  const status = $('#keyStatus');
+  if (!status) return;
+  status.textContent = state.keyReady
+    ? 'Aktif. Isi pesan hanya terbuka dengan kuncimu.'
+    : 'Belum diatur. Buat kunci agar pesan bisa dibuka.';
 }
 
 function contactPreview(contactId) {
@@ -623,6 +634,7 @@ async function loadWorkspace() {
 
   const keyExists = await hasUnlockKey();
   state.keyReady = keyExists;
+  renderKeyStatus();
   if (!keyExists) {
     $('#oldKeyField').hidden = true;
     $('#keyDialogTitle').textContent = 'Create your unlock key';
@@ -640,8 +652,12 @@ async function loadWorkspace() {
       renderContacts();
       updateConversationHeader();
     },
-    onStatus: setConnection,
-    onDevice: refreshDeviceAlerts,
+    onStatus: (status) => {
+      setConnection(status);
+      // After a dropped connection, check right away: a "Bukan aku" may have been missed.
+      if (status === 'SUBSCRIBED' && state.deviceRowId) deviceTick();
+    },
+    onDevice: handleDeviceEvent,
   });
 }
 
@@ -679,30 +695,128 @@ function formatDevicePlace(device) {
   return unique.length ? `${unique.join(', ')} (perkiraan)` : 'Lokasi tidak diketahui';
 }
 
-function renderDeviceAlerts(alerts) {
-  $('#deviceAlert').hidden = alerts.length === 0;
-  $('#securityDot').hidden = alerts.length === 0;
-  $('#deviceAlertList').innerHTML = alerts.map((device) => `
-    <li class="device-entry">
-      <strong>${escapeHTML(device.label)}</strong>
-      <dl class="device-facts">
-        <div><dt>Lokasi</dt><dd>${escapeHTML(formatDevicePlace(device))}</dd></div>
-        <div><dt>Alamat IP</dt><dd class="mono">${escapeHTML(device.ip_address || 'Tidak diketahui')}</dd></div>
-        <div><dt>Tersambung</dt><dd>${escapeHTML(formatDeviceTime(device.first_seen_at))}</dd></div>
-        <div><dt>Terakhir aktif</dt><dd>${escapeHTML(formatDeviceTime(device.last_seen_at))}</dd></div>
-      </dl>
-    </li>`).join('');
+const DEVICE_TYPE_LABELS = { desktop: 'Komputer / laptop', mobile: 'Ponsel', tablet: 'Tablet' };
+const DEVICE_ONLINE_WINDOW_MS = 90_000;
+let deviceRefreshTimer = null;
+
+function formatLastActive(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  if (Date.now() - date.getTime() < DEVICE_ONLINE_WINDOW_MS) return 'Sedang aktif sekarang';
+  return formatDeviceTime(value);
 }
 
-async function refreshDeviceAlerts() {
+function deviceFact(label, value, { mono = false } = {}) {
+  if (!value) return '';
+  return `<div><dt>${escapeHTML(label)}</dt><dd${mono ? ' class="mono"' : ''}>${escapeHTML(value)}</dd></div>`;
+}
+
+// One readable card per device. Location and IP only exist in the data when the
+// viewer is a trusted device; the server leaves them out otherwise.
+function renderDeviceCard(device, { canManage }) {
+  const pending = device.status === 'pending';
+  const badges = [];
+  if (device.is_current) badges.push('<span class="device-badge is-current">Perangkat ini</span>');
+  badges.push(pending
+    ? '<span class="device-badge is-pending">Belum dikonfirmasi</span>'
+    : '<span class="device-badge is-trusted">Dikenal</span>');
+
+  const loginValue = device.session_started_at || device.first_seen_at;
+  const loginDate = new Date(loginValue);
+  const when = Number.isNaN(loginDate.getTime()) ? '' : formatRelative(loginDate);
+  const hasPlace = Boolean(device.city || device.region || device.country);
+  const place = formatDevicePlace(device);
+  const headline = [when && `Login ${when}`, canManage && hasPlace && place].filter(Boolean).join(' · ');
+
+  const facts = [
+    canManage && deviceFact('Lokasi', place),
+    canManage && deviceFact('Alamat IP', device.ip_address || 'Tidak diketahui', { mono: true }),
+    deviceFact('Login pada', formatDeviceTime(loginValue)),
+    deviceFact('Terakhir aktif', formatLastActive(device.last_seen_at)),
+    deviceFact('Jenis perangkat', DEVICE_TYPE_LABELS[device.device_type]),
+    deviceFact('Browser', device.browser),
+    deviceFact('Sistem operasi', device.os),
+    deviceFact('Bahasa', device.language),
+    deviceFact('Zona waktu', device.timezone),
+    deviceFact('Pertama terlihat', formatDeviceTime(device.first_seen_at)),
+  ].filter(Boolean).join('');
+
+  const id = escapeHTML(device.id);
+  let actions = '';
+  if (canManage && !device.is_current) {
+    actions = pending
+      ? `<button class="button button-primary" type="button" data-device-action="ack" data-device-id="${id}">Ini aku</button>
+         <button class="button button-danger" type="button" data-device-action="reject" data-device-id="${id}">Bukan aku</button>`
+      : `<button class="button button-danger-quiet" type="button" data-device-action="remove" data-device-id="${id}">Keluarkan perangkat</button>`;
+  }
+
+  return `
+    <li class="device-card${pending ? ' is-pending' : ''}">
+      <div class="device-card-head"><strong>${escapeHTML(device.label)}</strong><span class="device-badges">${badges.join('')}</span></div>
+      ${headline ? `<p class="device-headline">${escapeHTML(headline)}</p>` : ''}
+      <dl class="device-facts">${facts}</dl>
+      ${actions ? `<div class="device-actions">${actions}</div>` : ''}
+    </li>`;
+}
+
+function renderDevices(devices) {
+  const current = devices.find((device) => device.is_current);
+  const trustedViewer = current?.status === 'trusted';
+  // Only a trusted device is told about, and may decide on, newer devices.
+  const pending = trustedViewer
+    ? devices.filter((device) => !device.is_current && device.status === 'pending')
+    : [];
+  const others = devices.filter((device) => !pending.includes(device));
+  const selfPending = Boolean(current) && !trustedViewer;
+
+  const pendingIds = new Set(pending.map((device) => device.id));
+  if (state.knownPendingIds) {
+    const fresh = pending.filter((device) => !state.knownPendingIds.has(device.id));
+    if (fresh.length) showToast(`Perangkat baru masuk: ${fresh[0].label}. Buka menu Keamanan untuk memeriksanya.`, 'error');
+  }
+  state.knownPendingIds = devices.length ? pendingIds : null;
+
+  $('#deviceAlert').hidden = pending.length === 0;
+  $('#deviceAlertTitle').textContent = pending.length === 1
+    ? 'Ada 1 perangkat baru masuk ke akunmu'
+    : `Ada ${pending.length} perangkat baru masuk ke akunmu`;
+  $('#deviceAlertList').innerHTML = pending.map((device) => renderDeviceCard(device, { canManage: true })).join('');
+  $('#deviceSelfNotice').hidden = !selfPending;
+  $('#securityDot').hidden = pending.length === 0 && !selfPending;
+  $('#deviceList').innerHTML = others.map((device) => renderDeviceCard(device, { canManage: trustedViewer })).join('');
+  $('#deviceSummary').textContent = devices.length ? `${others.length} perangkat tercatat` : 'Memuat…';
+}
+
+async function refreshDevices() {
+  if (!state.user) return;
   try {
-    renderDeviceAlerts(await fetchDeviceAlerts());
+    const devices = await fetchDevices();
+    if (state.user) renderDevices(devices);
   } catch (error) {
-    console.error('Device alert check failed:', error);
+    if (isSessionRevoked(error)) await endRevokedSession();
+    else console.error('Device list failed:', error);
   }
 }
 
-const DEVICE_HEARTBEAT_MS = 60_000;
+// Every device of the account gets an event for each change. Bursts (for
+// example several heartbeats) are folded into one refresh.
+function scheduleDeviceRefresh(delay = 350) {
+  window.clearTimeout(deviceRefreshTimer);
+  deviceRefreshTimer = window.setTimeout(refreshDevices, delay);
+}
+
+// Realtime event for this account's devices. When it is this device's own row
+// that was just revoked, leave immediately instead of waiting for the heartbeat.
+function handleDeviceEvent({ row } = {}) {
+  if (!row) return;
+  if (row.id === state.deviceRowId && row.revoked_at) {
+    endRevokedSession();
+    return;
+  }
+  scheduleDeviceRefresh();
+}
+
+const DEVICE_HEARTBEAT_MS = 30_000;
 let deviceHeartbeatTimer = null;
 let deviceTickRunning = false;
 
@@ -714,10 +828,18 @@ function stopDeviceHeartbeat() {
 // This session was removed by "Bukan aku" on another device. Its access token
 // may still be valid for a while, so leave the workspace right away.
 async function endRevokedSession() {
+  // After a normal sign-out state.user is already cleared; stay silent then.
+  if (!state.user || state.endingSession) return;
+  state.endingSession = true;
   stopDeviceHeartbeat();
+  window.clearTimeout(deviceRefreshTimer);
   showToast('Sesi ini dikeluarkan dari perangkat lain. Silakan masuk lagi.', 'error');
-  const { error } = await supabase.auth.signOut({ scope: 'local' });
-  if (error) console.warn('Local sign-out failed:', error.message);
+  try {
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    if (error) console.warn('Local sign-out failed:', error.message);
+  } finally {
+    state.endingSession = false;
+  }
 }
 
 // Keeps last_seen_at and the location current, notices a revoked session, and
@@ -726,8 +848,8 @@ async function deviceTick() {
   if (deviceTickRunning || !state.user) return;
   deviceTickRunning = true;
   try {
-    await registerDevice();
-    await refreshDeviceAlerts();
+    state.deviceRowId = await registerDevice();
+    await refreshDevices();
   } catch (error) {
     if (isSessionRevoked(error)) await endRevokedSession();
     else console.warn('Device heartbeat failed:', error.message);
@@ -746,32 +868,40 @@ function startDeviceHeartbeat() {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && deviceHeartbeatTimer) deviceTick();
 });
+// Coming back online is the moment a missed revocation is most likely.
+window.addEventListener('online', () => {
+  if (deviceHeartbeatTimer) deviceTick();
+});
 
 async function syncDevices() {
-  try {
-    await registerDevice();
-    await refreshDeviceAlerts();
-  } catch (error) {
-    if (isSessionRevoked(error)) {
-      await endRevokedSession();
-      return;
-    }
-    console.error('Device sync failed:', error);
-  }
-  startDeviceHeartbeat();
+  await deviceTick();
+  if (state.user && !state.endingSession) startDeviceHeartbeat();
 }
 
-async function resolveDevices(button, action, message) {
-  button.disabled = true;
+// "Ini aku", "Bukan aku" and "Keluarkan perangkat" act on exactly one device.
+async function resolveDevice(button) {
+  const { deviceAction, deviceId } = button.dataset;
+  if (!deviceId) return;
+  if (deviceAction === 'remove'
+    && !window.confirm('Keluarkan perangkat ini dari akunmu? Sesinya akan langsung berakhir.')) return;
+
+  const buttons = button.closest('.device-card')?.querySelectorAll('button') ?? [button];
+  buttons.forEach((item) => { item.disabled = true; });
   try {
-    await action();
-    showToast(message, 'success');
+    if (deviceAction === 'ack') {
+      const changed = await acknowledgeDevice(deviceId);
+      showToast(changed ? 'Oke, perangkat itu ditandai sebagai kamu.' : 'Perangkat itu sudah diproses.', 'success');
+    } else {
+      const result = await rejectDevice(deviceId);
+      showToast(result?.removed
+        ? 'Perangkat itu langsung dikeluarkan. Sebaiknya ganti kunci pesan dan password.'
+        : 'Perangkat itu sudah tidak ada.', 'success');
+    }
   } catch (error) {
     showToast(friendlyError(error, 'Gagal memproses perangkat.'), 'error');
   } finally {
-    // Always re-read the list so the card never stays stale after a partial failure.
-    await refreshDeviceAlerts();
-    button.disabled = false;
+    // Always re-read the list so a card never stays stale after a partial failure.
+    await refreshDevices();
   }
 }
 
@@ -803,7 +933,10 @@ async function enterApp(user) {
 
 async function leaveApp() {
   stopDeviceHeartbeat();
-  renderDeviceAlerts([]);
+  window.clearTimeout(deviceRefreshTimer);
+  state.deviceRowId = null;
+  state.knownPendingIds = null;
+  renderDevices([]);
   state.disconnectRealtime?.();
   state.disconnectRealtime = null;
   state.user = null;
@@ -1038,6 +1171,7 @@ $('#keyForm').addEventListener('submit', async (event) => {
       await setUnlockKey(key);
     }
     state.keyReady = true;
+    renderKeyStatus();
     $('#oldKeyField').hidden = true;
     $('#keyForm').reset();
     closeDialog(keyDialog);
@@ -1270,7 +1404,9 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-$('#deviceAckBtn')?.addEventListener('click', (event) => resolveDevices(event.currentTarget, acknowledgeDevices, 'Oke, perangkat itu ditandai sebagai kamu.'));
-$('#deviceRejectBtn')?.addEventListener('click', (event) => resolveDevices(event.currentTarget, rejectDevices, 'Sesi di perangkat lain dikeluarkan. Sebaiknya ganti kunci pesan dan password.'));
+$('#securityView')?.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-device-action]');
+  if (button) resolveDevice(button);
+});
 
 initialize();

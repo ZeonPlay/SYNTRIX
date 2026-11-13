@@ -5,7 +5,8 @@ SYNTRIX is a static website. It does not need a Flask/Gunicorn server, a Socket.
 ## 1. Prepare Supabase
 
 1. Open your Supabase project.
-2. Run all four migrations once in **SQL Editor**, in this order: `supabase/migrations/20261111122920_syntrix_initial_schema.sql`, `20261112000000_syntrix_hardening.sql`, `20261114000000_syntrix_device_alerts.sql`, then `20261115000000_syntrix_device_tracking.sql`. The app needs the second one (it adds `frame_count`, `get_message_bits`, `change_message_unlock_key`, and `find_profile_by_handle`) and the last two for device alerts: the fourth adds the connection time, approximate location, and server-side revocation behind the "Bukan aku" button.
+2. Run all five migrations once in **SQL Editor**, in this order: `supabase/migrations/20261111122920_syntrix_initial_schema.sql`, `20261112000000_syntrix_hardening.sql`, `20261114000000_syntrix_device_alerts.sql`, `20261115000000_syntrix_device_tracking.sql`, then `20261116000000_syntrix_device_security_v2.sql`. The app needs the second one (it adds `frame_count`, `get_message_bits`, `change_message_unlock_key`, and `find_profile_by_handle`) and the last three for device security: the fourth adds the connection time and approximate location, and the fifth adds per-device "Ini aku" / "Bukan aku", instant sign-out of a rejected device, and server-side blocking of revoked sessions.
+   - The fifth migration also sets `pgrst.db_pre_request` on the `authenticator` role so the Data API refuses requests from a revoked session. It replaces any pre-request function you configured yourself. To undo it: `alter role authenticator reset pgrst.db_pre_request; notify pgrst, 'reload config';`.
 3. Confirm that `profiles`, `contacts`, and `messages` appear in the Table Editor.
 4. Open **Project Settings → API** (or API Keys) and copy the Project URL and publishable key.
 5. Put those two public values in `src/config.js` before deployment.
@@ -43,6 +44,7 @@ Every push to `main` will trigger a new static deployment.
 - Open the message with the receiver's own unlock key and inspect the frames and NRZ-I waveform.
 - Refresh both clients, sign in again, and confirm conversation history is restored.
 - Verify that one user cannot read another unrelated user's messages by testing with a third account.
+- Device security: sign in with the same account in a second browser. The first browser should show a toast and a red dot on **Keamanan** within a second or two, with the new device's location, IP and login time. Press **Bukan aku**: the second browser must sign itself out immediately. Sign in there again and press **Ini aku** instead; the card should move to the trusted list.
 
 ## Notes about the free tier
 

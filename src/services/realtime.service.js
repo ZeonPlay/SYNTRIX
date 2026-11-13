@@ -14,9 +14,14 @@ export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'messages',
     }, (payload) => onMessageUpdate?.(payload.new))
+    // Supabase cannot filter DELETE events, so devices are never deleted when
+    // rejected: they get revoked_at, which arrives here as an UPDATE.
     .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'user_devices', filter: `user_id=eq.${userId}`,
-    }, () => onDevice?.())
+      event: 'INSERT', schema: 'public', table: 'user_devices', filter: `user_id=eq.${userId}`,
+    }, (payload) => onDevice?.({ type: 'INSERT', row: payload.new }))
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'user_devices', filter: `user_id=eq.${userId}`,
+    }, (payload) => onDevice?.({ type: 'UPDATE', row: payload.new }))
     .on('presence', { event: 'sync' }, () => {
       const snapshot = channel.presenceState();
       const users = Object.values(snapshot).flat().map((entry) => ({

@@ -1741,21 +1741,7 @@ html[data-theme="dark"] .theme-toggle input:checked + .theme-switch-track {
   ::view-transition-new(root) { animation: none !important; }
 }
 
-/* Device alert details: location, IP and connection times. Scoped under
-   .device-alert-list so it wins over the generic `.device-alert-list li` rule
-   further down while keeping that rule's red-tinted card background. */
-.device-alert-list .device-entry {
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  gap: 9px;
-  padding: 12px 14px;
-  border: 1px solid rgba(240,68,56,.16);
-}
-.device-entry > strong {
-  color: var(--ink);
-  font-size: 12px;
-}
+/* Device details: location, IP and connection times. Cards are styled at the end of this file. */
 .device-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1870,8 +1856,32 @@ html:not([data-theme="dark"]) .app-shell:not(.has-chat) .welcome-icon { backgrou
 .nav-item[data-view="security"] { position: relative; }
 .nav-dot { position: absolute; top: 14px; left: 38px; z-index: 2; width: 9px; height: 9px; border-radius: 50%; background: #f04438; box-shadow: 0 0 0 2px var(--navy); }
 .device-alert { border-left: 4px solid #f04438; }
-.device-alert p { margin: 4px 0 0; }
-.device-alert-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
-.device-alert-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 12px; background: rgba(240,68,56,.08); font-size: 13px; }
-.device-alert-list li span { color: #8a94a7; font-size: 12px; white-space: nowrap; }
-.device-alert-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.device-self-notice { border-left: 4px solid #f5a524; }
+.device-alert p, .device-self-notice p { margin: 4px 0 0; }
+.device-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.device-section-head strong { color: var(--ink); font-size: 12px; }
+.device-section-head span { color: var(--muted); font: 10px var(--mono); }
+.device-list { display: grid; gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
+.device-card { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--chat-surface); }
+.device-card.is-pending { border-color: rgba(240,68,56,.42); background: rgba(240,68,56,.07); }
+.device-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.device-card-head > strong { color: var(--ink); font-size: 13px; font-weight: 700; }
+.device-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.device-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--ink); font: 600 9px var(--mono); letter-spacing: .04em; }
+.device-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--quiet); }
+.device-badge.is-current { border-color: rgba(36,183,203,.5); }
+.device-badge.is-current::before { background: var(--cyan); }
+.device-badge.is-trusted::before { background: var(--green); }
+.device-badge.is-pending { border-color: rgba(240,68,56,.5); }
+.device-badge.is-pending::before { background: var(--red); }
+.device-headline { margin: 0; color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.5; }
+.device-card .device-facts dt { font-size: 9px; }
+.device-card .device-facts dd { font-size: 11px; }
+.device-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.button-danger { border-color: var(--red); background: transparent; color: var(--red); }
+.button-danger:hover:not(:disabled) { background: rgba(216,93,112,.12); }
+.button-danger-quiet { border-color: var(--line-strong); background: transparent; color: var(--red); }
+.button-danger-quiet:hover:not(:disabled) { background: rgba(216,93,112,.1); }
+html:not([data-theme="dark"]) .button-danger, html:not([data-theme="dark"]) .button-danger-quiet { color: #b8384d; }
+html:not([data-theme="dark"]) .button-danger { border-color: #d85d70; }
+@media (max-width: 520px) { .device-actions .button { flex: 1 1 100%; } }

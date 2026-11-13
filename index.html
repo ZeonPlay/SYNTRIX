@@ -17,8 +17,8 @@
       }
     } catch (_) {}
   </script>
-  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v16">
-  <script type="module" src="/src/app.js?v=poppins-motion-v11"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v17">
+  <script type="module" src="/src/app.js?v=poppins-motion-v12"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -195,12 +195,19 @@
         <div class="page-inner">
           <span class="eyebrow"><span class="eyebrow-dot"></span> ACCOUNT PROTECTION</span>
           <h1 id="securityTitle">Keamanan</h1>
-          <p class="page-lead">Atur kunci pembuka pesan pada akunmu.</p>
+          <p class="page-lead">Pantau perangkat yang masuk ke akunmu dan atur kunci pembuka pesan.</p>
           <div id="deviceAlert" class="page-card device-alert" role="alert" hidden>
-            <strong>Akunmu login di perangkat lain</strong>
-            <p>Kalau ini bukan kamu, keluarkan sesinya sekarang lalu ganti kunci pesanmu.</p>
-            <ul id="deviceAlertList" class="device-alert-list"></ul>
-            <div class="device-alert-actions"><button id="deviceRejectBtn" class="button button-secondary" type="button">Bukan aku</button><button id="deviceAckBtn" class="button button-primary" type="button">Ini aku</button></div>
+            <strong id="deviceAlertTitle">Ada perangkat baru masuk ke akunmu</strong>
+            <p>Kalau itu kamu, pilih "Ini aku". Kalau bukan, pilih "Bukan aku": perangkat itu langsung dikeluarkan dari SYNTRIX. Setelah itu, sebaiknya ganti kunci pesan dan password.</p>
+            <ul id="deviceAlertList" class="device-list"></ul>
+          </div>
+          <div id="deviceSelfNotice" class="page-card device-self-notice" role="status" hidden>
+            <strong>Perangkat ini belum dikonfirmasi</strong>
+            <p>Akun ini juga dipakai di perangkat lain. Pemilik akun perlu memilih "Ini aku" untuk perangkat ini dari perangkat yang sudah dikenal. Kalau ditolak, kamu akan otomatis keluar.</p>
+          </div>
+          <div class="page-card device-section">
+            <div class="device-section-head"><strong>Perangkat yang masuk</strong><span id="deviceSummary">Memuat…</span></div>
+            <ul id="deviceList" class="device-list"></ul>
           </div>
           <div class="page-card settings-item"><div><strong>Kunci pembuka pesan</strong><span id="keyStatus">Memeriksa…</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Atur kunci</button></div>
           <div class="page-card"><strong>Cara kerjanya</strong><p>Server hanya mengirim isi pesan setelah kunci kamu terbukti benar. Kunci tersimpan sebagai hash bcrypt dan percobaan salah dibatasi. Ini bukan enkripsi end-to-end, jadi jangan gunakan untuk data sangat sensitif.</p></div>
