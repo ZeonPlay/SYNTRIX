@@ -14,6 +14,9 @@ import {
   listContactIds, listRecentMessages, markConversationRead, saveContact,
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
+import {
+  acknowledgeDevices, fetchDeviceAlerts, registerDevice, rejectDevices,
+} from './services/device.service.js';
 
 const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
@@ -329,6 +332,8 @@ function renderContacts() {
     item.className = `contact-item${contact.id === state.activeContactId ? ' is-active' : ''}`;
     const isOnline = state.onlineUsers.has(contact.id);
     const unread = unreadCountFor(contact.id);
+    const lastMessage = latestMessageFor(contact.id);
+    const lastTime = lastMessage ? formatTime(lastMessage.created_at) : '';
     const avatarHue = [...String(contact.id)].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 360;
     item.setAttribute('aria-label', `Open conversation with ${contact.display_name}`);
     item.innerHTML = `
@@ -341,10 +346,12 @@ function renderContacts() {
           <strong>${escapeHTML(contact.display_name)}</strong>
           <span class="contact-handle">@${escapeHTML(contact.handle)}</span>
         </span>
+        <span class="contact-status-line ${isOnline ? 'online' : ''}">${isOnline ? 'Online' : 'Offline'}</span>
         <span class="contact-preview">${escapeHTML(contactPreview(contact.id))}</span>
       </span>
       <span class="active-cutout active-cutout-top" aria-hidden="true"></span>
       <span class="active-cutout active-cutout-bottom" aria-hidden="true"></span>
+      ${lastTime ? `<time class="contact-time">${escapeHTML(lastTime)}</time>` : ''}
       ${unread ? `<span class="unread-count">${unread > 99 ? '99+' : unread}</span>` : ''}
     `;
     item.addEventListener('click', () => selectContact(contact.id));
@@ -632,7 +639,49 @@ async function loadWorkspace() {
       updateConversationHeader();
     },
     onStatus: setConnection,
+    onDevice: refreshDeviceAlerts,
   });
+}
+
+function renderDeviceAlerts(alerts) {
+  $('#deviceAlert').hidden = alerts.length === 0;
+  $('#securityDot').hidden = alerts.length === 0;
+  $('#deviceAlertList').innerHTML = alerts.map((device) => {
+    const when = new Date(device.first_seen_at).toLocaleString('id-ID', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+    return `<li><strong>${escapeHTML(device.label)}</strong><span>${escapeHTML(when)}</span></li>`;
+  }).join('');
+}
+
+async function refreshDeviceAlerts() {
+  try {
+    renderDeviceAlerts(await fetchDeviceAlerts());
+  } catch (error) {
+    console.error('Device alert check failed:', error);
+  }
+}
+
+async function syncDevices() {
+  try {
+    await registerDevice();
+    await refreshDeviceAlerts();
+  } catch (error) {
+    console.error('Device sync failed:', error);
+  }
+}
+
+async function resolveDevices(button, action, message) {
+  button.disabled = true;
+  try {
+    await action();
+    await refreshDeviceAlerts();
+    showToast(message, 'success');
+  } catch (error) {
+    showToast(friendlyError(error, 'Gagal memproses perangkat.'), 'error');
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function isChatRoute() {
@@ -652,6 +701,7 @@ async function enterApp(user) {
   $('#messages').replaceChildren();
   try {
     await loadWorkspace();
+    await syncDevices();
   } catch (error) {
     showToast(friendlyError(error, 'Tidak dapat memuat workspace.'), 'error');
     console.error(error);
@@ -661,6 +711,7 @@ async function enterApp(user) {
 }
 
 async function leaveApp() {
+  renderDeviceAlerts([]);
   state.disconnectRealtime?.();
   state.disconnectRealtime = null;
   state.user = null;
@@ -1126,5 +1177,8 @@ document.addEventListener('keydown', (event) => {
     if (!document.querySelector('dialog[open]')) appView.classList.remove('has-chat');
   }
 });
+
+$('#deviceAckBtn')?.addEventListener('click', (event) => resolveDevices(event.currentTarget, acknowledgeDevices, 'Oke, perangkat itu ditandai sebagai kamu.'));
+$('#deviceRejectBtn')?.addEventListener('click', (event) => resolveDevices(event.currentTarget, rejectDevices, 'Sesi di perangkat lain dikeluarkan. Sebaiknya ganti kunci pesan dan password.'));
 
 initialize();

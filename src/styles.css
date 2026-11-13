@@ -1740,3 +1740,98 @@ html[data-theme="dark"] .theme-toggle input:checked + .theme-switch-track {
   ::view-transition-old(root),
   ::view-transition-new(root) { animation: none !important; }
 }
+
+/* ==========================================================================
+   Sidebar + directory polish
+   Light colours are scoped to html:not([data-theme="dark"]); dark keeps its own.
+   ========================================================================== */
+
+/* ---- Sidebar ---- */
+.brand-lockup { flex: 0 0 108px; padding: 0 20px 14px; }
+.brand-mark { width: 44px; height: 44px; border-radius: 13px; }
+.brand-mark img { width: 38px; height: 38px; }
+.brand-copy strong { font-size: 19px; letter-spacing: .06em; }
+.brand-copy small { font-size: 9px; letter-spacing: .2em; }
+.nav-items { gap: 10px; padding-left: 20px; }
+.nav-active-pill { left: 20px; height: 56px; border-radius: 28px 0 0 28px; }
+.nav-item { height: 56px; flex: 0 0 56px; gap: 16px; padding: 0 20px; border-radius: 28px 0 0 28px; }
+.nav-item svg { width: 22px; height: 22px; flex-basis: 22px; }
+.nav-label { font-size: 14px; font-weight: 600; }
+html:not([data-theme="dark"]) .nav-item:not(.is-active) { color: #a3adf5; }
+html:not([data-theme="dark"]) .nav-item:not(.is-active):hover { color: #fff; }
+
+/* Same curve as the reference (30px fillet) using the mask-based corner pieces */
+.nav-active-pill::before, .nav-active-pill::after { width: 30px; height: 31px; }
+.nav-active-pill::before { top: -30px; -webkit-mask-image: radial-gradient(circle at 0 0, transparent 29.5px, #000 30px); mask-image: radial-gradient(circle at 0 0, transparent 29.5px, #000 30px); }
+.nav-active-pill::after { bottom: -30px; -webkit-mask-image: radial-gradient(circle at 0 100%, transparent 29.5px, #000 30px); mask-image: radial-gradient(circle at 0 100%, transparent 29.5px, #000 30px); }
+/* Compact (chat) tab merges into the contact panel in light mode */
+html:not([data-theme="dark"]) .app-shell.has-chat { --nav-pill-fill: var(--directory-bg); }
+
+.nav-footer { padding: 14px 20px 22px; }
+.logout-button { gap: 12px; min-height: 44px; padding: 0; background: transparent; color: #fff; font-size: 12px; font-weight: 700; }
+.logout-button svg { box-sizing: content-box; width: 20px; height: 20px; flex: 0 0 20px; padding: 9px; border-radius: 12px; background: rgba(255,255,255,.08); color: #6fd3e6; }
+.logout-button:hover { background: transparent; }
+.logout-button:hover svg { background: rgba(255,255,255,.16); }
+
+/* Chat mode: logo stays centred (hidden text must not take a gap) */
+.app-shell.has-chat .brand-lockup { padding: 0 20px 14px; }
+.app-shell.has-chat .brand-mark { width: 40px; height: 40px; }
+.app-shell.has-chat .nav-items { padding: 0 0 0 20px; }
+.app-shell.has-chat .nav-active-pill { left: 20px; right: 0; border-radius: 28px 0 0 28px; }
+.app-shell.has-chat .nav-active-pill::before, .app-shell.has-chat .nav-active-pill::after { transform: scale(1); }
+.app-shell.has-chat .nav-item { border-radius: 28px 0 0 28px; }
+.nav-footer .logout-button { padding-left: 0; }
+
+/* ---- Directory (before a contact is opened) ---- */
+.app-shell:not(.has-chat) .directory-inner { width: 100%; max-width: none; padding: 34px 38px 30px; }
+.app-shell:not(.has-chat) .directory-header { width: 100%; margin: 0; }
+.app-shell:not(.has-chat) .directory-header h1 { font-size: 24px; letter-spacing: -.03em; }
+.app-shell:not(.has-chat) .directory-heading-dot { width: 10px; height: 10px; }
+.app-shell:not(.has-chat) .directory-count, .app-shell:not(.has-chat) .directory-list-footer, .search-field kbd { display: none; }
+.app-shell:not(.has-chat) .directory-add-button { margin-left: auto; }
+.app-shell:not(.has-chat) .directory-content { grid-template-columns: minmax(320px,485px) minmax(0,1fr); justify-content: stretch; max-width: none; gap: 26px; margin: 22px 0 0; }
+.app-shell:not(.has-chat) .directory-list-column { max-width: none; justify-self: stretch; }
+
+.app-shell:not(.has-chat) .search-field { position: relative; display: block; min-height: 0; padding: 15px; border-radius: 20px; }
+.app-shell:not(.has-chat) .search-field svg { position: absolute; left: 33px; top: 50%; transform: translateY(-50%); }
+.app-shell:not(.has-chat) .search-field input { height: 40px; padding: 0 14px 0 40px; border: 1px solid var(--line); border-radius: 14px; font-size: 12px; }
+html:not([data-theme="dark"]) .app-shell:not(.has-chat) .search-field { background: #fff; border-color: #e6eaf1; }
+html:not([data-theme="dark"]) .app-shell:not(.has-chat) .search-field input { background: #f6f8fb; }
+
+.app-shell:not(.has-chat) .contact-list { gap: 11px; margin-top: 12px; }
+.app-shell:not(.has-chat) .contact-item { min-height: 88px; padding: 16px 58px 16px 16px; gap: 14px; border-radius: 20px; }
+html:not([data-theme="dark"]) .app-shell:not(.has-chat) .contact-item { background: #fff; border-color: #e6eaf1; }
+.app-shell:not(.has-chat) .contact-avatar { width: 46px; height: 46px; border-radius: 14px; }
+.app-shell:not(.has-chat) .contact-name-row strong { font-size: 15px; }
+.contact-handle { padding: 2px 7px; border-radius: 6px; font: 600 9px/1.4 var(--mono); letter-spacing: .04em; }
+html:not([data-theme="dark"]) .contact-handle { background: #eef1f5; color: #5a6578; }
+.contact-status-line { display: block; margin: 2px 0; color: #8a94a7; font-size: 12px; font-weight: 500; }
+.contact-status-line.online { color: #0e8f9f; }
+.app-shell.has-chat .contact-status-line { display: none; }
+.contact-time { position: absolute; top: 17px; right: 18px; color: #8a94a7; font: 500 10px var(--mono); }
+.app-shell.has-chat .contact-time { display: none; }
+.app-shell:not(.has-chat) .contact-item::after { position: absolute; right: 18px; bottom: 17px; width: 28px; height: 28px; flex: none; border-radius: 9px; }
+.app-shell:not(.has-chat) .unread-count { top: auto; bottom: 52px; right: 18px; }
+
+.app-shell:not(.has-chat) .directory-welcome { width: 100%; min-height: calc(100dvh - 148px); padding: 29px 40px; border-radius: 28px; }
+html:not([data-theme="dark"]) .app-shell:not(.has-chat) .directory-welcome { background: #fff; border-color: #e6eaf1; }
+.app-shell:not(.has-chat) .welcome-orbit, .app-shell:not(.has-chat) .welcome-node, .app-shell:not(.has-chat) .welcome-caption { display: none; }
+.app-shell:not(.has-chat) .welcome-art { width: 64px; height: 64px; margin-bottom: 18px; }
+.app-shell:not(.has-chat) .welcome-icon { width: 64px; height: 64px; border-radius: 18px; border-color: transparent; box-shadow: none; }
+html:not([data-theme="dark"]) .app-shell:not(.has-chat) .welcome-icon { background: #e6fbfd; }
+.app-shell:not(.has-chat) .directory-welcome h2 { font-size: 17px; }
+.app-shell:not(.has-chat) .directory-welcome p { max-width: 360px; font-size: 12.5px; }
+.app-shell:not(.has-chat) .welcome-divider { margin: 24px 0 18px; }
+.app-shell:not(.has-chat) .welcome-protocol { font-size: 10px; }
+.app-shell:not(.has-chat) .welcome-protocol strong { font-size: 10px; }
+@media (max-width: 900px) { .app-shell:not(.has-chat) .directory-content { grid-template-columns: minmax(0,1fr); } .app-shell:not(.has-chat) .directory-welcome { display: none; } }
+
+/* ---- Device alert (Keamanan) ---- */
+.nav-item[data-view="security"] { position: relative; }
+.nav-dot { position: absolute; top: 14px; left: 38px; z-index: 2; width: 9px; height: 9px; border-radius: 50%; background: #f04438; box-shadow: 0 0 0 2px var(--navy); }
+.device-alert { border-left: 4px solid #f04438; }
+.device-alert p { margin: 4px 0 0; }
+.device-alert-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.device-alert-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 12px; background: rgba(240,68,56,.08); font-size: 13px; }
+.device-alert-list li span { color: #8a94a7; font-size: 12px; white-space: nowrap; }
+.device-alert-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }

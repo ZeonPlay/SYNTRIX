@@ -1,6 +1,6 @@
 import { supabase } from '../core/supabase.js';
 
-export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence, onStatus }) {
+export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence, onStatus, onDevice }) {
   const channel = supabase
     .channel('syntrix:live', {
       config: {
@@ -14,6 +14,9 @@ export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'messages',
     }, (payload) => onMessageUpdate?.(payload.new))
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'user_devices', filter: `user_id=eq.${userId}`,
+    }, () => onDevice?.())
     .on('presence', { event: 'sync' }, () => {
       const snapshot = channel.presenceState();
       const users = Object.values(snapshot).flat().map((entry) => ({
