@@ -1626,8 +1626,9 @@ html[data-theme="dark"] .toast-error {
 html[data-theme="dark"] .toast-success { border-color: #356b59; }
 
 /* Theme control */
-.theme-setting-control {
+.settings-item > .theme-setting-control {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 11px;
 }
