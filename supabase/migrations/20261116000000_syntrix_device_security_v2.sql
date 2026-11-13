@@ -31,7 +31,19 @@ alter table public.user_devices
 grant select (revoked_at) on public.user_devices to authenticated;
 
 -- ---------------------------------------------------------------------
--- 2. Private helpers
+-- 2. Drop earlier versions of the functions below. A function with the same
+--    arguments but different parameter names or return type cannot be replaced.
+-- ---------------------------------------------------------------------
+drop function if exists public.acknowledge_device(text, uuid);
+drop function if exists public.reject_device(text, uuid);
+drop function if exists public.list_devices(text);
+drop function if exists public.register_device(text, text, jsonb);
+drop function if exists public.register_device(text, text);
+drop function if exists private.assert_active_session();
+drop function if exists private.is_trusted_device(uuid, text);
+
+-- ---------------------------------------------------------------------
+-- 2b. Private helpers
 -- ---------------------------------------------------------------------
 create or replace function private.assert_active_session()
 returns void language plpgsql security definer set search_path = '' as $$
