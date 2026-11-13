@@ -609,10 +609,10 @@ body { background: var(--canvas); color: var(--ink); }
   transition: transform .68s var(--ease);
 }
 .nav-active-pill::before {
-  box-shadow: 7px 7px 0 7px var(--directory-bg);
+  box-shadow: 7px 7px 0 7px var(--nav-pill-fill);
 }
 .nav-active-pill::after {
-  box-shadow: 7px -7px 0 7px var(--directory-bg);
+  box-shadow: 7px -7px 0 7px var(--nav-pill-fill);
 }
 .app-shell.has-chat .nav-items { padding: 0 10px; }
 .app-shell.has-chat .nav-active-pill {
