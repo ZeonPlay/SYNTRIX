@@ -35,29 +35,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 ::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 99px; background: #cbd2df; background-clip: padding-box; }
 
 /* Authentication */
-.login-page { display: grid; grid-template-columns: minmax(380px,1.05fr) minmax(420px,1fr); min-height: 100svh; overflow: auto; background: var(--canvas); }
-.login-side { display: flex; flex-direction: column; justify-content: space-between; gap: 32px; padding: clamp(28px,4.5vw,64px); background: var(--navy); color: #fff; }
-.login-brand { display: inline-flex; align-items: center; gap: 2px; margin-left: -12px; }
-.login-brand img { width: 84px; height: 84px; object-fit: contain; }
-.login-brand-text { display: flex; flex-direction: column; gap: 4px; }
-.login-brand-text strong { font-size: 20px; font-weight: 800; letter-spacing: .1em; }
-.login-brand-text small { color: #a5b4fc; font: 500 10px var(--mono); letter-spacing: .14em; }
-.login-copy { max-width: 520px; }
-.login-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(165,180,252,.14); color: #c7d2fe; font: 500 11px var(--mono); }
-.login-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 3px rgba(34,211,238,.2); }
-.login-copy h1 { margin: 22px 0 16px; font-size: clamp(38px,5vw,62px); line-height: 1.04; font-weight: 800; letter-spacing: -.045em; }
-.login-copy h1 em { color: #22d3ee; font-style: normal; }
-.login-copy p { max-width: 440px; margin: 0; color: #c7d2fe; font-size: 15px; line-height: 1.75; }
-.login-monitor { max-width: 540px; padding: 18px; border: 1px solid rgba(165,180,252,.16); border-radius: 20px; background: #020617; }
-.login-monitor-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.login-monitor-head strong { display: block; font-size: 13px; }
-.login-monitor-head small { display: block; margin-top: 5px; color: #94a3b8; font: 10px var(--mono); }
-.login-tag { padding: 4px 10px; border: 1px solid rgba(34,211,238,.45); border-radius: 999px; background: rgba(34,211,238,.1); color: #22d3ee; font: 700 9px var(--mono); }
-.login-monitor-screen { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #0c1327; }
-.login-monitor-screen svg { display: block; width: 100%; }
-.login-copyright { color: #818cf8; font-size: 11px; }
-.login-main { display: flex; align-items: center; justify-content: center; padding: clamp(24px,4vw,56px); }
-.login-card { width: min(100%,440px); padding: clamp(24px,3.5vw,38px); border: 1px solid var(--line); border-radius: 24px; background: #fff; box-shadow: 0 18px 48px -24px rgba(30,27,75,.22); }
+.login-page { display: block; height: 100vh; height: 100svh; overflow: auto; background: var(--canvas); }
 .login-eyebrow { color: var(--indigo); font: 600 11px var(--mono); text-transform: uppercase; }
 .login-heading h2 { margin: 10px 0 6px; font-size: 27px; font-weight: 800; letter-spacing: -.035em; }
 .login-heading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
@@ -1885,3 +1863,22 @@ html:not([data-theme="dark"]) .app-shell:not(.has-chat) .welcome-icon { backgrou
 html:not([data-theme="dark"]) .button-danger, html:not([data-theme="dark"]) .button-danger-quiet { color: #b8384d; }
 html:not([data-theme="dark"]) .button-danger { border-color: #d85d70; }
 @media (max-width: 520px) { .device-actions .button { flex: 1 1 100%; } }
+
+/* ---- Login: one centred card that fits any screen ---- */
+.login-main { display: flex; align-items: center; justify-content: center; min-height: 100%; padding: clamp(16px,4vw,56px); }
+.login-card { width: min(100%,440px); padding: clamp(20px,5vw,38px); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 18px 48px -24px rgba(30,27,75,.22); }
+@media (max-width: 420px) {
+  .login-heading h2 { font-size: 23px; }
+  .login-tabs { margin: 18px 0 16px; }
+}
+@media (max-height: 640px) {
+  .login-tabs { margin: 16px 0 14px; }
+  .login-form { gap: 11px; }
+  .login-field input, .login-prefix { height: 42px; }
+  .login-prefix input { height: 40px; }
+  .login-footnote { margin-top: 14px; }
+}
+
+/* ---- Dark mode: when the rail shrinks for a chat, the active tab keeps the same
+   colour as the contact panel next to it (as in light mode) instead of turning lighter. ---- */
+html[data-theme="dark"] .app-shell.has-chat { --nav-pill-fill: var(--directory-bg); }
