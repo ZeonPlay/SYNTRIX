@@ -1064,7 +1064,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 }
 .message-author {
   color: #5e6d83;
-  font-size: 10px;
+  font-size: 12px;
 }
 .message-bubble,
 .message-row.mine .message-bubble {
@@ -1126,7 +1126,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 .decoded-text {
   display: block;
   color: var(--message-ink);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.75;
 }
 .message-actions { flex-wrap: wrap; gap: 7px; }
@@ -1136,7 +1136,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
   border-color: #ccd6e3;
   background: #f9fafc;
   color: #40516a;
-  font-size: 10px;
+  font-size: 12px;
 }
 .inspect-button:hover,
 .message-row.mine .inspect-button:hover {
@@ -1146,7 +1146,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 }
 .message-bottom {
   color: #65738a;
-  font-size: 9px;
+  font-size: 11px;
 }
 .message-read { color: #39775f; }
 .workspace, .messages { background: var(--chat-surface); }

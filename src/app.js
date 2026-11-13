@@ -384,8 +384,8 @@ function renderMiniSignal(canvas, bits) {
   if (!canvas || !bits) return;
   const previewBits = bits.slice(0, 24 * 10);
   const levels = nrziEncode(previewBits);
-  const bitWidth = 4;
-  const height = 36;
+  const bitWidth = 5;
+  const height = 46;
   const width = Math.max(120, 12 + levels.length * bitWidth);
   const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
   canvas.width = Math.ceil(width * dpr);
@@ -395,8 +395,8 @@ function renderMiniSignal(canvas, bits) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
-  const yHigh = 10;
-  const yLow = 26;
+  const yHigh = 12;
+  const yLow = 34;
 
   ctx.strokeStyle = 'rgba(86,105,126,.16)';
   ctx.lineWidth = 1;
@@ -409,7 +409,7 @@ function renderMiniSignal(canvas, bits) {
   }
 
   ctx.strokeStyle = '#477d83';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.75;
   ctx.lineJoin = 'round';
   ctx.beginPath();
   let y = yHigh;
@@ -456,25 +456,15 @@ function renderMessages({ scrollToBottom = false } = {}) {
     const action = isUnlocked
       ? `
         <button class="inspect-button" type="button" data-action="toggle-view" data-message-id="${message.id}">${showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I'}</button>
-        <button class="inspect-button" type="button" data-action="inspect" data-message-id="${message.id}">Detail data</button>
       `
       : `<button class="inspect-button" type="button" data-action="unlock" data-message-id="${message.id}">Masukkan kunci</button>`;
-    const signalCaption = isUnlocked
-      ? 'NRZ-I SIGNAL · PAYLOAD DECODED'
-      : 'NRZ-I SAMPLE · PAYLOAD LOCKED';
 
     row.innerHTML = `
       <span class="message-author">${mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')}</span>
       <div class="message-bubble">
-        <div class="message-lockline">
-          <span class="message-lockicon">⌁</span>
-          <span>NRZ-I transmission</span>
-          <span class="message-lock-state">${isUnlocked ? 'UNLOCKED' : 'LOCKED'}</span>
-        </div>
-        <div class="message-stats">${frameCount} CHARACTERS · ${frameCount * 10} BITS</div>
         ${showSignal
-          ? `<div class="wave-mini-wrap"><div class="wave-mini-caption">${signalCaption}</div><canvas class="wave-mini" aria-label="NRZ-I waveform"></canvas></div>`
-          : '<div class="decode-result"><div class="decode-result-label">DECODED MESSAGE</div><span class="decoded-text"></span></div>'}
+          ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I waveform"></canvas></div>'
+          : '<div class="decode-result"><span class="decoded-text"></span></div>'}
         <div class="message-actions">${action}</div>
       </div>
       <div class="message-bottom"><span>${escapeHTML(timestamp)}</span>${mine && message.read_at ? '<span class="message-read">· Read</span>' : ''}</div>
