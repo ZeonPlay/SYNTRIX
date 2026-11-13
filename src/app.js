@@ -93,7 +93,8 @@ function applyTheme(theme, trigger = themeToggle) {
 
 syncThemeControl(themeRoot.dataset.theme === 'dark' ? 'dark' : 'light');
 themeToggle?.addEventListener('change', () => {
-  applyTheme(themeToggle.checked ? 'dark' : 'light', themeToggle);
+  const switchTrack = themeToggle.parentElement?.querySelector('.theme-switch-track') || themeToggle;
+  applyTheme(themeToggle.checked ? 'dark' : 'light', switchTrack);
 });
 
 const authView = $('#authView');
