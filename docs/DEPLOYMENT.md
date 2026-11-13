@@ -5,7 +5,7 @@ SYNTRIX is a static website. It does not need a Flask/Gunicorn server, a Socket.
 ## 1. Prepare Supabase
 
 1. Open your Supabase project.
-2. Run both migrations once in **SQL Editor**, in this order: `supabase/migrations/20261111122920_syntrix_initial_schema.sql`, then `supabase/migrations/20261112000000_syntrix_hardening.sql`. The app needs the second one (it adds `frame_count`, `get_message_bits`, `change_message_unlock_key`, and `find_profile_by_handle`).
+2. Run all four migrations once in **SQL Editor**, in this order: `supabase/migrations/20261111122920_syntrix_initial_schema.sql`, `20261112000000_syntrix_hardening.sql`, `20261114000000_syntrix_device_alerts.sql`, then `20261115000000_syntrix_device_tracking.sql`. The app needs the second one (it adds `frame_count`, `get_message_bits`, `change_message_unlock_key`, and `find_profile_by_handle`) and the last two for device alerts: the fourth adds the connection time, approximate location, and server-side revocation behind the "Bukan aku" button.
 3. Confirm that `profiles`, `contacts`, and `messages` appear in the Table Editor.
 4. Open **Project Settings → API** (or API Keys) and copy the Project URL and publishable key.
 5. Put those two public values in `src/config.js` before deployment.

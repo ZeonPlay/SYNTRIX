@@ -1741,6 +1741,46 @@ html[data-theme="dark"] .theme-toggle input:checked + .theme-switch-track {
   ::view-transition-new(root) { animation: none !important; }
 }
 
+/* Device alert details: location, IP and connection times. Scoped under
+   .device-alert-list so it wins over the generic `.device-alert-list li` rule
+   further down while keeping that rule's red-tinted card background. */
+.device-alert-list .device-entry {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 9px;
+  padding: 12px 14px;
+  border: 1px solid rgba(240,68,56,.16);
+}
+.device-entry > strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+.device-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 14px;
+  margin: 0;
+}
+.device-facts > div { min-width: 0; }
+.device-facts dt {
+  color: var(--quiet);
+  font: 600 8px var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.device-facts dd {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.device-facts dd.mono { font-family: var(--mono); }
+@media (max-width: 520px) {
+  .device-facts { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* ==========================================================================
    Sidebar + directory polish
    Light colours are scoped to html:not([data-theme="dark"]); dark keeps its own.

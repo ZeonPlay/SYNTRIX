@@ -15,7 +15,7 @@ import {
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
 import {
-  acknowledgeDevices, fetchDeviceAlerts, registerDevice, rejectDevices,
+  acknowledgeDevices, fetchDeviceAlerts, isSessionRevoked, registerDevice, rejectDevices,
 } from './services/device.service.js';
 
 const state = {
@@ -178,6 +178,8 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/database error saving new user/i.test(message)) return 'Pendaftaran gagal. Coba handle lain.';
   if (/failed to fetch|networkerror|load failed/i.test(message)) return 'Tidak dapat terhubung ke server. Periksa internet dan konfigurasi Supabase.';
   if (/row-level security|permission denied/i.test(message)) return 'Akses database ditolak. Periksa migration dan kebijakan RLS Supabase.';
+  if (/device_not_trusted/i.test(message)) return 'Perangkat ini belum dikonfirmasi sebagai milikmu, jadi belum bisa mengelola perangkat lain.';
+  if (/session_revoked/i.test(message)) return 'Sesi ini sudah dikeluarkan dari perangkat lain.';
   console.warn('Unhandled error:', error);
   return fallback;
 }
@@ -643,15 +645,53 @@ async function loadWorkspace() {
   });
 }
 
+const relativeTimeFormat = new Intl.RelativeTimeFormat('id-ID', { numeric: 'auto' });
+
+function formatRelative(date) {
+  const seconds = Math.round((date.getTime() - Date.now()) / 1000);
+  for (const [unit, size] of [['day', 86400], ['hour', 3600], ['minute', 60]]) {
+    if (Math.abs(seconds) >= size) return relativeTimeFormat.format(Math.round(seconds / size), unit);
+  }
+  return 'baru saja';
+}
+
+function formatDeviceTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  const absolute = date.toLocaleString('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+  return `${absolute} (${formatRelative(date)})`;
+}
+
+// Approximate place derived from the connection's IP address by the server.
+function formatDevicePlace(device) {
+  let country = '';
+  if (device.country) {
+    try {
+      country = new Intl.DisplayNames(['id'], { type: 'region' }).of(device.country) || device.country;
+    } catch {
+      country = device.country;
+    }
+  }
+  const parts = [device.city, device.region, country].filter(Boolean);
+  const unique = parts.filter((part, index) => parts.indexOf(part) === index);
+  return unique.length ? `${unique.join(', ')} (perkiraan)` : 'Lokasi tidak diketahui';
+}
+
 function renderDeviceAlerts(alerts) {
   $('#deviceAlert').hidden = alerts.length === 0;
   $('#securityDot').hidden = alerts.length === 0;
-  $('#deviceAlertList').innerHTML = alerts.map((device) => {
-    const when = new Date(device.first_seen_at).toLocaleString('id-ID', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-    });
-    return `<li><strong>${escapeHTML(device.label)}</strong><span>${escapeHTML(when)}</span></li>`;
-  }).join('');
+  $('#deviceAlertList').innerHTML = alerts.map((device) => `
+    <li class="device-entry">
+      <strong>${escapeHTML(device.label)}</strong>
+      <dl class="device-facts">
+        <div><dt>Lokasi</dt><dd>${escapeHTML(formatDevicePlace(device))}</dd></div>
+        <div><dt>Alamat IP</dt><dd class="mono">${escapeHTML(device.ip_address || 'Tidak diketahui')}</dd></div>
+        <div><dt>Tersambung</dt><dd>${escapeHTML(formatDeviceTime(device.first_seen_at))}</dd></div>
+        <div><dt>Terakhir aktif</dt><dd>${escapeHTML(formatDeviceTime(device.last_seen_at))}</dd></div>
+      </dl>
+    </li>`).join('');
 }
 
 async function refreshDeviceAlerts() {
@@ -662,24 +702,75 @@ async function refreshDeviceAlerts() {
   }
 }
 
+const DEVICE_HEARTBEAT_MS = 60_000;
+let deviceHeartbeatTimer = null;
+let deviceTickRunning = false;
+
+function stopDeviceHeartbeat() {
+  if (deviceHeartbeatTimer) window.clearInterval(deviceHeartbeatTimer);
+  deviceHeartbeatTimer = null;
+}
+
+// This session was removed by "Bukan aku" on another device. Its access token
+// may still be valid for a while, so leave the workspace right away.
+async function endRevokedSession() {
+  stopDeviceHeartbeat();
+  showToast('Sesi ini dikeluarkan dari perangkat lain. Silakan masuk lagi.', 'error');
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  if (error) console.warn('Local sign-out failed:', error.message);
+}
+
+// Keeps last_seen_at and the location current, notices a revoked session, and
+// re-reads alerts even if the realtime event for a new device was missed.
+async function deviceTick() {
+  if (deviceTickRunning || !state.user) return;
+  deviceTickRunning = true;
+  try {
+    await registerDevice();
+    await refreshDeviceAlerts();
+  } catch (error) {
+    if (isSessionRevoked(error)) await endRevokedSession();
+    else console.warn('Device heartbeat failed:', error.message);
+  } finally {
+    deviceTickRunning = false;
+  }
+}
+
+function startDeviceHeartbeat() {
+  stopDeviceHeartbeat();
+  deviceHeartbeatTimer = window.setInterval(() => {
+    if (!document.hidden) deviceTick();
+  }, DEVICE_HEARTBEAT_MS);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && deviceHeartbeatTimer) deviceTick();
+});
+
 async function syncDevices() {
   try {
     await registerDevice();
     await refreshDeviceAlerts();
   } catch (error) {
+    if (isSessionRevoked(error)) {
+      await endRevokedSession();
+      return;
+    }
     console.error('Device sync failed:', error);
   }
+  startDeviceHeartbeat();
 }
 
 async function resolveDevices(button, action, message) {
   button.disabled = true;
   try {
     await action();
-    await refreshDeviceAlerts();
     showToast(message, 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal memproses perangkat.'), 'error');
   } finally {
+    // Always re-read the list so the card never stays stale after a partial failure.
+    await refreshDeviceAlerts();
     button.disabled = false;
   }
 }
@@ -711,6 +802,7 @@ async function enterApp(user) {
 }
 
 async function leaveApp() {
+  stopDeviceHeartbeat();
   renderDeviceAlerts([]);
   state.disconnectRealtime?.();
   state.disconnectRealtime = null;

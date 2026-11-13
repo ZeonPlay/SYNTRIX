@@ -2,7 +2,6 @@ import { supabase } from '../core/supabase.js';
 
 const STORAGE_KEY = 'syntrix-device-id';
 let memoryId = null;
-let ownRowId = null;
 
 export function getDeviceId() {
   try {
@@ -29,26 +28,31 @@ export function describeDevice() {
   return `${browser} · ${os}`;
 }
 
+// Also used as the heartbeat: it refreshes last_seen_at and the approximate
+// location, and the server rejects it with "session_revoked" once this session
+// has been removed from another device.
 export async function registerDevice() {
   const { data, error } = await supabase.rpc('register_device', {
     p_device_id: getDeviceId(),
     p_label: describeDevice(),
   });
   if (error) throw error;
-  ownRowId = data;
   return data;
 }
 
-// Only a trusted (acknowledged) device sees alerts about newer devices.
+export function isSessionRevoked(error) {
+  return /session_revoked/i.test(String(error?.message ?? ''));
+}
+
+// Only a trusted (acknowledged) device sees alerts about newer devices. The
+// server returns location and times only to a trusted device, so an unknown
+// session can never read where the real owner is.
 export async function fetchDeviceAlerts() {
-  const { data, error } = await supabase
-    .from('user_devices')
-    .select('id,label,first_seen_at,acknowledged_at')
-    .order('first_seen_at', { ascending: false });
+  const { data, error } = await supabase.rpc('list_pending_devices', {
+    p_device_id: getDeviceId(),
+  });
   if (error) throw error;
-  const own = data.find((row) => row.id === ownRowId);
-  if (!own?.acknowledged_at) return [];
-  return data.filter((row) => !row.acknowledged_at && row.id !== ownRowId);
+  return data ?? [];
 }
 
 export async function acknowledgeDevices() {
@@ -57,8 +61,14 @@ export async function acknowledgeDevices() {
 }
 
 export async function rejectDevices() {
-  const { error } = await supabase.rpc('reject_devices', { p_device_id: getDeviceId() });
+  const { data, error } = await supabase.rpc('reject_devices', { p_device_id: getDeviceId() });
   if (error) throw error;
-  const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
-  if (signOutError) throw signOutError;
+  // The server revokes the sessions of the devices it knows. Unknown devices
+  // from before session tracking cannot be matched, so fall back to signing
+  // every other session out. A failure here must not hide the result above.
+  if (data?.unmapped > 0) {
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+    if (signOutError) console.warn('Unable to sign out other sessions:', signOutError.message);
+  }
+  return data;
 }
