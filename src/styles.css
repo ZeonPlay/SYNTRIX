@@ -608,11 +608,42 @@ body { background: var(--canvas); color: var(--ink); }
   /* Match the pill's horizontal edge transition exactly. */
   transition: transform .68s var(--ease);
 }
+/* Concave corner pieces are painted with the pill's own fill color via a
+   radial gradient, so they always attach to the pill in any theme and stay
+   inside the rail (no box-shadow overhang into the directory area).
+   Height is 19px so each piece overlaps the pill by 1px and leaves no seam. */
+.nav-active-pill::before,
+.nav-active-pill::after {
+  height: 19px;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--nav-pill-fill);
+  transition: transform .68s var(--ease), background-color .3s ease;
+}
 .nav-active-pill::before {
-  box-shadow: 7px 7px 0 7px var(--nav-pill-fill);
+  top: -18px;
+  -webkit-mask-image: radial-gradient(circle at 0 0, transparent 17.5px, #000 18px);
+  mask-image: radial-gradient(circle at 0 0, transparent 17.5px, #000 18px);
 }
 .nav-active-pill::after {
-  box-shadow: 7px -7px 0 7px var(--nav-pill-fill);
+  bottom: -18px;
+  -webkit-mask-image: radial-gradient(circle at 0 100%, transparent 17.5px, #000 18px);
+  mask-image: radial-gradient(circle at 0 100%, transparent 17.5px, #000 18px);
+}
+
+/* Expanded rail: the active pill takes the exact background of the page it
+   opens, so the tab and the page read as one surface. The compact icon rail
+   (has-chat) keeps the neutral --nav-pill-fill defined per theme. */
+.app-shell:not(.has-chat)[data-view="contacts"] {
+  --nav-pill-fill: var(--directory-bg);
+}
+.app-shell:not(.has-chat)[data-view="security"],
+.app-shell:not(.has-chat)[data-view="settings"] {
+  --nav-pill-fill: var(--surface);
+}
+html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="security"],
+html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
+  --nav-pill-fill: var(--chat-surface);
 }
 .app-shell.has-chat .nav-items { padding: 0 10px; }
 .app-shell.has-chat .nav-active-pill {
@@ -1246,13 +1277,7 @@ html[data-theme="dark"] .nav-item { color: #a9b7ca; }
 html[data-theme="dark"] .nav-item:hover { color: #fff; }
 html[data-theme="dark"] .nav-item.is-active { color: #f4f7fb; }
 html[data-theme="dark"] .nav-active-pill {
-  background: #304157;
-}
-html[data-theme="dark"] .nav-active-pill::before {
-  box-shadow: 7px 7px 0 7px var(--directory-bg);
-}
-html[data-theme="dark"] .nav-active-pill::after {
-  box-shadow: 7px -7px 0 7px var(--directory-bg);
+  background: var(--nav-pill-fill);
 }
 html[data-theme="dark"] .logout-button { color: #a9b7ca; }
 html[data-theme="dark"] .logout-button:hover {
