@@ -618,7 +618,7 @@ function openE2eeUnlockDialog() {
   $('#e2eeUnlockPassphrase').focus();
 }
 
-async async function handleMessageDelete(messageId) {
+async function handleMessageDelete(messageId) {
   if (!messageId || state.deletingMessageIds.has(messageId)) return;
   const exists = state.messages.some((message) => message.id === messageId);
   if (!exists) return;
