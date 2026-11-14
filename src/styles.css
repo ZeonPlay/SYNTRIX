@@ -2127,3 +2127,11 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
   background: hsl(var(--avatar-hue, 250) 70% 48%);
   color: #fff;
 }
+
+/* Contact initials must override the generic .avatar surface styles.
+   Keep the identity hue, but use a darker fill for readable white initials. */
+.avatar.contact-avatar {
+  border: 0;
+  background: hsl(var(--avatar-hue, 250) 72% 32%);
+  color: #fff;
+}
