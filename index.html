@@ -11,14 +11,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
-    try {
-      if (localStorage.getItem('syntrix-theme') === 'dark') {
-        document.documentElement.dataset.theme = 'dark';
-      }
-    } catch (_) {}
+    (() => {
+      const root = document.documentElement;
+      let theme = 'light';
+      try {
+        theme = localStorage.getItem('syntrix-theme') === 'dark' ? 'dark' : 'light';
+      } catch (_) {}
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+    })();
   </script>
-  <link rel="stylesheet" href="./src/styles.css?v=e2ee-hover-v29">
-  <script type="module" src="/src/app.js?v=account-avatar-hue-v25"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=theme-eclipse-v30">
+  <script type="module" src="/src/app.js?v=theme-eclipse-v26"></script>
 </head>
 <body>
   <main id="authView" class="login-page">

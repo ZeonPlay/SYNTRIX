@@ -1657,22 +1657,28 @@ html[data-theme="dark"] .theme-toggle input:checked + .theme-switch-track {
   background: #526f91;
 }
 
-/* Circular portal transition, originating from the settings switch. */
+/* Eclipse Slide: the incoming theme expands from one edge and sweeps across. */
 @supports (view-transition-name: root) {
   ::view-transition-old(root) {
-    animation: theme-portal-old .24s ease both;
+    animation: theme-eclipse-old .28s ease both;
   }
   ::view-transition-new(root) {
-    clip-path: circle(0 at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%));
-    animation: theme-portal-open .72s cubic-bezier(.22,1,.36,1) both;
+    clip-path: ellipse(0% 145% at 0% 50%);
+    animation: theme-eclipse-slide .82s cubic-bezier(.22,1,.36,1) both;
   }
-  @keyframes theme-portal-open {
-    to {
-      clip-path: circle(160vmax at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%));
+  @keyframes theme-eclipse-slide {
+    0% {
+      clip-path: ellipse(0% 145% at 0% 50%);
+    }
+    54% {
+      clip-path: ellipse(62% 145% at 42% 50%);
+    }
+    100% {
+      clip-path: ellipse(165% 165% at 100% 50%);
     }
   }
-  @keyframes theme-portal-old {
-    to { opacity: .35; }
+  @keyframes theme-eclipse-old {
+    to { opacity: .22; }
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -37,12 +37,24 @@ const themeToggle = $('#themeToggle');
 const themeModeLabel = $('#themeModeLabel');
 const themeRoot = document.documentElement;
 
+function readSavedTheme() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+const initialTheme = readSavedTheme();
+themeRoot.dataset.theme = initialTheme;
+themeRoot.style.colorScheme = initialTheme;
+
 function syncThemeControl(theme) {
   if (themeToggle) themeToggle.checked = theme === 'dark';
   if (themeModeLabel) themeModeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
 }
 
-function applyTheme(theme, trigger = themeToggle) {
+function applyTheme(theme) {
   const nextTheme = theme === 'dark' ? 'dark' : 'light';
   const currentTheme = themeRoot.dataset.theme === 'dark' ? 'dark' : 'light';
   if (nextTheme === currentTheme) {
@@ -50,50 +62,41 @@ function applyTheme(theme, trigger = themeToggle) {
     return;
   }
 
-  const triggerRect = trigger?.getBoundingClientRect?.();
-  if (triggerRect) {
-    themeRoot.style.setProperty('--theme-origin-x', `${triggerRect.left + triggerRect.width / 2}px`);
-    themeRoot.style.setProperty('--theme-origin-y', `${triggerRect.top + triggerRect.height / 2}px`);
+  // Persist before starting the visual transition so an immediate reload
+  // cannot restore the previous theme while the animation is still running.
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  } catch (error) {
+    console.warn('Unable to persist theme preference:', error.message);
   }
 
   const updateTheme = () => {
     themeRoot.dataset.theme = nextTheme;
+    themeRoot.style.colorScheme = nextTheme;
     syncThemeControl(nextTheme);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-    } catch (error) {
-      console.warn('Unable to persist theme preference:', error.message);
-    }
   };
 
   const canAnimate = typeof document.startViewTransition === 'function'
     && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (canAnimate) {
-    // Restore the old switch position for the outgoing snapshot; update it with the new theme.
-    if (themeToggle) themeToggle.checked = currentTheme === 'dark';
-    const transition = document.startViewTransition(updateTheme);
-    transition.finished.then(
-      () => {
-        themeRoot.style.removeProperty('--theme-origin-x');
-        themeRoot.style.removeProperty('--theme-origin-y');
-      },
-      () => {
-        themeRoot.style.removeProperty('--theme-origin-x');
-        themeRoot.style.removeProperty('--theme-origin-y');
-      }
-    );
-  } else {
-    updateTheme();
-    themeRoot.style.removeProperty('--theme-origin-x');
-    themeRoot.style.removeProperty('--theme-origin-y');
+    try {
+      // Keep the outgoing snapshot aligned with the currently selected switch state.
+      if (themeToggle) themeToggle.checked = currentTheme === 'dark';
+      const transition = document.startViewTransition(updateTheme);
+      transition.finished.then(() => {}, () => {});
+      return;
+    } catch (error) {
+      console.warn('Theme transition unavailable; applying theme directly:', error.message);
+    }
   }
+
+  updateTheme();
 }
 
-syncThemeControl(themeRoot.dataset.theme === 'dark' ? 'dark' : 'light');
+syncThemeControl(initialTheme);
 themeToggle?.addEventListener('change', () => {
-  const switchTrack = themeToggle.parentElement?.querySelector('.theme-switch-track') || themeToggle;
-  applyTheme(themeToggle.checked ? 'dark' : 'light', switchTrack);
+  applyTheme(themeToggle.checked ? 'dark' : 'light');
 });
 
 const authView = $('#authView');
