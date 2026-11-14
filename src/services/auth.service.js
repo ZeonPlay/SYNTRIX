@@ -40,29 +40,3 @@ export async function getProfile(userId) {
   if (error) throw error;
   return data;
 }
-
-export async function hasUnlockKey() {
-  const { data, error } = await supabase.rpc('has_message_unlock_key');
-  if (error) throw error;
-  return data === true;
-}
-
-export async function setUnlockKey(key) {
-  const { error } = await supabase.rpc('set_message_unlock_key', { p_key: key });
-  if (error) throw error;
-}
-
-export async function changeUnlockKey(oldKey, newKey) {
-  const { data, error } = await supabase.rpc('change_message_unlock_key', {
-    p_old_key: oldKey,
-    p_new_key: newKey,
-  });
-  if (error) throw error;
-  return data === true;
-}
-
-export async function verifyUnlockKey(key) {
-  const { data, error } = await supabase.rpc('verify_message_unlock_key', { p_key: key });
-  if (error) throw error;
-  return data === true;
-}
