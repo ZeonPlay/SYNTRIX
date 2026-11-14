@@ -748,6 +748,9 @@ async function loadWorkspace() {
     // The cache is tied to the account and its current public identity key.
     try {
       state.e2eeSession = await getE2eeVault(userId, state.e2eeState.public_key);
+      if (state.e2eeSession) {
+        state.e2eeSession.wrappedKeyB64 = state.e2eeState.wrapped_private_key;
+      }
     } catch (error) {
       console.warn('Unable to restore local E2EE key:', error.message);
     }
