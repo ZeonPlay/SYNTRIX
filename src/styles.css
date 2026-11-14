@@ -196,7 +196,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .contact-detail { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
 .contact-name-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; }
 .contact-name-row strong { overflow: hidden; color: #303149; font-size: 11px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
-.contact-handle { flex: 0 0 auto; color: #9ca5b3; font: 8px var(--mono); white-space: nowrap; }
 .contact-preview { display: -webkit-box; overflow: hidden; color: #778299; font-size: 9px; line-height: 1.4; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
 .unread-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 7px; background: var(--indigo); color: #fff; font: 700 9px var(--mono); }
 .contact-item::after { content: "›"; display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 24px; border-radius: 9px; background: #f2f5f9; color: #78839a; font-size: 19px; transition: background .2s,color .2s,transform .25s; }
@@ -238,9 +237,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .app-shell.has-chat .contact-item { min-height: 67px; padding: 9px 10px; border-color: transparent; border-right: 0; border-radius: 13px 0 0 13px; background: transparent; box-shadow: none; }
 .app-shell.has-chat .contact-item:hover { transform: translateX(2px); border-color: transparent; background: #eef1fa; box-shadow: none; }
 .app-shell.has-chat .contact-item.is-active { position: relative; z-index: 1; border-color: #e4e7f5; border-right: 0; border-radius: 16px 0 0 16px; background: #fff; box-shadow: 0 5px 16px rgba(29,38,79,.045); }
-.app-shell.has-chat .contact-item.is-active::before, .app-shell.has-chat .contact-item.is-active::after { position: absolute; right: 0; width: 16px; height: 16px; border-radius: 50%; background: transparent; content: ""; }
-.app-shell.has-chat .contact-item.is-active::before { top: -16px; box-shadow: 8px 8px 0 0 #fff; }
-.app-shell.has-chat .contact-item.is-active::after { right: 0; bottom: -16px; box-shadow: 8px -8px 0 0 #fff; }
 .app-shell.has-chat .contact-item.is-active .contact-name-row strong { color: var(--navy); }
 .app-shell.has-chat .contact-item::after { content: "›"; }
 
@@ -886,7 +882,6 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 .search-field input::placeholder { color: #7c879c; }
 .search-field kbd { background: #e9edf4; border-color: #ccd4e1; color: #5f6b82; }
 .contact-item:hover { border-color: #c4cddd; background: #f0f3f8; }
-.directory-list-footer { border-color: #d4dbe7; color: #68758d; }
 .directory-welcome { border-color: #d6dce7; }
 .workspace, .messages { background: var(--chat-surface); }
 .conversation-header, .composer { background: #f6f7fb; border-color: var(--line); }
@@ -953,7 +948,6 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
   .app-shell.has-chat .directory-list-heading { max-height: 52px; opacity: 1; }
   .app-shell.has-chat .contact-list { padding-right: 0; }
   .app-shell.has-chat .contact-item.is-active { margin-right: 0; border-radius: 14px; }
-  .active-cutout { display: none; }
 }
 
 /* Brand lockup: keep the mark anchored while the wordmark folds away.
@@ -1330,7 +1324,6 @@ html[data-theme="dark"] .contact-item:hover {
   box-shadow: none;
 }
 html[data-theme="dark"] .contact-name-row strong { color: #e5edf6; }
-html[data-theme="dark"] .contact-handle,
 html[data-theme="dark"] .contact-preview { color: #9aaac0; }
 html[data-theme="dark"] .status-indicator { border-color: #1c2938; }
 html[data-theme="dark"] .contact-item::after {
@@ -1341,11 +1334,6 @@ html[data-theme="dark"] .contact-item:hover::after {
   background: #354861;
   color: #e7eff8;
 }
-html[data-theme="dark"] .directory-list-footer {
-  border-color: var(--line);
-  color: #9aa9bd;
-}
-html[data-theme="dark"] .directory-footer-dot { background: #53c49b; }
 html[data-theme="dark"] .list-empty {
   border-color: #405168;
   background: rgba(31,44,60,.8);
@@ -1375,13 +1363,6 @@ html[data-theme="dark"] .app-shell.has-chat .contact-item.is-active .contact-nam
 html[data-theme="dark"] .app-shell.has-chat .contact-item:hover {
   background: #26364a;
 }
-html[data-theme="dark"] .app-shell.has-chat .contact-item.is-active::before {
-  box-shadow: 8px 8px 0 0 var(--chat-surface);
-}
-html[data-theme="dark"] .app-shell.has-chat .contact-item.is-active::after {
-  box-shadow: 8px -8px 0 0 var(--chat-surface);
-}
-html[data-theme="dark"] .active-cutout { background: var(--chat-surface); }
 
 /* Conversation surfaces */
 html[data-theme="dark"] .workspace,
