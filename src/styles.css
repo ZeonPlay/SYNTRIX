@@ -2037,3 +2037,41 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
   background: #c9435b;
   color: #fff;
 }
+
+/* Mobile navigation: use a plain circular selection shape.
+   Scoped below 700px so the desktop curved rail remains unchanged. */
+@media (max-width: 700px) {
+  .nav-items,
+  .app-shell.has-chat .nav-items {
+    align-items: center;
+    padding: 0;
+  }
+
+  .nav-active-pill,
+  .app-shell.has-chat .nav-active-pill,
+  .app-shell:not(.has-chat) .nav-active-pill {
+    top: 0;
+    right: auto;
+    left: 0;
+    border-radius: 50%;
+  }
+
+  .nav-active-pill::before,
+  .nav-active-pill::after,
+  .app-shell.has-chat .nav-active-pill::before,
+  .app-shell.has-chat .nav-active-pill::after {
+    display: none !important;
+  }
+
+  .nav-item,
+  .app-shell.has-chat .nav-item,
+  .app-shell:not(.has-chat) .nav-item {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+}
