@@ -319,6 +319,75 @@ function contactPreview(contactId) {
   return `🔒 Encoded transmission · ${message.frame_count} frames`;
 }
 
+function createContactItem(contact) {
+  const item = document.createElement('button');
+  item.type = 'button';
+  item.className = 'contact-item';
+  item.dataset.contactId = String(contact.id);
+  item.setAttribute('aria-label', `Open conversation with ${contact.display_name}`);
+  item.innerHTML = `
+    <span class="contact-avatar-wrap">
+      <span class="avatar contact-avatar"></span>
+      <i class="status-indicator"></i>
+    </span>
+    <span class="contact-detail">
+      <span class="contact-name-row"><strong></strong></span>
+      <span class="contact-status-line"></span>
+      <span class="contact-preview"></span>
+    </span>
+  `;
+  item.addEventListener('click', () => selectContact(item.dataset.contactId));
+  return item;
+}
+
+function updateContactItem(item, contact) {
+  const isOnline = state.onlineUsers.has(contact.id);
+  const unread = unreadCountFor(contact.id);
+  const lastMessage = latestMessageFor(contact.id);
+  const lastTime = lastMessage ? formatTime(lastMessage.created_at) : '';
+
+  item.classList.toggle('is-active', contact.id === state.activeContactId);
+  item.setAttribute('aria-label', `Open conversation with ${contact.display_name}`);
+
+  const avatar = item.querySelector('.contact-avatar');
+  const avatarHue = [...String(contact.id)].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 360;
+  avatar.textContent = initials(contact.display_name);
+  avatar.style.setProperty('--avatar-hue', avatarHue);
+
+  item.querySelector('.status-indicator').classList.toggle('online', isOnline);
+  item.querySelector('.contact-name-row strong').textContent = contact.display_name;
+
+  const status = item.querySelector('.contact-status-line');
+  status.textContent = isOnline ? 'Online' : 'Offline';
+  status.classList.toggle('online', isOnline);
+  item.querySelector('.contact-preview').textContent = contactPreview(contact.id);
+
+  let time = item.querySelector('.contact-time');
+  if (lastTime) {
+    if (!time) {
+      time = document.createElement('time');
+      time.className = 'contact-time';
+      item.append(time);
+    }
+    time.textContent = lastTime;
+    time.dateTime = lastMessage.created_at;
+  } else {
+    time?.remove();
+  }
+
+  let badge = item.querySelector('.unread-count');
+  if (unread > 0) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'unread-count';
+      item.append(badge);
+    }
+    badge.textContent = unread > 99 ? '99+' : String(unread);
+  } else {
+    badge?.remove();
+  }
+}
+
 function renderContacts() {
   const list = $('#contactList');
   const query = $('#contactSearch').value.trim().toLowerCase();
@@ -332,45 +401,41 @@ function renderContacts() {
     contact.handle.toLowerCase().includes(query)
   );
   $('#contactCount').textContent = String(contacts.length);
-  list.replaceChildren();
 
   if (filtered.length === 0) {
-    const empty = document.createElement('div');
+    const empty = list.querySelector('.list-empty') || document.createElement('div');
     empty.className = 'list-empty';
     empty.textContent = contacts.length
       ? 'No conversations match your search.'
       : 'Your conversations will appear here. Add a contact to begin.';
-    list.append(empty);
+    for (const item of [...list.children]) {
+      if (item !== empty) item.remove();
+    }
+    if (empty.parentElement !== list) list.append(empty);
     return;
   }
 
-  for (const contact of filtered) {
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = `contact-item${contact.id === state.activeContactId ? ' is-active' : ''}`;
-    const isOnline = state.onlineUsers.has(contact.id);
-    const unread = unreadCountFor(contact.id);
-    const lastMessage = latestMessageFor(contact.id);
-    const lastTime = lastMessage ? formatTime(lastMessage.created_at) : '';
-    const avatarHue = [...String(contact.id)].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 360;
-    item.setAttribute('aria-label', `Open conversation with ${contact.display_name}`);
-    item.innerHTML = `
-      <span class="contact-avatar-wrap">
-        <span class="avatar contact-avatar" style="--avatar-hue: ${avatarHue}">${escapeHTML(initials(contact.display_name))}</span>
-        <i class="status-indicator ${isOnline ? 'online' : ''}"></i>
-      </span>
-      <span class="contact-detail">
-        <span class="contact-name-row">
-          <strong>${escapeHTML(contact.display_name)}</strong>
-            </span>
-        <span class="contact-status-line ${isOnline ? 'online' : ''}">${isOnline ? 'Online' : 'Offline'}</span>
-        <span class="contact-preview">${escapeHTML(contactPreview(contact.id))}</span>
-      </span>
-      ${lastTime ? `<time class="contact-time">${escapeHTML(lastTime)}</time>` : ''}
-      ${unread ? `<span class="unread-count">${unread > 99 ? '99+' : unread}</span>` : ''}
-    `;
-    item.addEventListener('click', () => selectContact(contact.id));
-    list.append(item);
+  list.querySelector('.list-empty')?.remove();
+  const existing = new Map(
+    [...list.querySelectorAll('.contact-item[data-contact-id]')]
+      .map((item) => [item.dataset.contactId, item])
+  );
+  const retained = new Set();
+
+  filtered.forEach((contact, index) => {
+    const id = String(contact.id);
+    const item = existing.get(id) || createContactItem(contact);
+    updateContactItem(item, contact);
+    retained.add(id);
+
+    // Move only when the ordering actually changed. Unchanged rows keep their
+    // DOM identity, focus state and in-flight CSS transitions.
+    const currentAtIndex = list.children[index];
+    if (currentAtIndex !== item) list.insertBefore(item, currentAtIndex || null);
+  });
+
+  for (const [id, item] of existing) {
+    if (!retained.has(id)) item.remove();
   }
 }
 
