@@ -5,7 +5,7 @@ SYNTRIX is a static website. It does not need a Flask/Gunicorn server, a Socket.
 ## 1. Prepare Supabase
 
 1. Open your Supabase project.
-2. Run all seven migrations once in this exact order, in **SQL Editor**:
+2. Run the migrations in this exact order, once each, in **SQL Editor**:
    1. \`20261111122920_syntrix_initial_schema.sql\`
    2. \`20261112000000_syntrix_hardening.sql\`
    3. \`20261114000000_syntrix_device_alerts.sql\`
@@ -13,11 +13,14 @@ SYNTRIX is a static website. It does not need a Flask/Gunicorn server, a Socket.
    5. \`20261116000000_syntrix_device_security_v2.sql\`
    6. \`20261117000000_syntrix_e2ee_and_delete.sql\`
    7. \`20261118000000_syntrix_e2ee_hard_delete.sql\`
+   8. \`20261114142010_syntrix_key_bundle_e2ee.sql\`
 
-   The E2EE migration adds the account public key, wrapped private-key backup, encrypted message version, and E2EE RPCs. The final migration is a required corrective migration: it permanently removes all existing non-E2EE messages, removes per-user soft hiding, changes \`delete_message_for_everyone\` to physically delete the row, and configures Realtime DELETE events. **It is intentionally destructive and must not be skipped.**
+   The hard-delete migration permanently removes existing non-E2EE messages, removes per-user soft hiding, changes \`delete_message_for_everyone\` to physically delete rows, and configures Realtime DELETE events. It is intentionally destructive.
 
-   The device-security migration also sets \`pgrst.db_pre_request\` for the \`authenticator\` role. It replaces any pre-request function you configured yourself. To undo that setting: \`alter role authenticator reset pgrst.db_pre_request; notify pgrst, 'reload config';\`.
-3. Confirm that \`profiles\`, \`contacts\`, and \`messages\` appear in Table Editor. The wrapped private-key backups are in the protected \`private.user_security\` table.
+   The key-bundle migration makes \`private.user_keys\` the single E2EE backup store. The passphrase never goes to Supabase; the browser stores only a wrapped private-key backup, its salt, and the PBKDF2 iteration count. It also removes the temporary alternate E2EE RPCs that used a server-checked derived verifier.
+
+   The device-security migration sets \`pgrst.db_pre_request\` for the \`authenticator\` role. It replaces any pre-request function you configured yourself. To undo that setting: \`alter role authenticator reset pgrst.db_pre_request; notify pgrst, 'reload config';\`.
+3. Confirm that \`profiles\`, \`contacts\`, and \`messages\` appear in Table Editor. Wrapped private-key backups are stored in the unexposed \`private.user_keys\` table.
 4. Open **Project Settings → API** and copy the Project URL and publishable key.
 5. Put those public values in \`src/config.js\`. Never use a \`service_role\` or secret API key in client code.
 6. In **Authentication → URL Configuration**, add your local development URL and Cloudflare Pages domain to allowed redirect URLs.
@@ -42,7 +45,8 @@ Push the project to \`ZeonPlay/SYNTRIX\`. The repository root should contain \`i
 ## 4. First-time verification
 
 - Create a test account. If email confirmation is enabled, confirm the address before signing in.
-- Activate E2EE with a passphrase of at least 10 characters. For accounts with the old unlock-key hash, prove ownership with the old key once.
+- Activate E2EE with a passphrase of at least 10 characters. The passphrase stays in the browser; Supabase only receives the wrapped key bundle.
+- Existing accounts with a row in \`private.user_keys\` should unlock that saved bundle rather than generate a new identity.
 - Create a second test account in a private/incognito window or another browser and activate E2EE on that account too.
 - Add the second account by handle. Verify both profiles have a public key before attempting to send.
 - Send \`HELLO 123\`. Confirm the receiver can decrypt it after unlocking E2EE with their own passphrase.
