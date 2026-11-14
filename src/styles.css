@@ -2340,6 +2340,11 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
   .app-shell { --directory-drawer-width: 286px; }
 }
 @media (max-width: 850px) and (min-width: 701px) {
+  .app-shell,
+  .app-shell[data-layout="directory"],
+  .app-shell[data-layout="page"] {
+    grid-template-columns: 220px 0px minmax(0, 1fr);
+  }
   .app-shell { --directory-drawer-width: 250px; }
   .app-shell[data-layout="conversation"] {
     grid-template-columns: 72px var(--directory-drawer-width) minmax(0, 1fr);
