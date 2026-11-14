@@ -2211,3 +2211,34 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
 @media (prefers-reduced-motion: reduce) {
   .message-disintegrate-layer { display: none !important; }
 }
+
+
+/* On first open, the directory drawer enters from the far-right edge and
+   settles into its existing left-side track. The track widths stay responsive. */
+@media (min-width: 701px) {
+  .app-shell.has-chat .directory-inner {
+    transform-origin: top right;
+    will-change: transform;
+    animation: directory-arrive-from-right .76s var(--ease) both;
+  }
+
+  @keyframes directory-arrive-from-right {
+    from {
+      transform: translate3d(calc(100vw - 100% - var(--nav-width)), 0, 0) scale(.985);
+    }
+    to {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+}
+
+@media (max-width: 850px) and (min-width: 701px) {
+  .app-shell.has-chat { --nav-width: 72px; }
+}
+
+@media (max-width: 700px), (prefers-reduced-motion: reduce) {
+  .app-shell.has-chat .directory-inner {
+    animation: none !important;
+    will-change: auto;
+  }
+}
