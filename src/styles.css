@@ -1757,11 +1757,40 @@ html:not([data-theme="dark"]) .app-shell.has-chat { --nav-pill-fill: var(--direc
 .app-shell:not(.has-chat) .directory-content { grid-template-columns: minmax(320px,485px) minmax(0,1fr); justify-content: stretch; max-width: none; gap: 26px; margin: 22px 0 0; }
 .app-shell:not(.has-chat) .directory-list-column { max-width: none; justify-self: stretch; }
 
-.app-shell:not(.has-chat) .search-field { position: relative; display: block; min-height: 0; padding: 15px; border-radius: 20px; }
-.app-shell:not(.has-chat) .search-field svg { position: absolute; left: 33px; top: 50%; transform: translateY(-50%); }
-.app-shell:not(.has-chat) .search-field input { height: 40px; padding: 0 14px 0 40px; border: 1px solid var(--line); border-radius: 14px; font-size: 12px; }
-html:not([data-theme="dark"]) .app-shell:not(.has-chat) .search-field { background: #fff; border-color: #e6eaf1; }
-html:not([data-theme="dark"]) .app-shell:not(.has-chat) .search-field input { background: #f6f8fb; }
+.app-shell:not(.has-chat) .search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: 16px;
+}
+.app-shell:not(.has-chat) .search-field svg {
+  position: static;
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  transform: none;
+}
+.app-shell:not(.has-chat) .search-field input {
+  flex: 1;
+  width: 100%;
+  height: 42px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+}
+html:not([data-theme="dark"]) .app-shell:not(.has-chat) .search-field {
+  background: #fff;
+  border-color: #e6eaf1;
+}
+html:not([data-theme="dark"]) .app-shell:not(.has-chat) .search-field input {
+  background: transparent;
+}
 
 .app-shell:not(.has-chat) .contact-list { gap: 11px; margin-top: 12px; }
 .app-shell:not(.has-chat) .contact-item { min-height: 88px; padding: 16px 58px 16px 16px; gap: 14px; border-radius: 20px; }
@@ -1905,4 +1934,81 @@ html[data-theme="dark"] .message-row.mine .message-delete-button {
 html[data-theme="dark"] .message-row.mine .message-delete-button:hover:not(:disabled) {
   background: rgba(255,210,218,.14);
   color: #fff;
+}
+
+
+/* Final message-delete interaction: visible only on hover/focus for pointer
+   devices, with a high-contrast destructive state in light and dark themes. */
+.message-delete-button {
+  min-height: 29px;
+  padding: 0 11px;
+  border: 1px solid rgba(194,67,86,.34);
+  border-radius: 8px;
+  background: #fff0f2;
+  color: #a92f48;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition:
+    opacity .16s ease,
+    transform .16s ease,
+    color .16s ease,
+    background-color .16s ease,
+    border-color .16s ease,
+    visibility 0s linear .16s;
+}
+.message-row:hover .message-delete-button,
+.message-row:focus-within .message-delete-button {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+.message-delete-button:hover:not(:disabled),
+.message-delete-button:focus-visible:not(:disabled) {
+  border-color: #c9435b;
+  background: #c9435b;
+  color: #fff;
+}
+.message-delete-button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+.message-row.mine .message-delete-button {
+  border-color: rgba(255,177,190,.42);
+  background: rgba(190,54,76,.2);
+  color: #ffd7de;
+}
+.message-row.mine .message-delete-button:hover:not(:disabled),
+.message-row.mine .message-delete-button:focus-visible:not(:disabled) {
+  border-color: #ef899b;
+  background: #c9435b;
+  color: #fff;
+}
+html[data-theme="dark"] .message-delete-button {
+  border-color: rgba(255,141,160,.38);
+  background: rgba(185,55,79,.17);
+  color: #ffb9c5;
+}
+html[data-theme="dark"] .message-delete-button:hover:not(:disabled),
+html[data-theme="dark"] .message-delete-button:focus-visible:not(:disabled),
+html[data-theme="dark"] .message-row.mine .message-delete-button:hover:not(:disabled),
+html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:not(:disabled) {
+  border-color: #ef899b;
+  background: #c9435b;
+  color: #fff;
+}
+@media (hover: none), (max-width: 700px) {
+  .message-delete-button {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition-delay: 0s;
+  }
 }
