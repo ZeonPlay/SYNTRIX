@@ -91,7 +91,6 @@ export async function createE2eeIdentity(passphrase) {
     publicKeyB64: bytesToBase64(new Uint8Array(publicKeyBytes)),
     wrappedKeyB64: wrapped.wrappedKey,
     saltB64: bytesToBase64(saltBytes),
-    authToken: wrapped.authToken,
     iterations: E2EE_ITERATIONS,
   };
 }
