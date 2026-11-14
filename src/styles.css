@@ -2120,3 +2120,10 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
     opacity: .84;
   }
 }
+
+/* The account avatar in Settings shares the same identity hue as contact rows. */
+#settingsAvatar.settings-avatar {
+  border: 0;
+  background: hsl(var(--avatar-hue, 250) 70% 48%);
+  color: #fff;
+}
