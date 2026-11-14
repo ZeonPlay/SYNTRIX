@@ -40,6 +40,10 @@ $$;
 revoke all on function public.delete_message_for_everyone(uuid) from public, anon;
 grant execute on function public.delete_message_for_everyone(uuid) to authenticated;
 
+-- Do not allow clients to bypass the RPC's session/rate-limit checks.
+drop policy if exists "Participants can delete messages" on public.messages;
+revoke delete on public.messages from public, anon, authenticated;
+
 -- Publish hard-delete events so the other participant's client can remove the
 -- message immediately. DELETE filters use sender_id / receiver_id; replica identity
 -- FULL ensures those fields are available to the publication's change stream.
