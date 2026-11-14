@@ -1368,6 +1368,8 @@ $('#logoutBtn').addEventListener('click', async () => {
   const button = $('#logoutBtn');
   button.disabled = true;
   try {
+    // Clear the local private-key cache before navigation can interrupt cleanup.
+    if (state.user?.id) await clearE2eeVault(state.user.id);
     await signOut();
     // Always leave the /chat route after the local session is cleared.
     window.location.replace('/');
