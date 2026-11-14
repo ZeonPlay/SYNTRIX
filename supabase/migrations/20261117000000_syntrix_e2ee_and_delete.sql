@@ -389,7 +389,7 @@ $$;
 -- Activation and passphrase changes now go through enable_e2ee / change_e2ee_passphrase.
 -- Some existing projects no longer have these legacy RPCs. Revoke them
 -- only when they actually exist, so the E2EE migration remains portable.
-do $
+do $syntrix$
 begin
   if to_regprocedure('public.set_message_unlock_key(text)') is not null then
     execute 'revoke execute on function public.set_message_unlock_key(text) from authenticated';
