@@ -1081,6 +1081,9 @@ async function openApprovedWorkspace() {
   state.workspaceLoading = true;
   deviceGateView.hidden = true;
   appView.hidden = false;
+  // The initial measurement runs while appView is hidden, so refresh the
+  // active navigation shape as soon as the workspace has a real layout.
+  window.requestAnimationFrame(updateNavActivePill);
   try {
     await loadWorkspace();
     state.workspaceLoaded = true;
