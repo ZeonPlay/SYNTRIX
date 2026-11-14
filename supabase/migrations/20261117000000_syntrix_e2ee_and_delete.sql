@@ -54,7 +54,7 @@ alter table public.messages alter column payload_bits drop not null;
 
 -- Drop old payload-size checks regardless of their name or old limit
 -- (some existing SYNTRIX databases used 5000 or 8000 bits).
-do $
+do $syntrix$
 declare
   r record;
   v_definition text;
@@ -73,7 +73,7 @@ begin
     end if;
   end loop;
 end;
-$;
+$syntrix$;
 
 -- E2EE envelopes are base64 and longer than plain ASCII frames: up to 1500 frames.
 alter table public.messages drop constraint if exists messages_payload_size_check;
@@ -137,7 +137,7 @@ returns boolean
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $syntrix$
 declare
   v_hash text;
   v_failed smallint;
@@ -176,7 +176,7 @@ begin
    where user_id = p_uid;
   return false;
 end;
-$;
+$syntrix$;
 revoke all on function private.check_unlock_key(uuid, text) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------
@@ -398,7 +398,7 @@ begin
     execute 'revoke execute on function public.change_message_unlock_key(text,text) from authenticated';
   end if;
 end;
-$;
+$syntrix$;
 
 -- ---------------------------------------------------------------------
 -- 4. Message deletion
