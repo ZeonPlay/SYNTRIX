@@ -2192,3 +2192,22 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
 .device-gate-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .device-gate-actions .button { min-height: 42px; }
 #deviceGateStatus { display: block; margin-top: 18px; color: var(--muted); font-size: 10px; }
+
+
+/* SYNTRIX signal disintegration: restrained pixel shards instead of a generic fade. */
+.message-disintegrate-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  overflow: visible;
+  pointer-events: none;
+}
+.message-disintegrate-fragment {
+  position: absolute;
+  display: block;
+  border-radius: 1px;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .message-disintegrate-layer { display: none !important; }
+}

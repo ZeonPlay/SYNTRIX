@@ -728,6 +728,127 @@ function openE2eeUnlockDialog() {
   $('#e2eeUnlockPassphrase').focus();
 }
 
+function createMessageDisintegration(bubble, isMine) {
+  const rect = bubble.getBoundingClientRect();
+  if (!rect.width || !rect.height) return { layer: null, animations: [] };
+
+  const layer = document.createElement('span');
+  layer.className = 'message-disintegrate-layer';
+  layer.setAttribute('aria-hidden', 'true');
+
+  // Small signal-colored pixels make the deletion feel native to SYNTRIX.
+  const palette = isMine
+    ? ['#f3f4ff', '#b6bcff', '#72d7e5', '#8589ef']
+    : ['#55bfce', '#7778e8', '#9aa8c2', '#6e83aa'];
+  const count = Math.min(56, Math.max(28, Math.round((rect.width * rect.height) / 175)));
+  const fragments = [];
+
+  for (let i = 0; i < count; i += 1) {
+    const fragment = document.createElement('i');
+    const size = 2.2 + Math.random() * 3.8;
+    const color = palette[Math.floor(Math.random() * palette.length)];
+    const drift = (isMine ? 1 : -1) * (9 + Math.random() * 29)
+      + (Math.random() - 0.5) * 18;
+    const lift = (Math.random() - 0.5) * 54;
+    const rotation = (Math.random() - 0.5) * 230;
+
+    fragment.className = 'message-disintegrate-fragment';
+    fragment.style.left = (rect.left + Math.random() * rect.width) + 'px';
+    fragment.style.top = (rect.top + Math.random() * rect.height) + 'px';
+    fragment.style.width = size + 'px';
+    fragment.style.height = Math.max(2, size * (0.55 + Math.random() * 0.65)) + 'px';
+    fragment.style.backgroundColor = color;
+    fragment.style.boxShadow = '0 0 5px ' + color;
+    layer.append(fragment);
+
+    fragments.push({
+      element: fragment,
+      drift,
+      lift,
+      rotation,
+      duration: 350 + Math.random() * 160,
+      delay: Math.random() * 85,
+    });
+  }
+
+  document.body.append(layer);
+  const animations = fragments.map(({ element, drift, lift, rotation, duration, delay }) => (
+    element.animate([
+      { opacity: 0.96, transform: 'translate3d(0,0,0) scale(1) rotate(0deg)' },
+      {
+        opacity: 0,
+        transform: 'translate3d(' + drift + 'px,' + lift + 'px,0) scale(.12) rotate(' + rotation + 'deg)',
+      },
+    ], {
+      duration,
+      delay,
+      easing: 'cubic-bezier(.16,.75,.28,1)',
+      fill: 'forwards',
+    }).finished.catch(() => undefined)
+  ));
+
+  return { layer, animations };
+}
+
+async function animateMessageDisintegration(row) {
+  const bubble = row.querySelector('.message-bubble');
+  if (!bubble || !row.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const isMine = row.classList.contains('mine');
+  const rowRect = row.getBoundingClientRect();
+  const rowStyle = getComputedStyle(row);
+  const { layer, animations: fragmentAnimations } = createMessageDisintegration(bubble, isMine);
+
+  const bubbleAnimation = bubble.animate([
+    { opacity: 1, filter: 'blur(0px)', transform: 'scale(1)' },
+    { opacity: 0.72, filter: 'blur(.7px)', transform: 'scale(.985)' },
+    { opacity: 0, filter: 'blur(3.5px)', transform: 'scale(.94)' },
+  ], {
+    duration: 360,
+    easing: 'cubic-bezier(.4,0,.2,1)',
+    fill: 'forwards',
+  }).finished.catch(() => undefined);
+
+  const metaAnimations = [
+    row.querySelector('.message-author'),
+    row.querySelector('.message-bottom'),
+  ].filter(Boolean).map((element, index) => element.animate([
+    { opacity: 1, transform: 'translateY(0)' },
+    { opacity: 0, transform: 'translateY(' + (index === 0 ? '-4px' : '4px') + ')' },
+  ], {
+    duration: 180,
+    delay: index * 25,
+    easing: 'ease-out',
+    fill: 'forwards',
+  }).finished.catch(() => undefined));
+
+  const collapseAnimation = row.animate([
+    {
+      height: rowRect.height + 'px',
+      marginTop: rowStyle.marginTop,
+      marginBottom: rowStyle.marginBottom,
+      transform: 'translate3d(0,0,0)',
+    },
+    {
+      height: '0px',
+      marginTop: '0px',
+      marginBottom: '0px',
+      transform: 'translate3d(' + (isMine ? '9px' : '-9px') + ',0,0)',
+    },
+  ], {
+    duration: 470,
+    delay: 55,
+    easing: 'cubic-bezier(.22,1,.36,1)',
+    fill: 'forwards',
+  }).finished.catch(() => undefined);
+
+  try {
+    await Promise.all([bubbleAnimation, collapseAnimation, ...metaAnimations, ...fragmentAnimations]);
+  } finally {
+    layer?.remove();
+  }
+}
+
 async function handleMessageDelete(messageId) {
   if (!messageId || state.deletingMessageIds.has(messageId)) return;
   const exists = state.messages.some((message) => message.id === messageId);
@@ -736,33 +857,12 @@ async function handleMessageDelete(messageId) {
 
   const row = [...document.querySelectorAll('#messages .message-row')]
     .find((element) => element.dataset.messageId === messageId);
-  if (row && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && row.animate) {
-    const height = row.getBoundingClientRect().height;
-    const isMine = row.classList.contains('mine');
-    row.style.transformOrigin = isMine ? 'right center' : 'left center';
+
+  if (row) {
     try {
-      await row.animate([
-        {
-          height: height + 'px',
-          marginTop: getComputedStyle(row).marginTop,
-          marginBottom: getComputedStyle(row).marginBottom,
-          transform: 'translateX(0) scaleX(1)',
-          clipPath: 'inset(0 0 0 0 round 14px)',
-        },
-        {
-          height: '0px',
-          marginTop: '0px',
-          marginBottom: '0px',
-          transform: 'translateX(' + (isMine ? '28px' : '-28px') + ') scaleX(.04)',
-          clipPath: 'inset(0 48% 0 48% round 14px)',
-        },
-      ], {
-        duration: 280,
-        easing: 'cubic-bezier(.22,1,.36,1)',
-        fill: 'forwards',
-      }).finished;
+      await animateMessageDisintegration(row);
     } catch {
-      // The element may be removed by a simultaneous workspace navigation.
+      // Keep deletion reliable even if an animation is interrupted.
     }
   }
 
