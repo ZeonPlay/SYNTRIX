@@ -1180,27 +1180,42 @@ $('#messageForm').addEventListener('submit', async (event) => {
     showToast('Pilih kontak terlebih dahulu.', 'error');
     return;
   }
-  const text = $('#messageInput').value.trim();
-  if (!text) return;
-  try {
-    textToBitStream(text);
-  } catch (error) {
-    showToast(error.message, 'error');
+  if (!state.e2eeUnlocked || !state.e2eeSession?.privateKey) {
+    openE2eeUnlockDialog();
+    showToast('Buka E2EE di perangkat ini sebelum mengirim pesan.', 'info');
     return;
   }
+  const contact = state.contacts.find((item) => item.id === state.activeContactId);
+  if (!contact?.public_key) {
+    showToast('Kontak ini belum mengaktifkan E2EE. Pengiriman pesan belum diizinkan.', 'error');
+    return;
+  }
+  const plaintext = $('#messageInput').value.trim();
+  if (!plaintext) return;
 
   state.sending = true;
   const button = $('#sendButton');
   button.disabled = true;
   try {
-    const message = await insertMessage(state.user.id, state.activeContactId, text);
+    const encrypted = await encryptE2eePayload({
+      plaintext,
+      privateKey: state.e2eeSession.privateKey,
+      ownPublicKeyB64: state.e2eeSession.publicKeyB64,
+      recipientPublicKeyB64: contact.public_key,
+      senderId: state.user.id,
+      receiverId: contact.id,
+    });
+    const message = await insertMessage(state.user.id, contact.id, encrypted.payloadBits);
     upsertMessage(message);
+    state.bitsByMessage.set(message.id, encrypted.payloadBits);
+    state.decodedMessages.set(message.id, plaintext);
+    state.messageViewModes.set(message.id, 'decoded');
     $('#messageInput').value = '';
-    $('#messageCounter').textContent = `0 / ${MAX_MESSAGE_LENGTH}`;
+    $('#messageCounter').textContent = '0 / ' + MAX_MESSAGE_LENGTH;
     renderMessages();
     renderContacts();
   } catch (error) {
-    showToast(friendlyError(error, 'Pesan gagal dikirim.'), 'error');
+    showToast(friendlyError(error, 'Pesan gagal dienkripsi atau dikirim.'), 'error');
   } finally {
     state.sending = false;
     button.disabled = false;
@@ -1208,40 +1223,26 @@ $('#messageForm').addEventListener('submit', async (event) => {
   }
 });
 
-function openUnlockDialog(message) {
-  if (!state.keyReady) {
-    openDialog(keyDialog);
-    return;
-  }
-  state.unlockTarget = message;
-  $('#unlockForm').reset();
-  $('#unlockSubmit').hidden = false;
-  openDialog(unlockDialog);
-  $('#unlockKeyInput').focus();
-}
-
-$('#unlockForm').addEventListener('submit', async (event) => {
+$('#e2eeUnlockForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (!state.unlockTarget) return;
-  const button = $('#unlockSubmit');
-  setBusy(button, true, 'Checking key...');
+  if (!state.e2eeState?.enabled) return;
+  const button = $('#e2eeUnlockSubmit');
+  setBusy(button, true, 'Membuka private key...');
   try {
-    const bits = await fetchMessageBits(state.unlockTarget.id, $('#unlockKeyInput').value);
-    if (!bits) {
-      showToast('Kunci salah atau sedang dikunci sementara karena terlalu banyak percobaan.', 'error');
-      return;
-    }
-    const messageId = state.unlockTarget.id;
-    const messageText = decodeBitStream(bits);
-    state.bitsByMessage.set(messageId, bits);
-    state.decodedMessages.set(messageId, messageText);
-    state.messageViewModes.set(messageId, 'decoded');
-    closeDialog(unlockDialog);
-    $('#unlockKeyInput').value = '';
+    state.e2eeSession = await unlockE2ee(
+      $('#e2eeUnlockPassphrase').value,
+      state.e2eeState,
+    );
+    state.e2eeUnlocked = true;
+    closeDialog(e2eeUnlockDialog);
+    $('#e2eeUnlockForm').reset();
+    await decryptStoredMessages();
+    renderKeyStatus();
     renderMessages();
-    showToast('Pesan berhasil dibuka.', 'success');
+    renderContacts();
+    showToast('E2EE berhasil dibuka di perangkat ini.', 'success');
   } catch (error) {
-    showToast(friendlyError(error, 'Gagal membuka pesan.'), 'error');
+    showToast(friendlyError(error, 'Gagal membuka E2EE.'), 'error');
   } finally {
     setBusy(button, false);
   }
@@ -1249,51 +1250,82 @@ $('#unlockForm').addEventListener('submit', async (event) => {
 
 $('#keyForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const key = $('#newUnlockKey').value;
-  if (state.keyReady && !$('#oldUnlockKey').value) {
-    showToast('Masukkan kunci lama terlebih dahulu.', 'error');
-    return;
-  }
+  const passphrase = $('#newUnlockKey').value;
   const confirmation = $('#confirmUnlockKey').value;
-  if (key !== confirmation) {
-    showToast('Konfirmasi kunci tidak cocok.', 'error');
+  const mode = $('#keyForm').dataset.mode || 'enable';
+  if (passphrase !== confirmation) {
+    showToast('Konfirmasi passphrase tidak cocok.', 'error');
     return;
   }
-  if (key.length < 6 || new TextEncoder().encode(key).length > 72) {
-    showToast('Kunci minimal 6 karakter dan maksimal 72 byte.', 'error');
+  if (passphrase.length < 10 || new TextEncoder().encode(passphrase).length > 256) {
+    showToast('Passphrase E2EE minimal 10 karakter dan maksimal 256 byte.', 'error');
+    return;
+  }
+  if (mode === 'enable' && state.e2eeState?.has_legacy_key && !$('#oldUnlockKey').value) {
+    showToast('Masukkan kunci pembuka lama untuk memverifikasi akun.', 'error');
+    return;
+  }
+  if (mode === 'change' && !$('#oldUnlockKey').value) {
+    showToast('Masukkan passphrase E2EE saat ini.', 'error');
     return;
   }
 
   const button = $('#keySubmit');
-  setBusy(button, true, 'Saving key...');
+  setBusy(button, true, mode === 'enable' ? 'Mengaktifkan E2EE...' : 'Mengganti passphrase...');
   try {
-    if (state.keyReady) {
-      const changed = await changeUnlockKey($('#oldUnlockKey').value, key);
-      if (!changed) {
-        showToast('Kunci lama salah atau sedang dikunci sementara.', 'error');
-        return;
-      }
+    if (mode === 'enable') {
+      state.e2eeSession = await enableE2ee(
+        state.e2eeState?.has_legacy_key ? $('#oldUnlockKey').value : null,
+        passphrase,
+      );
     } else {
-      await setUnlockKey(key);
+      state.e2eeSession = await changeE2eePassphrase(
+        state.e2eeSession,
+        $('#oldUnlockKey').value,
+        passphrase,
+        state.e2eeState,
+      );
     }
-    state.keyReady = true;
-    renderKeyStatus();
+    state.e2eeState = await getE2eeState();
+    state.e2eeUnlocked = true;
     $('#oldKeyField').hidden = true;
     $('#keyForm').reset();
+    $('#keyForm').dataset.mode = 'enable';
     closeDialog(keyDialog);
-    showToast('Kunci pembuka berhasil disimpan.', 'success');
+    await decryptStoredMessages();
+    renderKeyStatus();
+    renderMessages();
+    renderContacts();
+    showToast(mode === 'enable' ? 'E2EE berhasil diaktifkan.' : 'Passphrase E2EE berhasil diganti.', 'success');
   } catch (error) {
-    showToast(friendlyError(error, 'Gagal menyimpan kunci.'), 'error');
+    showToast(friendlyError(error, 'Pengaturan E2EE gagal disimpan.'), 'error');
   } finally {
     setBusy(button, false);
   }
 });
 
 $('#changeKeyBtn').addEventListener('click', () => {
+  if (!state.e2eeState?.enabled) {
+    $('#keyForm').dataset.mode = 'enable';
+    $('#oldKeyField').hidden = !state.e2eeState?.has_legacy_key;
+    $('#oldKeyLabel').textContent = 'Kunci pembuka lama';
+    $('#keyDialogTitle').textContent = 'Aktifkan E2EE';
+    $('#keyLabel').textContent = 'Passphrase E2EE baru';
+    $('#keyForm').reset();
+    openDialog(keyDialog);
+    return;
+  }
+  if (!state.e2eeUnlocked || !state.e2eeSession?.privateKey) {
+    openE2eeUnlockDialog();
+    showToast('Buka E2EE terlebih dahulu sebelum mengganti passphrase.', 'info');
+    return;
+  }
   $('#keyForm').reset();
+  $('#keyForm').dataset.mode = 'change';
   $('#oldKeyField').hidden = false;
-  $('#keyDialogTitle').textContent = 'Change your unlock key';
-  $('#keyLabel').textContent = 'New unlock key';
+  $('#oldKeyLabel').textContent = 'Passphrase E2EE saat ini';
+  $('#keyDialogTitle').textContent = 'Ganti passphrase E2EE';
+  $('#keyLabel').textContent = 'Passphrase E2EE baru';
   openDialog(keyDialog);
 });
 $('#logoutBtn').addEventListener('click', async () => {
@@ -1314,7 +1346,7 @@ document.querySelectorAll('[data-close]').forEach((button) => {
   button.addEventListener('click', () => closeDialog(document.getElementById(button.dataset.close)));
 });
 
-for (const dialog of [contactDialog, unlockDialog, keyDialog, inspectorDialog]) {
+for (const dialog of [contactDialog, e2eeUnlockDialog, keyDialog, inspectorDialog]) {
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) closeDialog(dialog);
   });
