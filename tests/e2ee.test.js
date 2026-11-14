@@ -21,6 +21,9 @@ test('E2EE round-trip works for sender and recipient, including passphrase-wrapp
     createE2eeIdentity('alice strong passphrase'),
     createE2eeIdentity('bob strong passphrase'),
   ]);
+  assert.equal(Buffer.from(alice.publicKeyB64, 'base64').length, 65, 'P-256 public key must use the database raw-point format');
+  assert.equal(alice.iterations, 600000, 'PBKDF2 work factor must match existing SYNTRIX key bundles');
+  assert.equal(Object.hasOwn(alice, 'authToken'), false, 'the passphrase verifier must never be sent to the server');
   const message = {
     sender_id: '11111111-1111-4111-8111-111111111111',
     receiver_id: '22222222-2222-4222-8222-222222222222',
