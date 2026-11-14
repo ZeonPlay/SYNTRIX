@@ -502,55 +502,21 @@ function updateConversationHeader() {
   $('#chatStatusDot').classList.toggle('online', online);
 }
 
-async function runContactLayoutMorph(update) {
-  const canMorph = window.innerWidth > 700 &&
-    !appView.classList.contains('has-chat') &&
-    appView.dataset.view === 'contacts' &&
-    typeof document.startViewTransition === 'function' &&
-    !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  if (!canMorph) {
-    update();
-    return;
-  }
-
-  appView.classList.add('is-contact-morphing');
-  let transition;
-  try {
-    transition = document.startViewTransition(update);
-  } catch (error) {
-    appView.classList.remove('is-contact-morphing');
-    update();
-    return;
-  }
-
-  const clearMorphState = () => appView.classList.remove('is-contact-morphing');
-  transition.finished.then(clearMorphState, clearMorphState);
-  try {
-    await transition.updateCallbackDone;
-  } catch (error) {
-    clearMorphState();
-    console.warn('Contact layout morph was interrupted:', error);
-  }
-}
-
 async function selectContact(contactId) {
   const contact = state.contacts.find((item) => item.id === contactId);
   if (!contact) return;
 
-  await runContactLayoutMorph(() => {
-    state.activeContactId = contactId;
-    if (appView.dataset.view !== 'contacts') setAppView('contacts');
-    appView.classList.add('has-chat');
-    window.requestAnimationFrame(updateNavActivePill);
-    $('#emptyState').hidden = true;
-    $('#conversationView').hidden = false;
-    $('#messageInput').focus();
-    updateConversationHeader();
-    renderContacts();
-    renderMessages({ scrollToBottom: true });
-    void loadConversationSignals(contactId);
-  });
+  state.activeContactId = contactId;
+  if (appView.dataset.view !== 'contacts') setAppView('contacts');
+  appView.classList.add('has-chat');
+  window.requestAnimationFrame(updateNavActivePill);
+  $('#emptyState').hidden = true;
+  $('#conversationView').hidden = false;
+  $('#messageInput').focus();
+  updateConversationHeader();
+  renderContacts();
+  renderMessages({ scrollToBottom: true });
+  void loadConversationSignals(contactId);
 
   const unseen = state.messages.some((message) =>
     message.sender_id === contactId &&
