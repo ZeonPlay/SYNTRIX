@@ -2375,3 +2375,13 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
     transition-delay: 0ms !important;
   }
 }
+
+/* Override legacy per-view display/grid rules: the directory stays mounted
+   and changes width instead of being removed from the grid. */
+.app-shell.has-chat .directory-view,
+.app-shell[data-view="security"] .directory-view,
+.app-shell[data-view="settings"] .directory-view {
+  display: flex;
+  grid-column: 2 / 4;
+}
+
