@@ -112,7 +112,7 @@ const appView = $('#appView');
 const loginForm = $('#loginForm');
 const registerForm = $('#registerForm');
 const contactDialog = $('#contactDialog');
-const unlockDialog = $('#unlockDialog');
+const e2eeUnlockDialog = $('#e2eeUnlockDialog');
 const keyDialog = $('#keyDialog');
 const inspectorDialog = $('#inspectorDialog');
 const navRail = $('#navRail');
@@ -1054,7 +1054,10 @@ async function leaveApp() {
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
   state.messageViewModes.clear();
-  state.keyReady = false;
+  state.e2eeState = null;
+  state.e2eeSession = null;
+  state.e2eeUnlocked = false;
+  state.deletingMessageIds.clear();
   appView.hidden = true;
   authView.hidden = false;
   loginForm.reset();
@@ -1507,8 +1510,21 @@ $('#messages').addEventListener('click', (event) => {
   if (!button) return;
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
   if (!message) return;
-  if (button.dataset.action === 'unlock') {
-    openUnlockDialog(message);
+  if (button.dataset.action === 'unlock-e2ee') {
+    openE2eeUnlockDialog();
+    return;
+  }
+  if (button.dataset.action === 'delete') {
+    if (!window.confirm('Hapus pesan ini untuk kedua pihak? Pesan akan dihapus permanen dari percakapan.')) return;
+    button.disabled = true;
+    try {
+      const removed = await deleteMessageForEveryone(message.id);
+      await handleMessageDelete(message.id);
+      showToast(removed ? 'Pesan dihapus untuk kedua pihak.' : 'Pesan sudah tidak tersedia.', 'success');
+    } catch (error) {
+      button.disabled = false;
+      showToast(friendlyError(error, 'Pesan gagal dihapus.'), 'error');
+    }
     return;
   }
   if (button.dataset.action === 'toggle-view') {
