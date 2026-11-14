@@ -2232,7 +2232,7 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
   max-width: none;
   min-width: 0;
   justify-self: start;
-  overflow: hidden;
+  overflow: auto;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
