@@ -1,6 +1,6 @@
 import { supabase } from './core/supabase.js';
 import {
-  decodeBitStream, nrziEncode, summarizeFrames, textToBitStream,
+  decodeBitStream, nrziEncode, summarizeFrames,
   validateBitStream, MAX_MESSAGE_LENGTH,
 } from './core/encoding.js';
 import {
