@@ -1505,7 +1505,7 @@ function openInspector(storedMessage) {
   drawSignal($('#inspectorSignal'), payload);
 }
 
-$('#messages').addEventListener('click', (event) => {
+$('#messages').addEventListener('click', async (event) => {
   const button = event.target.closest('[data-action]');
   if (!button) return;
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
