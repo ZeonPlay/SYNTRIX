@@ -17,8 +17,8 @@
       }
     } catch (_) {}
   </script>
-  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v18">
-  <script type="module" src="/src/app.js?v=poppins-motion-v12"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=e2ee-hard-delete-v19">
+  <script type="module" src="/src/app.js?v=e2ee-hard-delete-v19"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -151,7 +151,7 @@
           </div>
         </header>
 
-        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>Digital signal channel</strong> Pesan disimpan sebagai data ASCII berbingkai 10-bit dan dikodekan dengan NRZ-I.</span><span class="banner-learn">10-BIT FRAMES</span></div>
+        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>End-to-end encrypted channel</strong> Pesan dienkripsi di perangkat, lalu payload ciphertext dibingkai 10-bit dan dikodekan dengan NRZ-I.</span><span class="banner-learn">E2EE · NRZ-I</span></div>
         <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
         <form id="messageForm" class="composer">
           <div class="composer-inner">
@@ -168,7 +168,7 @@
         <div class="page-inner">
           <span class="eyebrow"><span class="eyebrow-dot"></span> ACCOUNT PROTECTION</span>
           <h1 id="securityTitle">Keamanan</h1>
-          <p class="page-lead">Pantau perangkat yang masuk ke akunmu dan atur kunci pembuka pesan.</p>
+          <p class="page-lead">Pantau perangkat yang masuk dan kelola passphrase yang membungkus private key E2EE milikmu.</p>
           <div id="deviceAlert" class="page-card device-alert" role="alert" hidden>
             <strong id="deviceAlertTitle">Ada perangkat baru masuk ke akunmu</strong>
             <p>Kalau itu kamu, pilih "Ini aku". Kalau bukan, pilih "Bukan aku": perangkat itu langsung dikeluarkan dari SYNTRIX. Setelah itu, sebaiknya ganti kunci pesan dan password.</p>
@@ -182,8 +182,8 @@
             <div class="device-section-head"><strong>Perangkat yang masuk</strong><span id="deviceSummary">Memuat…</span></div>
             <ul id="deviceList" class="device-list"></ul>
           </div>
-          <div class="page-card settings-item"><div><strong>Kunci pembuka pesan</strong><span id="keyStatus">Memeriksa…</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Atur kunci</button></div>
-          <div class="page-card"><strong>Cara kerjanya</strong><p>Server hanya mengirim isi pesan setelah kunci kamu terbukti benar. Kunci tersimpan sebagai hash bcrypt dan percobaan salah dibatasi. Ini bukan enkripsi end-to-end, jadi jangan gunakan untuk data sangat sensitif.</p></div>
+          <div class="page-card settings-item"><div><strong>End-to-end encryption</strong><span id="keyStatus">Memeriksa…</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Atur E2EE</button></div>
+          <div class="page-card"><strong>Perlindungan private key</strong><p>Pasangan kunci ECDH dibuat di browser. Private key dibungkus AES-GCM menggunakan kunci yang diturunkan dari passphrase dengan PBKDF2, lalu backup terenkripsi disimpan di server. Passphrase dan private key plaintext tidak dikirim ke Supabase.</p></div>
         </div>
       </section>
 
@@ -220,23 +220,23 @@
     </form>
   </dialog>
 
-  <dialog id="unlockDialog" class="modal">
-    <form id="unlockForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">Message locked</span><h2>Unlock this message</h2></div><button class="icon-button dialog-close" type="button" data-close="unlockDialog" aria-label="Close">×</button></div>
-      <p class="modal-description">Enter your personal message key to decode the stored bitstream.</p>
-      <label class="field"><span>Your unlock key</span><input id="unlockKeyInput" type="password" autocomplete="off" placeholder="Enter your key" required minlength="6" maxlength="72"></label>
-      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="unlockDialog">Close</button><button id="unlockSubmit" class="button button-primary" type="submit">Unlock message</button></div>
+  <dialog id="keyDialog" class="modal">
+    <form id="keyForm" class="modal-card">
+      <div class="modal-header"><div><span class="eyebrow">End-to-end encryption</span><h2 id="keyDialogTitle">Aktifkan E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
+      <p class="modal-description">Passphrase dipakai di perangkat untuk membuat kunci pembungkus private key. Simpan baik-baik: server tidak dapat memulihkan passphrase atau membaca pesanmu.</p>
+      <label id="oldKeyField" class="field" hidden><span id="oldKeyLabel">Kunci pembuka lama</span><input id="oldUnlockKey" type="password" autocomplete="current-password" maxlength="72" placeholder="Masukkan kunci lama"></label>
+      <label class="field"><span id="keyLabel">Passphrase E2EE baru</span><input id="newUnlockKey" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="Minimal 10 karakter"></label>
+      <label class="field"><span>Konfirmasi passphrase</span><input id="confirmUnlockKey" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="Ketik ulang passphrase"></label>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Nanti</button><button id="keySubmit" class="button button-primary" type="submit">Aktifkan E2EE</button></div>
     </form>
   </dialog>
 
-  <dialog id="keyDialog" class="modal">
-    <form id="keyForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">Account security</span><h2 id="keyDialogTitle">Set your unlock key</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
-      <p class="modal-description">The server only releases a message's bitstream after this key is verified. It is not end-to-end encryption. Use a key you can remember.</p>
-      <label id="oldKeyField" class="field" hidden><span>Current unlock key</span><input id="oldUnlockKey" type="password" autocomplete="off" maxlength="72" placeholder="Your current key"></label>
-      <label class="field"><span id="keyLabel">New unlock key</span><input id="newUnlockKey" type="password" autocomplete="off" required minlength="6" maxlength="72" placeholder="At least 6 characters"></label>
-      <label class="field"><span>Confirm key</span><input id="confirmUnlockKey" type="password" autocomplete="off" required minlength="6" maxlength="72" placeholder="Type it again"></label>
-      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Cancel</button><button id="keySubmit" class="button button-primary" type="submit">Save key</button></div>
+  <dialog id="e2eeUnlockDialog" class="modal">
+    <form id="e2eeUnlockForm" class="modal-card">
+      <div class="modal-header"><div><span class="eyebrow">Private key locked</span><h2>Buka E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="e2eeUnlockDialog" aria-label="Close">×</button></div>
+      <p class="modal-description">Masukkan passphrase untuk membuka backup private key di perangkat ini. Passphrase tidak dikirim ke server.</p>
+      <label class="field"><span>Passphrase E2EE</span><input id="e2eeUnlockPassphrase" type="password" autocomplete="current-password" required minlength="10" maxlength="128" placeholder="Passphrase E2EE kamu"></label>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="e2eeUnlockDialog">Nanti</button><button id="e2eeUnlockSubmit" class="button button-primary" type="submit">Buka private key</button></div>
     </form>
   </dialog>
 
