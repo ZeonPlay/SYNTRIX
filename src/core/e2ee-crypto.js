@@ -1,6 +1,6 @@
 import { decodeBitStream, textToBitStream } from './encoding.js';
 
-export const E2EE_ITERATIONS = 310000;
+export const E2EE_ITERATIONS = 600000;
 export const E2EE_MAX_ENVELOPE_CHARACTERS = 1500;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -61,15 +61,7 @@ async function derivePassphraseMaterial(passphrase, salt, iterations) {
     passphraseKey,
     512,
   ));
-  return {
-    wrapKeyBytes: material.slice(0, 32),
-    authToken: bytesToBase64(material.slice(32, 64)),
-  };
-}
-
-export async function deriveE2eeAuthToken(passphrase, saltB64, iterations) {
-  const material = await derivePassphraseMaterial(passphrase, base64ToBytes(saltB64), iterations);
-  return material.authToken;
+  return { wrapKeyBytes: material.slice(0, 32) };
 }
 
 async function createWrappedPrivateKey(pkcs8, passphrase, saltBytes, iterations) {
@@ -82,10 +74,7 @@ async function createWrappedPrivateKey(pkcs8, passphrase, saltBytes, iterations)
     wrappingKey,
     pkcs8,
   ));
-  return {
-    authToken: material.authToken,
-    wrappedKey: bytesToBase64(joinBytes(iv, ciphertext)),
-  };
+  return { wrappedKey: bytesToBase64(joinBytes(iv, ciphertext)) };
 }
 
 export async function createE2eeIdentity(passphrase) {
@@ -93,7 +82,7 @@ export async function createE2eeIdentity(passphrase) {
   const pair = await subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
   const [privateKeyBytes, publicKeyBytes] = await Promise.all([
     subtle.exportKey('pkcs8', pair.privateKey),
-    subtle.exportKey('spki', pair.publicKey),
+    subtle.exportKey('raw', pair.publicKey),
   ]);
   const saltBytes = randomBytes(16);
   const wrapped = await createWrappedPrivateKey(privateKeyBytes, passphrase, saltBytes, E2EE_ITERATIONS);
@@ -124,7 +113,17 @@ export async function unlockE2eePrivateKey(passphrase, saltB64, iterations, wrap
       ciphertext,
     );
   } catch {
-    throw new Error('Passphrase salah atau backup private key tidak dapat dibuka.');
+    // Compatibility with earlier SYNTRIX key bundles that used AES-GCM
+    // without additional authenticated data.
+    try {
+      privateKeyBytes = await subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        wrappingKey,
+        ciphertext,
+      );
+    } catch {
+      throw new Error('Passphrase salah atau backup private key tidak dapat dibuka.');
+    }
   }
   const privateKey = await subtle.importKey(
     'pkcs8',
@@ -133,7 +132,7 @@ export async function unlockE2eePrivateKey(passphrase, saltB64, iterations, wrap
     true,
     ['deriveBits'],
   );
-  return { privateKey, authToken: material.authToken };
+  return { privateKey };
 }
 
 export async function rewrapE2eePrivateKey(privateKey, newPassphrase) {
@@ -141,7 +140,6 @@ export async function rewrapE2eePrivateKey(privateKey, newPassphrase) {
   const saltBytes = randomBytes(16);
   const wrapped = await createWrappedPrivateKey(privateKeyBytes, newPassphrase, saltBytes, E2EE_ITERATIONS);
   return {
-    authToken: wrapped.authToken,
     wrappedKeyB64: wrapped.wrappedKey,
     saltB64: bytesToBase64(saltBytes),
     iterations: E2EE_ITERATIONS,
@@ -150,7 +148,7 @@ export async function rewrapE2eePrivateKey(privateKey, newPassphrase) {
 
 async function importPublicKey(publicKeyB64) {
   return webCrypto().subtle.importKey(
-    'spki',
+    'raw',
     base64ToBytes(publicKeyB64),
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
