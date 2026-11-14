@@ -64,6 +64,19 @@ async function derivePassphraseMaterial(passphrase, salt, iterations) {
   return { wrapKeyBytes: material.slice(0, 32) };
 }
 
+// Applies to NEW passphrases only. Unlocking an existing backup keeps the older
+// 10-character floor so no one is locked out of a key bundle they already have.
+export const MIN_NEW_PASSPHRASE_LENGTH = 12;
+
+export function assertStrongPassphrase(passphrase) {
+  if (typeof passphrase !== 'string' || passphrase.length < MIN_NEW_PASSPHRASE_LENGTH) {
+    throw new Error('Passphrase E2EE baru minimal ' + MIN_NEW_PASSPHRASE_LENGTH + ' karakter.');
+  }
+  if (new Set(passphrase).size < 6) {
+    throw new Error('Passphrase E2EE terlalu berulang. Gunakan lebih banyak karakter berbeda.');
+  }
+}
+
 async function createWrappedPrivateKey(pkcs8, passphrase, saltBytes, iterations) {
   const material = await derivePassphraseMaterial(passphrase, saltBytes, iterations);
   const subtle = webCrypto().subtle;
@@ -78,6 +91,7 @@ async function createWrappedPrivateKey(pkcs8, passphrase, saltBytes, iterations)
 }
 
 export async function createE2eeIdentity(passphrase) {
+  assertStrongPassphrase(passphrase);
   const subtle = webCrypto().subtle;
   const pair = await subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
   const [privateKeyBytes, publicKeyBytes] = await Promise.all([
@@ -86,8 +100,18 @@ export async function createE2eeIdentity(passphrase) {
   ]);
   const saltBytes = randomBytes(16);
   const wrapped = await createWrappedPrivateKey(privateKeyBytes, passphrase, saltBytes, E2EE_ITERATIONS);
+  // The generated pair had to be extractable to produce the wrapped backup. The key
+  // kept in memory / the local vault is re-imported as NON-extractable, so script
+  // running in the page can use it but cannot export the raw private key.
+  const lockedPrivateKey = await subtle.importKey(
+    'pkcs8',
+    privateKeyBytes,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    false,
+    ['deriveBits'],
+  );
   return {
-    privateKey: pair.privateKey,
+    privateKey: lockedPrivateKey,
     publicKeyB64: bytesToBase64(new Uint8Array(publicKeyBytes)),
     wrappedKeyB64: wrapped.wrappedKey,
     saltB64: bytesToBase64(saltBytes),
@@ -95,7 +119,7 @@ export async function createE2eeIdentity(passphrase) {
   };
 }
 
-export async function unlockE2eePrivateKey(passphrase, saltB64, iterations, wrappedKeyB64) {
+export async function unlockE2eePrivateKey(passphrase, saltB64, iterations, wrappedKeyB64, { extractable = false } = {}) {
   const salt = base64ToBytes(saltB64);
   const material = await derivePassphraseMaterial(passphrase, salt, iterations);
   const wrapped = base64ToBytes(wrappedKeyB64);
@@ -128,13 +152,14 @@ export async function unlockE2eePrivateKey(passphrase, saltB64, iterations, wrap
     'pkcs8',
     privateKeyBytes,
     { name: 'ECDH', namedCurve: 'P-256' },
-    true,
+    extractable === true,
     ['deriveBits'],
   );
   return { privateKey };
 }
 
 export async function rewrapE2eePrivateKey(privateKey, newPassphrase) {
+  assertStrongPassphrase(newPassphrase);
   const privateKeyBytes = await webCrypto().subtle.exportKey('pkcs8', privateKey);
   const saltBytes = randomBytes(16);
   const wrapped = await createWrappedPrivateKey(privateKeyBytes, newPassphrase, saltBytes, E2EE_ITERATIONS);

@@ -41,7 +41,9 @@ export async function enableE2ee(_oldUnlockKey, passphrase) {
   };
 }
 
-export async function unlockE2ee(passphrase) {
+// The returned private key is non-extractable unless the caller explicitly needs
+// to re-wrap it (see changeE2eePassphrase). Never cache an extractable key.
+export async function unlockE2ee(passphrase, { extractable = false } = {}) {
   const { data, error } = await supabase.rpc('get_my_key_bundle');
   if (error) throw error;
   const bundle = firstBundle(data);
@@ -53,6 +55,7 @@ export async function unlockE2ee(passphrase) {
     bundle.kdf_salt,
     bundle.kdf_iterations,
     bundle.wrapped_private_key,
+    { extractable },
   );
   return {
     privateKey: opened.privateKey,
@@ -61,11 +64,18 @@ export async function unlockE2ee(passphrase) {
   };
 }
 
-export async function changeE2eePassphrase(session, _oldPassphrase, newPassphrase) {
+export async function changeE2eePassphrase(session, oldPassphrase, newPassphrase) {
   if (!session?.privateKey || !session?.wrappedKeyB64) {
     throw new Error('Buka E2EE terlebih dahulu sebelum mengganti passphrase.');
   }
-  const wrapped = await rewrapE2eePrivateKey(session.privateKey, newPassphrase);
+  // Prove knowledge of the CURRENT passphrase by actually decrypting the stored
+  // backup with it. An unlocked browser alone is not enough to change it.
+  const current = await unlockE2ee(oldPassphrase, { extractable: true });
+  if (current.wrappedKeyB64 !== session.wrappedKeyB64) {
+    throw new Error('Backup private key berubah. Buka ulang E2EE sebelum mengganti passphrase.');
+  }
+
+  const wrapped = await rewrapE2eePrivateKey(current.privateKey, newPassphrase);
   const { data, error } = await supabase.rpc('rewrap_my_key_bundle', {
     p_old_wrapped: session.wrappedKeyB64,
     p_wrapped: wrapped.wrappedKeyB64,

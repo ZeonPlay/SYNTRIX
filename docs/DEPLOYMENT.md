@@ -9,11 +9,18 @@ SYNTRIX is a static website. It does not need a Flask/Gunicorn server, a Socket.
    1. \`20261111122920_syntrix_initial_schema.sql\`
    2. \`20261112000000_syntrix_hardening.sql\`
    3. \`20261114000000_syntrix_device_alerts.sql\`
-   4. \`20261115000000_syntrix_device_tracking.sql\`
-   5. \`20261116000000_syntrix_device_security_v2.sql\`
-   6. \`20261117000000_syntrix_e2ee_and_delete.sql\`
-   7. \`20261118000000_syntrix_e2ee_hard_delete.sql\`
-   8. \`20261114142010_syntrix_key_bundle_e2ee.sql\`
+   4. \`20261114000001_fix_profiles_messages_rls_recursion.sql\`
+   5. \`20261114142010_syntrix_key_bundle_e2ee.sql\`
+   6. \`20261115000000_syntrix_device_tracking.sql\`
+   7. \`20261116000000_syntrix_device_security_v2.sql\`
+   8. \`20261116000001_syntrix_server_side_device_approval.sql\`
+   9. \`20261116000002_syntrix_device_revocation_signal.sql\`
+   10. \`20261116000003_syntrix_guard_legacy_workspace_rpcs.sql\`
+   11. \`20261117000000_syntrix_e2ee_and_delete.sql\`
+   12. \`20261118000000_syntrix_e2ee_hard_delete.sql\`
+   13. \`20261119000000_syntrix_security_hardening.sql\`
+
+   The list is sorted by file name, so it is also the order \`supabase db reset\` uses. The last migration is idempotent: it drops the unused legacy RPCs (\`reset_my_key_bundle\`, \`enable_e2ee\`, ...) and restores the strict, session-bound device-approval gate that \`20261116000000\` had weakened. On a database that is already deployed, run just that file. Device approval is strict: only an account with no device rows gets an auto-trusted first device. If every trusted device is lost, recovery is manual in SQL (set \`acknowledged_at\` on a \`user_devices\` row).
 
    The hard-delete migration permanently removes existing non-E2EE messages, removes per-user soft hiding, changes \`delete_message_for_everyone\` to physically delete rows, and configures Realtime DELETE events. It is intentionally destructive.
 

@@ -10,17 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <script>
-    (() => {
-      const root = document.documentElement;
-      let theme = 'light';
-      try {
-        theme = localStorage.getItem('syntrix-theme') === 'dark' ? 'dark' : 'light';
-      } catch (_) {}
-      root.dataset.theme = theme;
-      root.style.colorScheme = theme;
-    })();
-  </script>
+  <script src="/src/theme-init.js"></script>
   <link rel="stylesheet" href="./src/styles.css?v=theme-eclipse-v30">
   <script type="module" src="/src/app.js?v=theme-eclipse-v26"></script>
 </head>
@@ -233,8 +223,8 @@
       <div class="modal-header"><div><span class="eyebrow">End-to-end encryption</span><h2 id="keyDialogTitle">Aktifkan E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
       <p class="modal-description">Passphrase dipakai di perangkat untuk membuat kunci pembungkus private key. Simpan baik-baik: server tidak dapat memulihkan passphrase atau membaca pesanmu.</p>
       <label id="oldKeyField" class="field" hidden><span id="oldKeyLabel">Kunci pembuka lama</span><input id="oldUnlockKey" type="password" autocomplete="current-password" maxlength="128" placeholder="Masukkan kunci atau passphrase lama"></label>
-      <label class="field"><span id="keyLabel">Passphrase E2EE baru</span><input id="newUnlockKey" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="Minimal 10 karakter"></label>
-      <label class="field"><span>Konfirmasi passphrase</span><input id="confirmUnlockKey" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="Ketik ulang passphrase"></label>
+      <label class="field"><span id="keyLabel">Passphrase E2EE baru</span><input id="newUnlockKey" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Minimal 12 karakter"></label>
+      <label class="field"><span>Konfirmasi passphrase</span><input id="confirmUnlockKey" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Ketik ulang passphrase"></label>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Nanti</button><button id="keySubmit" class="button button-primary" type="submit">Aktifkan E2EE</button></div>
     </form>
   </dialog>

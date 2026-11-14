@@ -190,6 +190,9 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/e2ee_not_ready/i.test(message)) return 'Kontak ini belum mengaktifkan E2EE. Minta kontak mengaktifkannya sebelum mengirim pesan.';
   if (/e2ee_not_enabled/i.test(message)) return 'E2EE belum diaktifkan di akun ini.';
   if (/message_not_found/i.test(message)) return 'Pesan sudah dihapus dari percakapan.';
+  if (/passphrase salah|tidak dapat dibuka/i.test(message)) return 'Passphrase salah.';
+  if (/passphrase e2ee (baru )?(minimal|terlalu)/i.test(message)) return message;
+  if (/backup private key berubah/i.test(message)) return message;
   console.warn('Unhandled error:', error);
   return fallback;
 }
@@ -1554,8 +1557,8 @@ $('#keyForm').addEventListener('submit', async (event) => {
     showToast('Konfirmasi passphrase tidak cocok.', 'error');
     return;
   }
-  if (passphrase.length < 10 || new TextEncoder().encode(passphrase).length > 256) {
-    showToast('Passphrase E2EE minimal 10 karakter dan maksimal 256 byte.', 'error');
+  if (passphrase.length < 12 || new TextEncoder().encode(passphrase).length > 256) {
+    showToast('Passphrase E2EE baru minimal 12 karakter dan maksimal 256 byte.', 'error');
     return;
   }
   if (mode === 'enable' && state.e2eeState?.has_legacy_key && !$('#oldUnlockKey').value) {
