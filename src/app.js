@@ -576,6 +576,95 @@ function upsertMessage(message) {
   return true;
 }
 
+async function decryptStoredMessages(targetMessages = state.messages) {
+  if (!state.e2eeUnlocked || !state.e2eeSession?.privateKey) return;
+  const pending = targetMessages.filter((message) =>
+    message?.enc_version === 1 && !state.decodedMessages.has(message.id)
+  );
+  if (pending.length === 0) return;
+
+  const payloads = await fetchMessagePayloads(pending.map((message) => message.id));
+  const byId = new Map(payloads.map((row) => [row.id, row.payload_bits]));
+  for (const message of pending) {
+    const payloadBits = byId.get(message.id);
+    if (!payloadBits) continue;
+    const peerId = partnerId(message);
+    const peer = state.contacts.find((contact) => contact.id === peerId);
+    try {
+      const plaintext = await decryptE2eePayload({
+        payloadBits,
+        privateKey: state.e2eeSession.privateKey,
+        ownPublicKeyB64: state.e2eeSession.publicKeyB64,
+        peerPublicKeyB64: peer?.public_key,
+        userId: state.user.id,
+        message,
+      });
+      state.bitsByMessage.set(message.id, payloadBits);
+      state.decodedMessages.set(message.id, plaintext);
+      state.messageViewModes.set(message.id, 'decoded');
+    } catch (error) {
+      console.warn('Unable to decrypt message ' + message.id + ':', error);
+    }
+  }
+}
+
+function openE2eeUnlockDialog() {
+  if (!state.e2eeState?.enabled) {
+    openDialog(keyDialog);
+    return;
+  }
+  $('#e2eeUnlockForm').reset();
+  openDialog(e2eeUnlockDialog);
+  $('#e2eeUnlockPassphrase').focus();
+}
+
+async function handleMessageDelete(messageId) {
+  if (!messageId || state.deletingMessageIds.has(messageId)) return;
+  const exists = state.messages.some((message) => message.id === messageId);
+  if (!exists) return;
+  state.deletingMessageIds.add(messageId);
+
+  const row = [...document.querySelectorAll('#messages .message-row')]
+    .find((element) => element.dataset.messageId === messageId);
+  if (row && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && row.animate) {
+    const height = row.getBoundingClientRect().height;
+    const isMine = row.classList.contains('mine');
+    row.style.transformOrigin = isMine ? 'right center' : 'left center';
+    try {
+      await row.animate([
+        {
+          height: height + 'px',
+          marginTop: getComputedStyle(row).marginTop,
+          marginBottom: getComputedStyle(row).marginBottom,
+          transform: 'translateX(0) scaleX(1)',
+          clipPath: 'inset(0 0 0 0 round 14px)',
+        },
+        {
+          height: '0px',
+          marginTop: '0px',
+          marginBottom: '0px',
+          transform: 'translateX(' + (isMine ? '28px' : '-28px') + ') scaleX(.04)',
+          clipPath: 'inset(0 48% 0 48% round 14px)',
+        },
+      ], {
+        duration: 280,
+        easing: 'cubic-bezier(.22,1,.36,1)',
+        fill: 'forwards',
+      }).finished;
+    } catch {
+      // The element may be removed by a simultaneous workspace navigation.
+    }
+  }
+
+  state.messages = state.messages.filter((message) => message.id !== messageId);
+  state.decodedMessages.delete(messageId);
+  state.bitsByMessage.delete(messageId);
+  state.messageViewModes.delete(messageId);
+  state.deletingMessageIds.delete(messageId);
+  renderMessages();
+  renderContacts();
+}
+
 async function handleIncomingMessage(rawMessage) {
   if (rawMessage.sender_id !== state.user.id && rawMessage.receiver_id !== state.user.id) return;
   // Realtime does not carry payload_bits or frame_count, so load the safe metadata row.
@@ -592,6 +681,9 @@ async function handleIncomingMessage(rawMessage) {
   const inserted = upsertMessage(message);
   const otherId = partnerId(message);
   await ensureContactForUser(otherId);
+  if (state.e2eeUnlocked && message.enc_version === 1) {
+    await decryptStoredMessages([message]);
+  }
 
   if (message.receiver_id === state.user.id && state.activeContactId === otherId) {
     try {
@@ -640,14 +732,19 @@ async function loadWorkspace() {
   renderAccount();
   renderContacts();
 
-  const keyExists = await hasUnlockKey();
-  state.keyReady = keyExists;
+  state.e2eeState = await getE2eeState();
+  state.e2eeSession = null;
+  state.e2eeUnlocked = false;
   renderKeyStatus();
-  if (!keyExists) {
-    $('#oldKeyField').hidden = true;
-    $('#keyDialogTitle').textContent = 'Create your unlock key';
-    $('#keyLabel').textContent = 'New unlock key';
+  if (!state.e2eeState.enabled) {
+    $('#keyForm').dataset.mode = 'enable';
+    $('#oldKeyField').hidden = !state.e2eeState.has_legacy_key;
+    $('#oldKeyLabel').textContent = 'Kunci pembuka lama';
+    $('#keyDialogTitle').textContent = 'Aktifkan E2EE';
+    $('#keyLabel').textContent = 'Passphrase E2EE baru';
     openDialog(keyDialog);
+  } else {
+    openE2eeUnlockDialog();
   }
 
   state.disconnectRealtime?.();
@@ -655,6 +752,7 @@ async function loadWorkspace() {
     userId,
     onMessage: handleIncomingMessage,
     onMessageUpdate: handleMessageUpdate,
+    onMessageDelete: handleMessageDelete,
     onPresence: (entries) => {
       state.onlineUsers = new Set(entries.map((entry) => entry.userId).filter(Boolean));
       renderContacts();
