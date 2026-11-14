@@ -56,8 +56,10 @@ begin
     alter publication supabase_realtime drop table public.messages;
   end if;
 
+  -- REPLICA IDENTITY FULL requires the publication to include all columns.
+  -- Realtime filters sender_id / receiver_id for each participant.
   alter publication supabase_realtime
-    add table public.messages (id, sender_id, receiver_id, created_at, read_at, enc_version);
+    add table public.messages;
 
   if exists (
     select 1 from pg_publication_tables
