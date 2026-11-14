@@ -201,8 +201,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .unread-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 7px; background: var(--indigo); color: #fff; font: 700 9px var(--mono); }
 .contact-item::after { content: "›"; display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 24px; border-radius: 9px; background: #f2f5f9; color: #78839a; font-size: 19px; transition: background .2s,color .2s,transform .25s; }
 .contact-item:hover::after { transform: translateX(2px); background: #e9edff; color: var(--indigo); }
-.directory-list-footer { display: flex; align-items: center; gap: 7px; margin-top: 9px; padding: 10px 2px 0; border-top: 1px solid #e9edf4; color: #a0a8b7; font: 8px var(--mono); letter-spacing: .08em; }
-.directory-footer-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(22,181,138,.1); }
 .list-empty { padding: 24px 14px; border: 1px dashed #dce2ec; border-radius: 15px; background: rgba(255,255,255,.65); color: var(--muted); font-size: 11px; line-height: 1.7; text-align: center; }
 
 /* Welcome card: directory's right-side preview */
@@ -245,7 +243,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .app-shell.has-chat .contact-item.is-active::after { right: 0; bottom: -16px; box-shadow: 8px -8px 0 0 #fff; }
 .app-shell.has-chat .contact-item.is-active .contact-name-row strong { color: var(--navy); }
 .app-shell.has-chat .contact-item::after { content: "›"; }
-.app-shell.has-chat .directory-list-footer { margin-right: 13px; }
 
 /* Workspace / chat canvas */
 .workspace { display: none; grid-column: 2; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: #fff; }
@@ -292,6 +289,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .wave-mini-wrap { max-width: 100%; overflow-x: auto; margin-top: 8px; padding: 5px 7px; border: 1px solid #e5eaf2; border-radius: 8px; background: #fff; }
 .message-row.mine .wave-mini-wrap { border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.08); }
 .wave-mini { display: block; max-width: none; }
+.wave-mini-pending { display: grid; min-height: 46px; place-items: center; color: #8490a3; font: 9px var(--mono); }
+.message-row.mine .wave-mini-pending { color: #d0d3e8; }
 .decode-result { margin-top: 11px; padding: 10px 11px; border: 1px solid #e4e8f0; border-radius: 9px; background: #fff; color: var(--ink); }
 .message-row.mine .decode-result { border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.1); color: #fff; }
 .decode-result-label { margin-bottom: 5px; color: var(--indigo); font: 700 8px var(--mono); letter-spacing: .1em; }
@@ -818,25 +817,6 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 }
 .app-shell.has-chat .contact-item.is-active .contact-name-row strong { color: var(--navy); }
 .app-shell.has-chat .contact-item::after { content: "›"; }
-
-/* Cutout pieces are dedicated spans, not the row's arrow pseudo-element.
-   Their surface color is exactly the chat canvas, so no white hairline can
-   show between the active contact and the conversation panel. */
-.active-cutout {
-  position: absolute;
-  right: -8px;
-  z-index: 3;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--chat-surface);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .22s ease;
-}
-.active-cutout-top { top: -8px; }
-.active-cutout-bottom { bottom: -8px; }
-.app-shell.has-chat .contact-item.is-active .active-cutout { opacity: 1; }
 
 /* The chat canvas is underneath the directory while stage one is active.
    Keeping it mounted lets opacity + translate animate on selection. */
