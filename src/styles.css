@@ -1752,7 +1752,7 @@ html:not([data-theme="dark"]) .app-shell.has-chat { --nav-pill-fill: var(--direc
 .app-shell:not(.has-chat) .directory-header { width: 100%; margin: 0; }
 .app-shell:not(.has-chat) .directory-header h1 { font-size: 24px; letter-spacing: -.03em; }
 .app-shell:not(.has-chat) .directory-heading-dot { width: 10px; height: 10px; }
-.app-shell:not(.has-chat) .directory-count, .app-shell:not(.has-chat) .directory-list-footer, .search-field kbd { display: none; }
+
 .app-shell:not(.has-chat) .directory-add-button { margin-left: auto; }
 .app-shell:not(.has-chat) .directory-content { grid-template-columns: minmax(320px,485px) minmax(0,1fr); justify-content: stretch; max-width: none; gap: 26px; margin: 22px 0 0; }
 .app-shell:not(.has-chat) .directory-list-column { max-width: none; justify-self: stretch; }
@@ -1768,8 +1768,6 @@ html:not([data-theme="dark"]) .app-shell:not(.has-chat) .search-field input { ba
 html:not([data-theme="dark"]) .app-shell:not(.has-chat) .contact-item { background: #fff; border-color: #e6eaf1; }
 .app-shell:not(.has-chat) .contact-avatar { width: 46px; height: 46px; border-radius: 14px; }
 .app-shell:not(.has-chat) .contact-name-row strong { font-size: 15px; }
-.contact-handle { padding: 2px 7px; border-radius: 6px; font: 600 9px/1.4 var(--mono); letter-spacing: .04em; }
-html:not([data-theme="dark"]) .contact-handle { background: #eef1f5; color: #5a6578; }
 .contact-status-line { display: block; margin: 2px 0; color: #8a94a7; font-size: 12px; font-weight: 500; }
 .contact-status-line.online { color: #0e8f9f; }
 .app-shell.has-chat .contact-status-line { display: none; }
