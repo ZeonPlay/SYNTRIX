@@ -17,8 +17,8 @@
       }
     } catch (_) {}
   </script>
-  <link rel="stylesheet" href="./src/styles.css?v=e2ee-hard-delete-v19">
-  <script type="module" src="/src/app.js?v=e2ee-hard-delete-v19"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=e2ee-per-message-v20">
+  <script type="module" src="/src/app.js?v=e2ee-per-message-v20"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -106,7 +106,6 @@
             <div id="contactList" class="contact-list" aria-label="Contact list">
               <div class="list-empty">Kontak akan muncul di sini. Tambahkan kontak untuk memulai.</div>
             </div>
-            <div class="directory-list-footer"><span class="directory-footer-dot"></span> PRIVATE CONTACT DIRECTORY</div>
           </section>
 
           <aside class="directory-welcome" aria-label="Mulai percakapan">
@@ -145,12 +144,8 @@
             <strong id="chatName">Contact</strong>
             <span><i id="chatStatusDot" class="status-dot"></i><span id="chatStatus">Offline</span><span class="status-divider">·</span><span class="conversation-caption">Live conversation</span></span>
           </div>
-          <div class="header-tools">
-            <span class="protocol-chip"><span class="protocol-chip-dot"></span> NRZ-I <b>ENABLED</b></span>
-          </div>
         </header>
 
-        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>End-to-end encrypted channel</strong> Pesan dienkripsi di perangkat, lalu payload ciphertext dibingkai 10-bit dan dikodekan dengan NRZ-I.</span><span class="banner-learn">E2EE · NRZ-I</span></div>
         <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
         <form id="messageForm" class="composer">
           <div class="composer-inner">
@@ -159,7 +154,6 @@
             <span id="messageCounter" class="message-counter">0 / 500</span>
             <button id="sendButton" class="send-button" type="submit" aria-label="Send message"><span>Kirim</span><b aria-hidden="true">↗</b></button>
           </div>
-          <div class="composer-hint"><span><kbd>Enter</kbd> untuk mengirim <i>·</i> Printable ASCII only</span><span>Maks. 500 karakter</span></div>
         </form>
       </section>
 
@@ -236,6 +230,15 @@
       <p class="modal-description">Masukkan passphrase untuk membuka backup private key di perangkat ini. Passphrase tidak dikirim ke server.</p>
       <label class="field"><span>Passphrase E2EE</span><input id="e2eeUnlockPassphrase" type="password" autocomplete="current-password" required minlength="10" maxlength="128" placeholder="Passphrase E2EE kamu"></label>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="e2eeUnlockDialog">Nanti</button><button id="e2eeUnlockSubmit" class="button button-primary" type="submit">Buka private key</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="messageUnlockDialog" class="modal">
+    <form id="messageUnlockForm" class="modal-card">
+      <div class="modal-header"><div><span class="eyebrow">Private message</span><h2>Masukkan kunci</h2></div><button class="icon-button dialog-close" type="button" data-close="messageUnlockDialog" aria-label="Close">×</button></div>
+      <p class="modal-description">Masukkan passphrase E2EE untuk membuka pesan ini saja. Passphrase dan private key diproses di perangkat, tidak dikirim ke server.</p>
+      <label class="field"><span>Passphrase E2EE</span><input id="messageUnlockPassphrase" type="password" autocomplete="off" required minlength="10" maxlength="128" placeholder="Masukkan kunci E2EE kamu"></label>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="messageUnlockDialog">Batal</button><button id="messageUnlockSubmit" class="button button-primary" type="submit">Buka pesan</button></div>
     </form>
   </dialog>
 
