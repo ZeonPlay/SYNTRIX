@@ -1,17 +1,20 @@
 export const FRAME_LENGTH = 10;
 export const MAX_PREVIEW_FRAMES = 100;
 export const MAX_MESSAGE_LENGTH = 500;
+// Stored (encrypted) payloads are longer than the plaintext they carry:
+// "e1." + base64(IV + ciphertext + tag). 500 ASCII characters need 707 characters.
+export const MAX_PAYLOAD_LENGTH = 800;
 
 /**
  * SYNTRIX uses printable 7-bit ASCII. A frame is:
  * start(0) + data(7) + even-parity(1) + stop(1) = 10 bits.
  */
-export function buildFrames(text) {
+export function buildFrames(text, { maxLength = MAX_MESSAGE_LENGTH } = {}) {
   if (typeof text !== 'string' || text.length === 0) {
     throw new Error('Pesan tidak boleh kosong.');
   }
-  if (text.length > MAX_MESSAGE_LENGTH) {
-    throw new Error(`Pesan maksimal ${MAX_MESSAGE_LENGTH} karakter.`);
+  if (text.length > maxLength) {
+    throw new Error(`Pesan maksimal ${maxLength} karakter.`);
   }
   if (!/^[\x20-\x7E]+$/.test(text)) {
     throw new Error('Gunakan karakter ASCII yang dapat dicetak. Emoji dan huruf non-ASCII belum didukung.');
@@ -28,8 +31,8 @@ export function buildFrames(text) {
   });
 }
 
-export function textToBitStream(text) {
-  return buildFrames(text).map((frame) => frame.bits).join('');
+export function textToBitStream(text, options) {
+  return buildFrames(text, options).map((frame) => frame.bits).join('');
 }
 
 export function validateBitStream(bits) {

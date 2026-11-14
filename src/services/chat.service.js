@@ -1,9 +1,9 @@
 import { supabase } from '../core/supabase.js';
-import { textToBitStream } from '../core/encoding.js';
+import { MAX_PAYLOAD_LENGTH, textToBitStream } from '../core/encoding.js';
 
-const PROFILE_FIELDS = 'id, handle, display_name';
-// payload_bits is deliberately NOT selectable; it is only returned by get_message_bits().
-const MESSAGE_FIELDS = 'id, sender_id, receiver_id, frame_count, created_at, read_at';
+const PROFILE_FIELDS = 'id, handle, display_name, public_key';
+// payload_bits only ever holds ciphertext (end-to-end encrypted in the browser).
+const MESSAGE_FIELDS = 'id, sender_id, receiver_id, payload_bits, frame_count, created_at, read_at';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function assertUuid(value) {
@@ -84,8 +84,9 @@ export async function fetchMessageMeta(messageId) {
   return data;
 }
 
-export async function insertMessage(senderId, receiverId, text) {
-  const payloadBits = textToBitStream(text);
+/** `payload` is the encrypted string from encryptMessage(), not the plain text. */
+export async function insertMessage(senderId, receiverId, payload) {
+  const payloadBits = textToBitStream(payload, { maxLength: MAX_PAYLOAD_LENGTH });
   const { data, error } = await supabase
     .from('messages')
     .insert({ sender_id: senderId, receiver_id: receiverId, payload_bits: payloadBits })
@@ -95,14 +96,15 @@ export async function insertMessage(senderId, receiverId, text) {
   return data;
 }
 
-/** Returns the stored bitstream, or null when the key is wrong / locked. */
-export async function fetchMessageBits(messageId, key) {
-  const { data, error } = await supabase.rpc('get_message_bits', {
-    p_message_id: messageId,
-    p_key: key,
-  });
+/** Deletes a message for both participants. Returns false when nothing was deleted. */
+export async function deleteMessage(messageId) {
+  const { data, error } = await supabase
+    .from('messages')
+    .delete()
+    .eq('id', messageId)
+    .select('id');
   if (error) throw error;
-  return typeof data === 'string' && data.length > 0 ? data : null;
+  return (data ?? []).length > 0;
 }
 
 export async function markConversationRead(userId, partnerId) {

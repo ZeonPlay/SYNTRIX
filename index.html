@@ -17,8 +17,8 @@
       }
     } catch (_) {}
   </script>
-  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v18">
-  <script type="module" src="/src/app.js?v=poppins-motion-v12"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=e2ee-v20">
+  <script type="module" src="/src/app.js?v=e2ee-v14"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -38,7 +38,14 @@
         <form id="loginForm" class="login-form">
           <label class="login-field"><span>Email address</span><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
           <label class="login-field"><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required minlength="8"></label>
+          <div class="login-link-row"><button id="forgotLink" class="login-link" type="button">Lupa password?</button></div>
           <button id="loginSubmit" class="login-btn" type="submit">Sign in <span aria-hidden="true">↗</span></button>
+        </form>
+
+        <form id="forgotForm" class="login-form" hidden>
+          <label class="login-field"><span>Email address</span><input id="forgotEmail" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
+          <button id="forgotSubmit" class="login-btn" type="submit">Kirim link reset <span aria-hidden="true">↗</span></button>
+          <div class="login-link-row is-center"><button id="forgotBackBtn" class="login-link" type="button">Kembali ke halaman masuk</button></div>
         </form>
 
         <form id="registerForm" class="login-form" hidden>
@@ -50,6 +57,24 @@
         </form>
 
         <p class="login-footnote">Secured by Supabase Authentication</p>
+      </div>
+    </section>
+  </main>
+
+  <main id="resetView" class="login-page" hidden>
+    <section class="login-main">
+      <div class="login-card">
+        <div class="login-heading">
+          <span class="login-eyebrow">Reset password</span>
+          <h2>Ganti Password Anda</h2>
+          <p>Link dari emailmu valid. Buat password baru di bawah, lalu masuk lagi. Semua sesi lama akan dikeluarkan. Kunci pembuka pesanmu tidak berubah.</p>
+        </div>
+        <form id="resetPasswordForm" class="login-form">
+          <label class="login-field"><span>Password baru</span><input id="resetNewPassword" type="password" autocomplete="new-password" required minlength="8" placeholder="Minimal 8 karakter"></label>
+          <label class="login-field"><span>Ulangi password baru</span><input id="resetConfirmPassword" type="password" autocomplete="new-password" required minlength="8" placeholder="Ketik ulang"></label>
+          <button id="resetPasswordSubmit" class="login-btn" type="submit">Simpan password baru <span aria-hidden="true">↗</span></button>
+          <div class="login-link-row is-center"><button id="resetCancelBtn" class="login-link" type="button">Batal</button></div>
+        </form>
       </div>
     </section>
   </main>
@@ -151,7 +176,7 @@
           </div>
         </header>
 
-        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>Digital signal channel</strong> Pesan disimpan sebagai data ASCII berbingkai 10-bit dan dikodekan dengan NRZ-I.</span><span class="banner-learn">10-BIT FRAMES</span></div>
+        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>Digital signal channel</strong> Pesan dienkripsi end-to-end di browsermu, lalu dibingkai 10-bit dan dikodekan dengan NRZ-I.</span><span class="banner-learn">10-BIT FRAMES</span></div>
         <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
         <form id="messageForm" class="composer">
           <div class="composer-inner">
@@ -183,7 +208,7 @@
             <ul id="deviceList" class="device-list"></ul>
           </div>
           <div class="page-card settings-item"><div><strong>Kunci pembuka pesan</strong><span id="keyStatus">Memeriksa…</span></div><button id="changeKeyBtn" class="button button-secondary" type="button">Atur kunci</button></div>
-          <div class="page-card"><strong>Cara kerjanya</strong><p>Server hanya mengirim isi pesan setelah kunci kamu terbukti benar. Kunci tersimpan sebagai hash bcrypt dan percobaan salah dibatasi. Ini bukan enkripsi end-to-end, jadi jangan gunakan untuk data sangat sensitif.</p></div>
+          <div class="page-card"><strong>Cara kerjanya</strong><p>Pesan dienkripsi di browsermu (ECDH P-256 + AES-256-GCM) sebelum dikirim, jadi server hanya menyimpan data acak. Kunci pribadimu disimpan di server dalam keadaan terenkripsi oleh kunci pembuka, yang tidak pernah meninggalkan browsermu. Kalau kunci pembuka hilang, pesan lama tidak bisa dipulihkan. Mengganti password lewat email tidak mengubah kunci pembuka.</p></div>
         </div>
       </section>
 
@@ -222,21 +247,21 @@
 
   <dialog id="unlockDialog" class="modal">
     <form id="unlockForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">Message locked</span><h2>Unlock this message</h2></div><button class="icon-button dialog-close" type="button" data-close="unlockDialog" aria-label="Close">×</button></div>
-      <p class="modal-description">Enter your personal message key to decode the stored bitstream.</p>
-      <label class="field"><span>Your unlock key</span><input id="unlockKeyInput" type="password" autocomplete="off" placeholder="Enter your key" required minlength="6" maxlength="72"></label>
-      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="unlockDialog">Close</button><button id="unlockSubmit" class="button button-primary" type="submit">Unlock message</button></div>
+      <div class="modal-header"><div><span class="eyebrow">Pesan terkunci</span><h2>Buka pesanmu</h2></div><button class="icon-button dialog-close" type="button" data-close="unlockDialog" aria-label="Close">×</button></div>
+      <p class="modal-description">Masukkan kunci pembukamu untuk membuka kunci pribadi di browser ini. Kunci tidak dikirim ke server.</p>
+      <label class="field"><span>Kunci pembuka</span><input id="unlockKeyInput" type="password" autocomplete="off" placeholder="Masukkan kunci" required minlength="8" maxlength="128"></label>
+      <div class="modal-actions"><button id="forgotKeyBtn" class="button button-quiet" type="button">Lupa kunci?</button><button class="button button-quiet" type="button" data-close="unlockDialog">Nanti</button><button id="unlockSubmit" class="button button-primary" type="submit">Buka pesan</button></div>
     </form>
   </dialog>
 
   <dialog id="keyDialog" class="modal">
     <form id="keyForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">Account security</span><h2 id="keyDialogTitle">Set your unlock key</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
-      <p class="modal-description">The server only releases a message's bitstream after this key is verified. It is not end-to-end encryption. Use a key you can remember.</p>
-      <label id="oldKeyField" class="field" hidden><span>Current unlock key</span><input id="oldUnlockKey" type="password" autocomplete="off" maxlength="72" placeholder="Your current key"></label>
-      <label class="field"><span id="keyLabel">New unlock key</span><input id="newUnlockKey" type="password" autocomplete="off" required minlength="6" maxlength="72" placeholder="At least 6 characters"></label>
-      <label class="field"><span>Confirm key</span><input id="confirmUnlockKey" type="password" autocomplete="off" required minlength="6" maxlength="72" placeholder="Type it again"></label>
-      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Cancel</button><button id="keySubmit" class="button button-primary" type="submit">Save key</button></div>
+      <div class="modal-header"><div><span class="eyebrow">Account security</span><h2 id="keyDialogTitle">Buat kunci pembuka</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
+      <p id="keyDialogDesc" class="modal-description"></p>
+      <label id="oldKeyField" class="field" hidden><span>Kunci pembuka saat ini</span><input id="oldUnlockKey" type="password" autocomplete="off" maxlength="128" placeholder="Kunci saat ini"></label>
+      <label class="field"><span id="keyLabel">Kunci pembuka baru</span><input id="newUnlockKey" type="password" autocomplete="off" required minlength="8" maxlength="128" placeholder="Minimal 8 karakter"></label>
+      <label class="field"><span>Ulangi kunci</span><input id="confirmUnlockKey" type="password" autocomplete="off" required minlength="8" maxlength="128" placeholder="Ketik ulang"></label>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Batal</button><button id="keySubmit" class="button button-primary" type="submit">Simpan kunci</button></div>
     </form>
   </dialog>
 

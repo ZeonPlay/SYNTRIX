@@ -41,28 +41,20 @@ export async function getProfile(userId) {
   return data;
 }
 
-export async function hasUnlockKey() {
-  const { data, error } = await supabase.rpc('has_message_unlock_key');
-  if (error) throw error;
-  return data === true;
-}
-
-export async function setUnlockKey(key) {
-  const { error } = await supabase.rpc('set_message_unlock_key', { p_key: key });
-  if (error) throw error;
-}
-
-export async function changeUnlockKey(oldKey, newKey) {
-  const { data, error } = await supabase.rpc('change_message_unlock_key', {
-    p_old_key: oldKey,
-    p_new_key: newKey,
+/**
+ * Sends a password reset link. The address must be listed under
+ * Authentication -> URL Configuration -> Redirect URLs in Supabase.
+ */
+export async function requestPasswordReset(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/`,
   });
   if (error) throw error;
-  return data === true;
 }
 
-export async function verifyUnlockKey(key) {
-  const { data, error } = await supabase.rpc('verify_message_unlock_key', { p_key: key });
+/** Sets a new password for the session opened by the emailed reset link. */
+export async function updatePassword(newPassword) {
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
-  return data === true;
+  return data;
 }

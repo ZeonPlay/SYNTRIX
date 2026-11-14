@@ -1,6 +1,6 @@
 import { supabase } from '../core/supabase.js';
 
-export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence, onStatus, onDevice }) {
+export function connectRealtime({ userId, onMessage, onMessageUpdate, onMessageDelete, onPresence, onStatus, onDevice }) {
   const channel = supabase
     .channel('syntrix:live', {
       config: {
@@ -14,6 +14,11 @@ export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'messages',
     }, (payload) => onMessageUpdate?.(payload.new))
+    // DELETE events cannot be filtered and only carry the primary key. The app
+    // ignores ids it does not know, so nothing about other users' chats is exposed.
+    .on('postgres_changes', {
+      event: 'DELETE', schema: 'public', table: 'messages',
+    }, (payload) => onMessageDelete?.(payload.old))
     // Supabase cannot filter DELETE events, so devices are never deleted when
     // rejected: they get revoked_at, which arrives here as an UPDATE.
     .on('postgres_changes', {

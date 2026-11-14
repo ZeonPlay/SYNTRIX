@@ -7,18 +7,32 @@ import {
   $, escapeHTML, formatTime, initials, openDialog, closeDialog, setBusy, showToast,
 } from './core/dom.js';
 import {
-  changeUnlockKey, getProfile, hasUnlockKey, setUnlockKey, signIn, signOut, signUp,
+  getProfile, requestPasswordReset, signIn, signOut, signUp, updatePassword,
 } from './services/auth.service.js';
 import {
-  fetchMessageBits, fetchMessageMeta, findProfileByHandle, getProfilesByIds, insertMessage,
+  deleteMessage, fetchMessageMeta, findProfileByHandle, getProfilesByIds, insertMessage,
   listContactIds, listRecentMessages, markConversationRead, saveContact,
 } from './services/chat.service.js';
+import {
+  fetchKeyBundle, replaceWrappedKey, resetKeyBundle, saveKeyBundle,
+} from './services/keys.service.js';
+import {
+  WrongUnlockKeyError, assertUnlockKey, decryptMessage, encryptMessage, generateIdentity,
+  rewrapKeyBundle, unlockPrivateKey,
+} from './core/e2ee.js';
 import { connectRealtime } from './services/realtime.service.js';
 import {
   acknowledgeDevice, fetchDevices, isSessionRevoked, registerDevice, rejectDevice,
 } from './services/device.service.js';
 
+// Read synchronously: Supabase clears the URL hash after it reads the emailed reset link.
+const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+const recoveryLink = hashParams.get('type') === 'recovery';
+const linkError = hashParams.get('error_description');
+
 const state = {
+  recovering: recoveryLink, privateKey: null, keyBundle: null, keyExists: false, keyMode: 'create',
+  failedMessages: new Set(), vanishing: new Set(),
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
   onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(), bitsByMessage: new Map(),
   messageViewModes: new Map(), unlockTarget: null, bootingUserId: null, sending: false, keyReady: false,
@@ -108,6 +122,8 @@ const registerForm = $('#registerForm');
 const contactDialog = $('#contactDialog');
 const unlockDialog = $('#unlockDialog');
 const keyDialog = $('#keyDialog');
+const forgotForm = $('#forgotForm');
+const resetView = $('#resetView');
 const inspectorDialog = $('#inspectorDialog');
 const navRail = $('#navRail');
 const navItems = navRail.querySelector('.nav-items');
@@ -154,16 +170,23 @@ window.requestAnimationFrame(updateNavActivePill);
 
 function setAuthMode(mode) {
   const isRegister = mode === 'register';
-  loginForm.hidden = isRegister;
+  const isForgot = mode === 'forgot';
+  const isLogin = !isRegister && !isForgot;
+  loginForm.hidden = !isLogin;
   registerForm.hidden = !isRegister;
-  $('#showLoginBtn').classList.toggle('is-active', !isRegister);
+  forgotForm.hidden = !isForgot;
+  $('#showLoginBtn').classList.toggle('is-active', isLogin);
   $('#showRegisterBtn').classList.toggle('is-active', isRegister);
-  $('#showLoginBtn').setAttribute('aria-selected', String(!isRegister));
+  $('#showLoginBtn').setAttribute('aria-selected', String(isLogin));
   $('#showRegisterBtn').setAttribute('aria-selected', String(isRegister));
-  $('#authTitle').textContent = isRegister ? 'Create your SYNTRIX identity' : 'Sign in to your space';
+  $('#authTitle').textContent = isRegister
+    ? 'Create your SYNTRIX identity'
+    : isForgot ? 'Reset your password' : 'Sign in to your space';
   $('#authSubtitle').textContent = isRegister
     ? 'Choose a handle your friends can use to find you.'
-    : 'Continue where your conversations left off.';
+    : isForgot
+      ? 'Masukkan email akunmu. Kami kirim link untuk membuat password baru.'
+      : 'Continue where your conversations left off.';
 }
 
 $('#showLoginBtn').addEventListener('click', () => setAuthMode('login'));
@@ -171,6 +194,12 @@ $('#showRegisterBtn').addEventListener('click', () => setAuthMode('register'));
 
 function friendlyError(error, fallback = 'Something went wrong. Please try again.') {
   const message = String(error?.message ?? '');
+  if (error instanceof WrongUnlockKeyError) return error.message;
+  if (/^(Kunci|Jumlah iterasi|Data kunci|Format data|Enkripsi membutuhkan)/.test(message)) return message;
+  if (/keys_exist/i.test(message)) return 'Kunci pembuka sudah dibuat di perangkat lain. Muat ulang halaman.';
+  if (/new password should be different/i.test(message)) return 'Password baru harus berbeda dari password lama.';
+  if (/password.*(at least|too short|weak)/i.test(message)) return 'Password terlalu lemah. Gunakan minimal 8 karakter.';
+  if (/auth session missing|invalid.*(token|jwt)|otp.*expired/i.test(message)) return 'Link reset tidak valid atau sudah kedaluwarsa. Minta link baru lewat "Lupa password?".';
   if (/invalid login credentials/i.test(message)) return 'Email atau password tidak cocok.';
   if (/email not confirmed/i.test(message)) return 'Email belum dikonfirmasi. Periksa kotak masuk email kamu.';
   if (/user already registered/i.test(message)) return 'Email ini sudah terdaftar. Silakan masuk.';
@@ -192,6 +221,7 @@ loginForm.addEventListener('submit', async (event) => {
   const button = $('#loginSubmit');
   setBusy(button, true, 'Signing in...');
   try {
+    state.recovering = false;
     await signIn($('#loginEmail').value.trim(), $('#loginPassword').value);
     showToast('Berhasil masuk. Menyiapkan ruang chat...', 'success');
   } catch (error) {
@@ -233,6 +263,85 @@ registerForm.addEventListener('submit', async (event) => {
     setBusy(button, false);
   }
 });
+
+$('#forgotLink').addEventListener('click', () => {
+  $('#forgotEmail').value = $('#loginEmail').value.trim();
+  setAuthMode('forgot');
+  $('#forgotEmail').focus();
+});
+$('#forgotBackBtn').addEventListener('click', () => setAuthMode('login'));
+
+forgotForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = $('#forgotSubmit');
+  setBusy(button, true, 'Mengirim...');
+  try {
+    await requestPasswordReset($('#forgotEmail').value.trim());
+    // Same message whether or not the address exists, so emails cannot be probed.
+    showToast('Jika email terdaftar, link reset password sudah dikirim. Periksa kotak masuk dan folder spam.', 'success');
+    setAuthMode('login');
+  } catch (error) {
+    showToast(friendlyError(error, 'Gagal mengirim email reset.'), 'error');
+  } finally {
+    setBusy(button, false);
+  }
+});
+
+// The emailed link opens the app with a short-lived recovery session. Show a dedicated
+// "change password" page instead of entering the workspace.
+function showResetView() {
+  authView.hidden = true;
+  appView.hidden = true;
+  resetView.hidden = false;
+  $('#resetNewPassword').focus();
+}
+
+function hideResetView() {
+  resetView.hidden = true;
+  $('#resetPasswordForm').reset();
+  authView.hidden = false;
+  setAuthMode('login');
+}
+
+async function cancelRecovery() {
+  state.recovering = false;
+  hideResetView();
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (error) {
+    console.warn('Recovery sign-out failed:', error.message);
+  }
+  window.history.replaceState({}, '', '/');
+}
+
+$('#resetPasswordForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const password = $('#resetNewPassword').value;
+  if (password.length < 8) {
+    showToast('Password minimal 8 karakter.', 'error');
+    return;
+  }
+  if (password !== $('#resetConfirmPassword').value) {
+    showToast('Konfirmasi password tidak cocok.', 'error');
+    return;
+  }
+  const button = $('#resetPasswordSubmit');
+  setBusy(button, true, 'Menyimpan...');
+  try {
+    await updatePassword(password);
+    state.recovering = false;
+    hideResetView();
+    window.history.replaceState({}, '', '/');
+    showToast('Password berhasil diganti. Silakan masuk dengan password baru.', 'success');
+    // Sign out everywhere so a session opened with the old password cannot stay alive.
+    await signOut();
+  } catch (error) {
+    showToast(friendlyError(error, 'Gagal mengganti password.'), 'error');
+  } finally {
+    setBusy(button, false);
+  }
+});
+$('#resetCancelBtn').addEventListener('click', cancelRecovery);
 
 function setConnection(status) {
   const dot = $('#connectionDot');
@@ -280,6 +389,7 @@ function normalizeContacts(profiles) {
     .filter((profile) => profile && profile.id !== state.user.id && !seen.has(profile.id) && seen.add(profile.id))
     .map((profile) => ({
       id: profile.id, handle: profile.handle, display_name: profile.display_name,
+      public_key: profile.public_key ?? null,
     }));
 }
 
@@ -301,9 +411,9 @@ function renderAccount() {
 function renderKeyStatus() {
   const status = $('#keyStatus');
   if (!status) return;
-  status.textContent = state.keyReady
-    ? 'Aktif. Isi pesan hanya terbuka dengan kuncimu.'
-    : 'Belum diatur. Buat kunci agar pesan bisa dibuka.';
+  if (!state.keyExists) status.textContent = 'Belum dibuat. Buat kunci agar pesan bisa dikirim dan dibuka.';
+  else if (state.keyReady) status.textContent = 'Aktif dan terbuka. Pesanmu dienkripsi end-to-end.';
+  else status.textContent = 'Terkunci. Masukkan kunci untuk membuka pesan.';
 }
 
 function contactPreview(contactId) {
@@ -311,7 +421,8 @@ function contactPreview(contactId) {
   if (!message) return 'Start a conversation';
   const decoded = state.decodedMessages.get(message.id);
   if (decoded) return decoded;
-  return `🔒 Encoded transmission · ${message.frame_count} frames`;
+  if (state.failedMessages.has(message.id)) return '⚠ Pesan tidak dapat dibuka';
+  return `🔒 Pesan terenkripsi · ${message.frame_count} frames`;
 }
 
 function renderContacts() {
@@ -437,7 +548,7 @@ function renderMessages({ scrollToBottom = false } = {}) {
   if (messages.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-messages';
-    empty.innerHTML = '<strong>No transmissions yet</strong>Write the first message below. It will be framed and encoded before it is stored.';
+    empty.innerHTML = '<strong>No transmissions yet</strong>Write the first message below. It is encrypted in your browser, then framed and encoded before it is stored.';
     container.append(empty);
     return;
   }
@@ -447,17 +558,20 @@ function renderMessages({ scrollToBottom = false } = {}) {
     const isUnlocked = state.decodedMessages.has(message.id);
     const decoded = state.decodedMessages.get(message.id);
     const frameCount = message.frame_count;
-    const bits = state.bitsByMessage.get(message.id);
+    const failed = state.failedMessages.has(message.id);
     const displayMode = isUnlocked ? (state.messageViewModes.get(message.id) || 'decoded') : 'signal';
-    const showSignal = !isUnlocked || displayMode === 'signal';
+    const showSignal = !failed && (!isUnlocked || displayMode === 'signal');
     const row = document.createElement('article');
     row.className = `message-row${mine ? ' mine' : ''}`;
+    row.dataset.messageId = message.id;
     const timestamp = formatTime(message.created_at);
-    const action = isUnlocked
-      ? `
-        <button class="inspect-button" type="button" data-action="toggle-view" data-message-id="${message.id}">${showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I'}</button>
-      `
-      : `<button class="inspect-button" type="button" data-action="unlock" data-message-id="${message.id}">Masukkan kunci</button>`;
+    let action = '';
+    if (isUnlocked) {
+      action = `<button class="inspect-button" type="button" data-action="toggle-view" data-message-id="${message.id}">${showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I'}</button>`;
+    } else if (!failed) {
+      action = `<button class="inspect-button" type="button" data-action="unlock" data-message-id="${message.id}">${state.keyExists ? 'Masukkan kunci' : 'Buat kunci'}</button>`;
+    }
+    const deleteButton = `<button class="inspect-button message-delete" type="button" data-action="delete" data-message-id="${message.id}" aria-label="Hapus pesan">Hapus</button>`;
 
     row.innerHTML = `
       <span class="message-author">${mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')}</span>
@@ -465,16 +579,22 @@ function renderMessages({ scrollToBottom = false } = {}) {
         ${showSignal
           ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I waveform"></canvas></div>'
           : '<div class="decode-result"><span class="decoded-text"></span></div>'}
-        <div class="message-actions">${action}</div>
+        <div class="message-actions">${action}${deleteButton}</div>
       </div>
       <div class="message-bottom"><span>${escapeHTML(timestamp)}</span>${mine && message.read_at ? '<span class="message-read">· Read</span>' : ''}</div>
     `;
 
     if (showSignal) {
-      const signalBits = isUnlocked && bits ? bits : createLockedSignalPreview(frameCount);
-      renderMiniSignal(row.querySelector('canvas'), signalBits);
+      // The stored bits are ciphertext, so showing the real waveform leaks nothing.
+      renderMiniSignal(row.querySelector('canvas'), message.payload_bits || createLockedSignalPreview(frameCount));
     } else {
-      row.querySelector('.decoded-text').textContent = decoded;
+      const textNode = row.querySelector('.decoded-text');
+      if (failed) {
+        textNode.textContent = 'Pesan tidak dapat dibuka dengan kuncimu.';
+        textNode.classList.add('is-failed');
+      } else {
+        textNode.textContent = decoded;
+      }
     }
     container.append(row);
   }
@@ -560,7 +680,7 @@ function upsertMessage(message) {
 
 async function handleIncomingMessage(rawMessage) {
   if (rawMessage.sender_id !== state.user.id && rawMessage.receiver_id !== state.user.id) return;
-  // Realtime does not carry payload_bits or frame_count, so load the safe metadata row.
+  // Realtime does not carry payload_bits or frame_count, so load the full (ciphertext) row.
   let message = rawMessage;
   if (!message.frame_count) {
     try {
@@ -574,6 +694,7 @@ async function handleIncomingMessage(rawMessage) {
   const inserted = upsertMessage(message);
   const otherId = partnerId(message);
   await ensureContactForUser(otherId);
+  await decryptMessageRow(state.messages.find((item) => item.id === message.id) ?? message);
 
   if (message.receiver_id === state.user.id && state.activeContactId === otherId) {
     try {
@@ -599,6 +720,118 @@ function handleMessageUpdate(message) {
   if (state.activeContactId) renderMessages();
 }
 
+// ---- End-to-end encryption helpers -------------------------------------------
+
+function bundleOf(identity) {
+  return {
+    publicKey: identity.publicKey,
+    wrappedPrivateKey: identity.wrappedPrivateKey,
+    kdfSalt: identity.kdfSalt,
+    kdfIterations: identity.kdfIterations,
+  };
+}
+
+// A contact may have reset their keys since this browser loaded their profile.
+async function refreshContactKey(contactId) {
+  const contact = state.contacts.find((item) => item.id === contactId);
+  if (!contact) return null;
+  try {
+    const [profile] = await getProfilesByIds([contactId]);
+    if (profile?.public_key) contact.public_key = profile.public_key;
+  } catch (error) {
+    console.warn('Unable to refresh contact key:', error.message);
+  }
+  return contact;
+}
+
+async function decryptMessageRow(message, canRetry = true) {
+  if (!state.privateKey || !message) return;
+  const peerId = partnerId(message);
+  try {
+    const peer = state.contacts.find((item) => item.id === peerId);
+    if (!peer?.public_key) throw new Error('Kunci publik kontak tidak tersedia.');
+    const payload = decodeBitStream(message.payload_bits);
+    const text = await decryptMessage({
+      payload,
+      privateKey: state.privateKey,
+      peerPublicKey: peer.public_key,
+      senderId: message.sender_id,
+      receiverId: message.receiver_id,
+    });
+    state.decodedMessages.set(message.id, text);
+    state.bitsByMessage.set(message.id, message.payload_bits);
+    state.failedMessages.delete(message.id);
+  } catch (error) {
+    if (canRetry) {
+      await refreshContactKey(peerId);
+      await decryptMessageRow(message, false);
+      return;
+    }
+    state.failedMessages.add(message.id);
+    console.warn('Unable to decrypt message:', error.message);
+  }
+}
+
+async function decryptAll() {
+  await Promise.all(state.messages.map((message) => decryptMessageRow(message, false)));
+}
+
+// ---- Deleting messages --------------------------------------------------------
+
+function forgetMessage(id) {
+  state.messages = state.messages.filter((message) => message.id !== id);
+  state.decodedMessages.delete(id);
+  state.bitsByMessage.delete(id);
+  state.messageViewModes.delete(id);
+  state.failedMessages.delete(id);
+}
+
+// The bubble shrinks into its own corner while the row collapses, so the messages
+// below slide up into the gap. No fade: the message is simply sucked away.
+function animateRemoveMessage(id) {
+  const container = $('#messages');
+  const row = [...container.children].find((element) => element.dataset?.messageId === id);
+  if (!row || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+  const gap = Number.parseFloat(window.getComputedStyle(container).rowGap) || 0;
+  row.style.height = `${row.offsetHeight}px`;
+  row.style.setProperty('--collapse-gap', `-${gap}px`);
+  void row.offsetHeight;
+  row.classList.add('is-deleting');
+  return new Promise((resolve) => window.setTimeout(resolve, 380));
+}
+
+async function vanishMessage(id) {
+  if (state.vanishing.has(id)) return;
+  state.vanishing.add(id);
+  try {
+    await animateRemoveMessage(id);
+  } finally {
+    forgetMessage(id);
+    state.vanishing.delete(id);
+    renderMessages();
+    renderContacts();
+  }
+}
+
+// Realtime DELETE events only carry the id. Unknown ids belong to other people's chats.
+function handleMessageDelete(row) {
+  const id = row?.id;
+  if (!id || !state.messages.some((message) => message.id === id)) return;
+  vanishMessage(id);
+}
+
+async function removeMessage(message) {
+  if (state.vanishing.has(message.id)) return;
+  if (!window.confirm('Hapus pesan ini untuk kamu dan lawan bicaramu? Pesan hilang permanen dan tidak bisa dikembalikan.')) return;
+  try {
+    const removed = await deleteMessage(message.id);
+    if (!removed) showToast('Pesan itu sudah tidak ada.', 'info');
+    await vanishMessage(message.id);
+  } catch (error) {
+    showToast(friendlyError(error, 'Gagal menghapus pesan.'), 'error');
+  }
+}
+
 async function loadWorkspace() {
   const userId = state.user.id;
   const [profile, contactIds, messages] = await Promise.all([
@@ -609,6 +842,9 @@ async function loadWorkspace() {
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
   state.messageViewModes.clear();
+  state.failedMessages.clear();
+  state.privateKey = null;
+  state.keyReady = false;
 
   const partnerIds = new Set(contactIds);
   for (const message of messages) partnerIds.add(partnerId(message, userId));
@@ -622,21 +858,20 @@ async function loadWorkspace() {
   renderAccount();
   renderContacts();
 
-  const keyExists = await hasUnlockKey();
-  state.keyReady = keyExists;
+  const keyBundle = await fetchKeyBundle();
+  state.keyBundle = keyBundle;
+  state.keyExists = Boolean(keyBundle);
   renderKeyStatus();
-  if (!keyExists) {
-    $('#oldKeyField').hidden = true;
-    $('#keyDialogTitle').textContent = 'Create your unlock key';
-    $('#keyLabel').textContent = 'New unlock key';
-    openDialog(keyDialog);
-  }
+  renderMessages();
+  // First use: create the key. Otherwise unlock the stored one for this session.
+  openSessionUnlock();
 
   state.disconnectRealtime?.();
   state.disconnectRealtime = connectRealtime({
     userId,
     onMessage: handleIncomingMessage,
     onMessageUpdate: handleMessageUpdate,
+    onMessageDelete: handleMessageDelete,
     onPresence: (entries) => {
       state.onlineUsers = new Set(entries.map((entry) => entry.userId).filter(Boolean));
       renderContacts();
@@ -938,6 +1173,10 @@ async function leaveApp() {
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
   state.messageViewModes.clear();
+  state.failedMessages.clear();
+  state.privateKey = null;
+  state.keyBundle = null;
+  state.keyExists = false;
   state.keyReady = false;
   appView.hidden = true;
   authView.hidden = false;
@@ -953,6 +1192,14 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (isChatRoute()) window.history.replaceState({}, '', '/');
     return;
   }
+
+  // The emailed reset link creates a session, but it may only be used to set a new password.
+  if (event === 'PASSWORD_RECOVERY') {
+    state.recovering = true;
+    showResetView();
+    return;
+  }
+  if (state.recovering) return;
 
   if (!session?.user) return;
 
@@ -976,6 +1223,12 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 
 async function initialize() {
+  // Show the page right away; do not wait for Supabase to report the recovery session.
+  if (recoveryLink) showResetView();
+  if (linkError) {
+    showToast('Link reset password tidak valid atau sudah kedaluwarsa. Minta link baru lewat "Lupa password?".', 'error');
+    window.history.replaceState({}, '', '/');
+  }
   try {
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
@@ -1077,8 +1330,28 @@ $('#messageForm').addEventListener('submit', async (event) => {
   const button = $('#sendButton');
   button.disabled = true;
   try {
-    const message = await insertMessage(state.user.id, state.activeContactId, text);
+    if (!state.privateKey) {
+      showToast('Buka kunci pembuka dulu agar pesan bisa dienkripsi.', 'error');
+      openSessionUnlock();
+      return;
+    }
+    // Always use the contact's newest public key; they may have reset theirs.
+    const contact = await refreshContactKey(state.activeContactId);
+    if (!contact?.public_key) {
+      showToast(`${contact?.display_name ?? 'Kontak ini'} belum mengaktifkan enkripsi. Minta dia masuk dan membuat kunci pembuka dulu.`, 'error');
+      return;
+    }
+    const payload = await encryptMessage({
+      text,
+      privateKey: state.privateKey,
+      peerPublicKey: contact.public_key,
+      senderId: state.user.id,
+      receiverId: contact.id,
+    });
+    const message = await insertMessage(state.user.id, contact.id, payload);
     upsertMessage(message);
+    state.decodedMessages.set(message.id, text);
+    state.bitsByMessage.set(message.id, message.payload_bits);
     $('#messageInput').value = '';
     $('#messageCounter').textContent = `0 / ${MAX_MESSAGE_LENGTH}`;
     renderMessages();
@@ -1092,37 +1365,73 @@ $('#messageForm').addEventListener('submit', async (event) => {
   }
 });
 
-function openUnlockDialog(message) {
-  if (!state.keyReady) {
-    openDialog(keyDialog);
+// ---- Unlock key dialogs -------------------------------------------------------
+
+const KEY_MODES = {
+  create: {
+    title: 'Buat kunci pembuka',
+    desc: 'Kunci ini mengunci pesanmu dengan enkripsi end-to-end. Server tidak pernah menerimanya, jadi kalau kamu lupa, pesan lama tidak bisa dipulihkan. Pakai frasa yang panjang tapi mudah kamu ingat.',
+    old: false,
+    submit: 'Simpan kunci',
+  },
+  change: {
+    title: 'Ganti kunci pembuka',
+    desc: 'Pesanmu tetap bisa dibuka. Yang diganti hanya kunci yang melindungi kunci pribadimu.',
+    old: true,
+    submit: 'Ganti kunci',
+  },
+  reset: {
+    title: 'Atur ulang kunci',
+    desc: 'Karena kunci lama tidak diketahui, pasangan kunci baru dibuat. SEMUA pesanmu (terkirim dan diterima) dihapus permanen dan tidak bisa dipulihkan.',
+    old: false,
+    submit: 'Hapus pesan & atur ulang',
+  },
+};
+
+function openKeyDialog(mode) {
+  const config = KEY_MODES[mode];
+  state.keyMode = mode;
+  $('#keyForm').reset();
+  $('#keyDialogTitle').textContent = config.title;
+  $('#keyDialogDesc').textContent = config.desc;
+  $('#oldKeyField').hidden = !config.old;
+  $('#oldUnlockKey').required = config.old;
+  $('#keySubmit').textContent = config.submit;
+  keyDialog.classList.toggle('is-danger', mode === 'reset');
+  openDialog(keyDialog);
+}
+
+function openSessionUnlock() {
+  if (!state.keyExists) {
+    openKeyDialog('create');
     return;
   }
-  state.unlockTarget = message;
   $('#unlockForm').reset();
-  $('#unlockSubmit').hidden = false;
   openDialog(unlockDialog);
   $('#unlockKeyInput').focus();
 }
 
+async function adoptKeyBundle(bundle, privateKey) {
+  state.keyBundle = bundle;
+  state.keyExists = true;
+  state.privateKey = privateKey;
+  state.keyReady = true;
+  state.failedMessages.clear();
+  await decryptAll();
+  renderKeyStatus();
+  renderMessages();
+  renderContacts();
+}
+
 $('#unlockForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (!state.unlockTarget) return;
   const button = $('#unlockSubmit');
-  setBusy(button, true, 'Checking key...');
+  setBusy(button, true, 'Membuka...');
   try {
-    const bits = await fetchMessageBits(state.unlockTarget.id, $('#unlockKeyInput').value);
-    if (!bits) {
-      showToast('Kunci salah atau sedang dikunci sementara karena terlalu banyak percobaan.', 'error');
-      return;
-    }
-    const messageId = state.unlockTarget.id;
-    const messageText = decodeBitStream(bits);
-    state.bitsByMessage.set(messageId, bits);
-    state.decodedMessages.set(messageId, messageText);
-    state.messageViewModes.set(messageId, 'decoded');
+    const privateKey = await unlockPrivateKey(state.keyBundle, $('#unlockKeyInput').value);
     closeDialog(unlockDialog);
     $('#unlockKeyInput').value = '';
-    renderMessages();
+    await adoptKeyBundle(state.keyBundle, privateKey);
     showToast('Pesan berhasil dibuka.', 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal membuka pesan.'), 'error');
@@ -1131,41 +1440,59 @@ $('#unlockForm').addEventListener('submit', async (event) => {
   }
 });
 
+$('#forgotKeyBtn').addEventListener('click', () => {
+  closeDialog(unlockDialog);
+  openKeyDialog('reset');
+});
+
 $('#keyForm').addEventListener('submit', async (event) => {
   event.preventDefault();
+  const mode = state.keyMode;
   const key = $('#newUnlockKey').value;
-  if (state.keyReady && !$('#oldUnlockKey').value) {
-    showToast('Masukkan kunci lama terlebih dahulu.', 'error');
-    return;
-  }
-  const confirmation = $('#confirmUnlockKey').value;
-  if (key !== confirmation) {
+  if (key !== $('#confirmUnlockKey').value) {
     showToast('Konfirmasi kunci tidak cocok.', 'error');
     return;
   }
-  if (key.length < 6 || new TextEncoder().encode(key).length > 72) {
-    showToast('Kunci minimal 6 karakter dan maksimal 72 byte.', 'error');
+  try {
+    assertUnlockKey(key);
+  } catch (error) {
+    showToast(error.message, 'error');
     return;
   }
+  if (mode === 'reset'
+    && !window.confirm('Semua pesan yang kamu kirim dan terima akan dihapus permanen, juga di sisi lawan bicara. Lanjutkan?')) return;
 
   const button = $('#keySubmit');
-  setBusy(button, true, 'Saving key...');
+  setBusy(button, true, 'Menyimpan...');
   try {
-    if (state.keyReady) {
-      const changed = await changeUnlockKey($('#oldUnlockKey').value, key);
-      if (!changed) {
-        showToast('Kunci lama salah atau sedang dikunci sementara.', 'error');
+    if (mode === 'create') {
+      const identity = await generateIdentity(key);
+      await saveKeyBundle(identity);
+      await adoptKeyBundle(bundleOf(identity), identity.privateKey);
+    } else if (mode === 'change') {
+      const current = await fetchKeyBundle();
+      if (!current) throw new Error('Kunci belum dibuat.');
+      const next = await rewrapKeyBundle(current, $('#oldUnlockKey').value, key);
+      const saved = await replaceWrappedKey(current.wrappedPrivateKey, next);
+      if (!saved) {
+        state.keyBundle = await fetchKeyBundle();
+        showToast('Kunci berubah dari perangkat lain. Coba lagi.', 'error');
         return;
       }
+      const bundle = { ...current, ...next };
+      await adoptKeyBundle(bundle, await unlockPrivateKey(bundle, key));
     } else {
-      await setUnlockKey(key);
+      const identity = await generateIdentity(key);
+      await resetKeyBundle(identity);
+      state.messages = [];
+      state.decodedMessages.clear();
+      state.bitsByMessage.clear();
+      state.messageViewModes.clear();
+      await adoptKeyBundle(bundleOf(identity), identity.privateKey);
     }
-    state.keyReady = true;
-    renderKeyStatus();
-    $('#oldKeyField').hidden = true;
     $('#keyForm').reset();
     closeDialog(keyDialog);
-    showToast('Kunci pembuka berhasil disimpan.', 'success');
+    showToast(mode === 'reset' ? 'Kunci baru dibuat. Pesan lama dihapus.' : 'Kunci pembuka berhasil disimpan.', 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal menyimpan kunci.'), 'error');
   } finally {
@@ -1174,11 +1501,7 @@ $('#keyForm').addEventListener('submit', async (event) => {
 });
 
 $('#changeKeyBtn').addEventListener('click', () => {
-  $('#keyForm').reset();
-  $('#oldKeyField').hidden = false;
-  $('#keyDialogTitle').textContent = 'Change your unlock key';
-  $('#keyLabel').textContent = 'New unlock key';
-  openDialog(keyDialog);
+  openKeyDialog(state.keyExists ? 'change' : 'create');
 });
 $('#logoutBtn').addEventListener('click', async () => {
   const button = $('#logoutBtn');
@@ -1359,8 +1682,12 @@ $('#messages').addEventListener('click', (event) => {
   if (!button) return;
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
   if (!message) return;
+  if (button.dataset.action === 'delete') {
+    removeMessage(message);
+    return;
+  }
   if (button.dataset.action === 'unlock') {
-    openUnlockDialog(message);
+    openSessionUnlock();
     return;
   }
   if (button.dataset.action === 'toggle-view') {
