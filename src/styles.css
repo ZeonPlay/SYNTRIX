@@ -1882,3 +1882,68 @@ html:not([data-theme="dark"]) .button-danger { border-color: #d85d70; }
 /* ---- Dark mode: when the rail shrinks for a chat, the active tab keeps the same
    colour as the contact panel next to it (as in light mode) instead of turning lighter. ---- */
 html[data-theme="dark"] .app-shell.has-chat { --nav-pill-fill: var(--directory-bg); }
+
+
+/* SYNTRIX E2EE + Telegram-style permanent message removal */
+.message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+}
+.message-delete-button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(216,93,112,.25);
+  border-radius: 8px;
+  background: transparent;
+  color: #bf5368;
+  font-size: 9px;
+  font-weight: 650;
+  cursor: pointer;
+  opacity: .78;
+  transition: border-color .18s, background .18s, color .18s, transform .18s;
+}
+.message-delete-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(216,93,112,.58);
+  background: rgba(216,93,112,.1);
+  color: #a9344d;
+}
+.message-delete-button:disabled { cursor: wait; opacity: .45; }
+.message-row.mine .message-delete-button {
+  border-color: rgba(255,190,200,.28);
+  color: #ffd0d7;
+}
+.message-row.mine .message-delete-button:hover:not(:disabled) {
+  border-color: rgba(255,190,200,.62);
+  background: rgba(255,190,200,.12);
+  color: #fff;
+}
+@media (hover: hover) and (pointer: fine) {
+  .message-delete-button { opacity: 0; }
+  .message-row:hover .message-delete-button,
+  .message-row:focus-within .message-delete-button { opacity: 1; }
+}
+@media (hover: none), (max-width: 700px) {
+  .message-delete-button { opacity: 1; }
+}
+html[data-theme="dark"] .message-delete-button {
+  border-color: rgba(243,133,151,.32);
+  color: #ff9eae;
+}
+html[data-theme="dark"] .message-delete-button:hover:not(:disabled) {
+  border-color: rgba(243,133,151,.6);
+  background: rgba(243,133,151,.13);
+  color: #ffd5dc;
+}
+html[data-theme="dark"] .message-row.mine .message-delete-button {
+  border-color: rgba(255,210,218,.3);
+  color: #ffd0d8;
+}
+html[data-theme="dark"] .message-row.mine .message-delete-button:hover:not(:disabled) {
+  background: rgba(255,210,218,.14);
+  color: #fff;
+}
