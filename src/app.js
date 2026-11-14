@@ -311,7 +311,7 @@ function contactPreview(contactId) {
   if (!message) return 'Start a conversation';
   const decoded = state.decodedMessages.get(message.id);
   if (decoded) return decoded;
-  return `🔒 Encoded transmission · ${message.frame_count} frames`;
+  return '🔒 Pesan terkunci';
 }
 
 function renderContacts() {
@@ -357,13 +357,10 @@ function renderContacts() {
       <span class="contact-detail">
         <span class="contact-name-row">
           <strong>${escapeHTML(contact.display_name)}</strong>
-          <span class="contact-handle">@${escapeHTML(contact.handle)}</span>
         </span>
         <span class="contact-status-line ${isOnline ? 'online' : ''}">${isOnline ? 'Online' : 'Offline'}</span>
         <span class="contact-preview">${escapeHTML(contactPreview(contact.id))}</span>
       </span>
-      <span class="active-cutout active-cutout-top" aria-hidden="true"></span>
-      <span class="active-cutout active-cutout-bottom" aria-hidden="true"></span>
       ${lastTime ? `<time class="contact-time">${escapeHTML(lastTime)}</time>` : ''}
       ${unread ? `<span class="unread-count">${unread > 99 ? '99+' : unread}</span>` : ''}
     `;
@@ -455,7 +452,7 @@ function renderMessages({ scrollToBottom = false } = {}) {
     const timestamp = formatTime(message.created_at);
     const action = isUnlocked
       ? `
-        <button class="inspect-button" type="button" data-action="toggle-view" data-message-id="${message.id}">${showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I'}</button>
+        <button class="inspect-button" type="button" data-action="toggle-view" data-message-id="${message.id}">${showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal'}</button>
       `
       : `<button class="inspect-button" type="button" data-action="unlock" data-message-id="${message.id}">Masukkan kunci</button>`;
 

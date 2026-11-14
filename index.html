@@ -17,8 +17,8 @@
       }
     } catch (_) {}
   </script>
-  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v18">
-  <script type="module" src="/src/app.js?v=poppins-motion-v12"></script>
+  <link rel="stylesheet" href="./src/styles.css?v=poppins-motion-v19">
+  <script type="module" src="/src/app.js?v=poppins-motion-v13"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -106,7 +106,6 @@
             <div id="contactList" class="contact-list" aria-label="Contact list">
               <div class="list-empty">Kontak akan muncul di sini. Tambahkan kontak untuk memulai.</div>
             </div>
-            <div class="directory-list-footer"><span class="directory-footer-dot"></span> PRIVATE CONTACT DIRECTORY</div>
           </section>
 
           <aside class="directory-welcome" aria-label="Mulai percakapan">
@@ -146,12 +145,8 @@
             <strong id="chatName">Contact</strong>
             <span><i id="chatStatusDot" class="status-dot"></i><span id="chatStatus">Offline</span><span class="status-divider">·</span><span class="conversation-caption">Live conversation</span></span>
           </div>
-          <div class="header-tools">
-            <span class="protocol-chip"><span class="protocol-chip-dot"></span> NRZ-I <b>ENABLED</b></span>
-          </div>
         </header>
 
-        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>Digital signal channel</strong> Pesan disimpan sebagai data ASCII berbingkai 10-bit dan dikodekan dengan NRZ-I.</span><span class="banner-learn">10-BIT FRAMES</span></div>
         <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
         <form id="messageForm" class="composer">
           <div class="composer-inner">
@@ -160,7 +155,6 @@
             <span id="messageCounter" class="message-counter">0 / 500</span>
             <button id="sendButton" class="send-button" type="submit" aria-label="Send message"><span>Kirim</span><b aria-hidden="true">↗</b></button>
           </div>
-          <div class="composer-hint"><span><kbd>Enter</kbd> untuk mengirim <i>·</i> Printable ASCII only</span><span>Maks. 500 karakter</span></div>
         </form>
       </section>
 

@@ -240,9 +240,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .app-shell.has-chat .contact-item { min-height: 67px; padding: 9px 10px; border-color: transparent; border-right: 0; border-radius: 13px 0 0 13px; background: transparent; box-shadow: none; }
 .app-shell.has-chat .contact-item:hover { transform: translateX(2px); border-color: transparent; background: #eef1fa; box-shadow: none; }
 .app-shell.has-chat .contact-item.is-active { position: relative; z-index: 1; border-color: #e4e7f5; border-right: 0; border-radius: 16px 0 0 16px; background: #fff; box-shadow: 0 5px 16px rgba(29,38,79,.045); }
-.app-shell.has-chat .contact-item.is-active::before, .app-shell.has-chat .contact-item.is-active::after { position: absolute; right: 0; width: 16px; height: 16px; border-radius: 50%; background: transparent; content: ""; }
-.app-shell.has-chat .contact-item.is-active::before { top: -16px; box-shadow: 8px 8px 0 0 #fff; }
-.app-shell.has-chat .contact-item.is-active::after { right: 0; bottom: -16px; box-shadow: 8px -8px 0 0 #fff; }
 .app-shell.has-chat .contact-item.is-active .contact-name-row strong { color: var(--navy); }
 .app-shell.has-chat .contact-item::after { content: "›"; }
 .app-shell.has-chat .directory-list-footer { margin-right: 13px; }
@@ -795,8 +792,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
   margin-right: 0;
   padding: 9px 10px;
   border-color: transparent;
-  border-right: 0;
-  border-radius: 13px 0 0 13px;
+  border-radius: 14px;
   background: transparent;
   box-shadow: none;
 }
@@ -809,34 +805,13 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 .app-shell.has-chat .contact-item.is-active {
   position: relative;
   z-index: 1;
-  margin-right: -16px;
   border-color: #d6dce7;
-  border-right: 0;
-  border-radius: 16px 0 0 16px;
-  background: var(--chat-surface);
+  border-radius: 14px;
+  background: #fff;
   box-shadow: 0 5px 16px rgba(29,38,79,.045);
 }
 .app-shell.has-chat .contact-item.is-active .contact-name-row strong { color: var(--navy); }
 .app-shell.has-chat .contact-item::after { content: "›"; }
-
-/* Cutout pieces are dedicated spans, not the row's arrow pseudo-element.
-   Their surface color is exactly the chat canvas, so no white hairline can
-   show between the active contact and the conversation panel. */
-.active-cutout {
-  position: absolute;
-  right: -8px;
-  z-index: 3;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--chat-surface);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .22s ease;
-}
-.active-cutout-top { top: -8px; }
-.active-cutout-bottom { bottom: -8px; }
-.app-shell.has-chat .contact-item.is-active .active-cutout { opacity: 1; }
 
 /* The chat canvas is underneath the directory while stage one is active.
    Keeping it mounted lets opacity + translate animate on selection. */
@@ -973,7 +948,6 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
   .app-shell.has-chat .directory-list-heading { max-height: 52px; opacity: 1; }
   .app-shell.has-chat .contact-list { padding-right: 0; }
   .app-shell.has-chat .contact-item.is-active { margin-right: 0; border-radius: 14px; }
-  .active-cutout { display: none; }
 }
 
 /* Brand lockup: keep the mark anchored while the wordmark folds away.
@@ -1395,13 +1369,6 @@ html[data-theme="dark"] .app-shell.has-chat .contact-item.is-active .contact-nam
 html[data-theme="dark"] .app-shell.has-chat .contact-item:hover {
   background: #26364a;
 }
-html[data-theme="dark"] .app-shell.has-chat .contact-item.is-active::before {
-  box-shadow: 8px 8px 0 0 var(--chat-surface);
-}
-html[data-theme="dark"] .app-shell.has-chat .contact-item.is-active::after {
-  box-shadow: 8px -8px 0 0 var(--chat-surface);
-}
-html[data-theme="dark"] .active-cutout { background: var(--chat-surface); }
 
 /* Conversation surfaces */
 html[data-theme="dark"] .workspace,
