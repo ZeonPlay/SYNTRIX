@@ -1,6 +1,6 @@
 import { supabase } from '../core/supabase.js';
 
-export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence, onStatus, onDevice }) {
+export function connectRealtime({ userId, onMessage, onMessageUpdate, onMessageDelete, onPresence, onStatus, onDevice }) {
   const channel = supabase
     .channel('syntrix:live', {
       config: {
@@ -14,6 +14,14 @@ export function connectRealtime({ userId, onMessage, onMessageUpdate, onPresence
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'messages',
     }, (payload) => onMessageUpdate?.(payload.new))
+    .on('postgres_changes', {
+      event: 'DELETE', schema: 'public', table: 'messages',
+      filter: 'sender_id=eq.' + userId,
+    }, (payload) => onMessageDelete?.(payload.old?.id))
+    .on('postgres_changes', {
+      event: 'DELETE', schema: 'public', table: 'messages',
+      filter: 'receiver_id=eq.' + userId,
+    }, (payload) => onMessageDelete?.(payload.old?.id))
     // Supabase cannot filter DELETE events, so devices are never deleted when
     // rejected: they get revoked_at, which arrives here as an UPDATE.
     .on('postgres_changes', {
