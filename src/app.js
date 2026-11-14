@@ -1051,18 +1051,29 @@ function showDeviceApprovalGate(device = null) {
   authView.hidden = true;
   appView.hidden = true;
   deviceGateView.hidden = false;
+
+  const title = $('#deviceGateTitle');
   const message = $('#deviceGateMessage');
+  const note = $('#deviceGateNote');
+  const recovery = $('#deviceGateRecovery');
   const status = $('#deviceGateStatus');
-  if (device?.status === 'pending') {
+  const isPending = device?.status === 'pending';
+
+  // Do not label a trusted browser as unapproved while the server is still
+  // checking its session. The confirmation instructions appear only after
+  // the database explicitly reports this session as pending.
+  title.textContent = isPending ? 'Konfirmasi perangkat dulu' : 'Memeriksa perangkat…';
+  note.hidden = !isPending;
+  recovery.hidden = !isPending;
+
+  if (isPending) {
     message.textContent = 'Login berhasil, tetapi perangkat ini belum disetujui. Data profil, kontak, pesan, dan private key tetap terkunci.';
     status.textContent = 'Status: menunggu persetujuan dari perangkat yang sudah dikenal.';
-  } else if (device?.status === 'trusted') {
-    message.textContent = 'Perangkat disetujui. Menyiapkan ruang chat…';
-    status.textContent = 'Status: dikenal.';
-  } else {
-    message.textContent = 'SYNTRIX sedang memeriksa identitas perangkat ini.';
-    status.textContent = 'Memeriksa status perangkat…';
+    return;
   }
+
+  message.textContent = 'SYNTRIX sedang memeriksa identitas perangkat ini.';
+  status.textContent = 'Memeriksa status perangkat…';
 }
 
 async function openApprovedWorkspace() {
