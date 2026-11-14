@@ -9,7 +9,8 @@
 - One-to-one real-time messaging and online presence.
 - End-to-end encrypted messages: encryption and decryption happen in the browser.
 - ECDH P-256 identity keys; the private key is wrapped locally with AES-GCM using a PBKDF2-derived key.
-- Encrypted private-key backup stored in \`private.user_security\`; the plaintext passphrase and private key are never uploaded.
+- Encrypted private-key backup stored in the protected \`private.user_keys\` table. The plaintext passphrase and private key are never uploaded.
+- The passphrase is never sent to Supabase; only the encrypted key bundle, public key, salt, and KDF iteration count are stored.
 - A fresh AES-GCM message key for each message, wrapped separately for sender and recipient.
 - Messages stored as a framed bitstream of a base64 ciphertext envelope, never as plaintext.
 - NRZ-I waveform preview and transmission inspector.
@@ -34,9 +35,10 @@
    5. \`20261116000000_syntrix_device_security_v2.sql\`
    6. \`20261117000000_syntrix_e2ee_and_delete.sql\`
    7. \`20261118000000_syntrix_e2ee_hard_delete.sql\`
-   
-   The last migration is intentionally destructive: it permanently removes existing non-E2EE messages and replaces the earlier soft-delete behaviour with hard deletion. Do not skip it when using this frontend.
-3. Confirm that \`profiles\`, \`contacts\`, and \`messages\` appear in the Table Editor. The \`private\` schema is used for protected key backup and security data.
+   8. \`20261114142010_syntrix_key_bundle_e2ee.sql\`
+
+   The hard-delete migration permanently removes existing non-E2EE messages, removes per-user soft hiding, changes \`delete_message_for_everyone\` to physically delete rows, and configures Realtime DELETE events. It is intentionally destructive.
+3. Confirm that \`profiles\`, \`contacts\`, and \`messages\` appear in Table Editor. Wrapped private-key backups are stored in the unexposed \`private.user_keys\` table.
 4. In **Project Settings → API**, copy the Project URL and publishable key.
 5. Put those public values in \`src/config.js\`. Never put a \`service_role\` or secret API key in browser code.
 6. In **Authentication → URL Configuration**, add the local development URL and Cloudflare Pages domain to allowed redirect URLs.
@@ -60,11 +62,12 @@ npm test
 ## First-time E2EE setup
 
 1. Create and sign in to an account.
-2. Set a new E2EE passphrase (at least 10 characters). If the account already had the old message unlock key, enter that old key once to prove account ownership during migration.
-3. The browser generates an ECDH P-256 key pair. The public key is published in \`profiles.public_key\`; the private key is encrypted locally and only its wrapped backup is stored in \`private.user_security.e2ee_wrapped_key\`.
-4. Sign in to the second participant and activate E2EE there too.
-5. Unlock E2EE on the current device with the passphrase. The passphrase is used locally to derive a wrapping key and an authentication token; only the derived token is sent to the server for rate-limited bcrypt verification.
-6. Send a message. The browser encrypts it before framing/transmission. The recipient must have activated E2EE and unlocked their own private key to read it.
+2. Open E2EE settings and choose a passphrase of at least 10 characters.
+3. The browser generates an ECDH P-256 key pair. The public key is published in \`profiles.public_key\`; the private key is exported and encrypted locally with AES-GCM using a PBKDF2-derived wrapping key.
+4. Only the wrapped private key, salt, and iteration count are saved in \`private.user_keys\`. The passphrase and plaintext private key never leave the browser.
+5. Sign in to the second participant and activate E2EE there too.
+6. Unlock E2EE on each device with that account's passphrase. The browser retrieves the wrapped backup and decrypts it locally.
+7. Send a message. The browser encrypts it before framing/transmission. The recipient must have activated E2EE and unlocked their own private key to read it.
 
 Keep the E2EE passphrase safe. The server cannot recover it. Losing it means the wrapped private key cannot be opened, and existing ciphertext cannot be decrypted.
 
