@@ -2133,3 +2133,62 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
   background: hsl(var(--avatar-hue, 250) 72% 32%);
   color: #fff;
 }
+
+
+/* A pending device receives only this approval screen, never the workspace. */
+.device-gate-view {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--surface);
+}
+.device-gate-view[hidden] { display: none !important; }
+.device-gate-card {
+  width: min(100%, 470px);
+  padding: clamp(26px, 5vw, 42px);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(25, 31, 64, .12);
+}
+.device-gate-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: 28px 0 20px;
+  border-radius: 17px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 30px;
+  font-weight: 700;
+}
+.device-gate-card h1 {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: clamp(23px, 5vw, 30px);
+  letter-spacing: -.045em;
+}
+.device-gate-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+.device-gate-note { margin: 20px 0 0; }
+.device-gate-recovery {
+  margin: 14px 0 0;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(128, 138, 170, .07);
+  font-size: 11px !important;
+}
+.device-gate-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.device-gate-actions .button { min-height: 42px; }
+#deviceGateStatus { display: block; margin-top: 18px; color: var(--muted); font-size: 10px; }
