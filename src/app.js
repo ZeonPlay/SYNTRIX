@@ -15,6 +15,7 @@ import {
   listRecentMessages, markConversationRead, saveContact,
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
+import { clearE2eeVault, getE2eeVault, saveE2eeVault } from './core/e2ee-vault.js';
 import {
   changeE2eePassphrase, decryptE2eePayload, enableE2ee, encryptE2eePayload,
   getE2eeState, unlockE2ee,
@@ -735,7 +736,6 @@ async function loadWorkspace() {
   state.e2eeState = await getE2eeState();
   state.e2eeSession = null;
   state.e2eeUnlocked = false;
-  renderKeyStatus();
   if (!state.e2eeState.enabled) {
     $('#keyForm').dataset.mode = 'enable';
     $('#oldKeyField').hidden = !state.e2eeState.has_legacy_key;
@@ -744,8 +744,18 @@ async function loadWorkspace() {
     $('#keyLabel').textContent = 'Passphrase E2EE baru';
     openDialog(keyDialog);
   } else {
-    openE2eeUnlockDialog();
+    // Restore the already-unlocked CryptoKey from this browser's local vault.
+    // The cache is tied to the account and its current public identity key.
+    try {
+      state.e2eeSession = await getE2eeVault(userId, state.e2eeState.public_key);
+    } catch (error) {
+      console.warn('Unable to restore local E2EE key:', error.message);
+    }
+    state.e2eeUnlocked = Boolean(state.e2eeSession?.privateKey);
+    if (!state.e2eeUnlocked) openE2eeUnlockDialog();
+    else await decryptStoredMessages();
   }
+  renderKeyStatus();
 
   state.disconnectRealtime?.();
   state.disconnectRealtime = connectRealtime({
@@ -1038,6 +1048,7 @@ async function enterApp(user) {
 }
 
 async function leaveApp() {
+  const signedOutUserId = state.user?.id;
   stopDeviceHeartbeat();
   window.clearTimeout(deviceRefreshTimer);
   state.deviceRowId = null;
@@ -1057,6 +1068,13 @@ async function leaveApp() {
   state.e2eeState = null;
   state.e2eeSession = null;
   state.e2eeUnlocked = false;
+  if (signedOutUserId) {
+    try {
+      await clearE2eeVault(signedOutUserId);
+    } catch (error) {
+      console.warn('Unable to clear local E2EE key:', error.message);
+    }
+  }
   state.deletingMessageIds.clear();
   appView.hidden = true;
   authView.hidden = false;
@@ -1237,6 +1255,12 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
       state.e2eeState,
     );
     state.e2eeUnlocked = true;
+    try {
+      await saveE2eeVault(state.user.id, state.e2eeSession);
+    } catch (error) {
+      console.warn('Private key unlocked, but local persistence failed:', error.message);
+      showToast('E2EE terbuka, tetapi browser tidak bisa menyimpan sesi kunci lokal.', 'info');
+    }
     closeDialog(e2eeUnlockDialog);
     $('#e2eeUnlockForm').reset();
     await decryptStoredMessages();
@@ -1291,6 +1315,12 @@ $('#keyForm').addEventListener('submit', async (event) => {
     }
     state.e2eeState = await getE2eeState();
     state.e2eeUnlocked = true;
+    try {
+      await saveE2eeVault(state.user.id, state.e2eeSession);
+    } catch (error) {
+      console.warn('Private key activated, but local persistence failed:', error.message);
+      showToast('E2EE aktif, tetapi browser tidak bisa menyimpan sesi kunci lokal.', 'info');
+    }
     $('#oldKeyField').hidden = true;
     $('#keyForm').reset();
     $('#keyForm').dataset.mode = 'enable';
