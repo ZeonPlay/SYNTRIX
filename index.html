@@ -218,6 +218,23 @@
     </form>
   </dialog>
 
+  <dialog id="deviceApprovalDialog" class="modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div><span class="eyebrow">KONFIRMASI PERANGKAT</span><h2>Yakin perangkat ini milikmu?</h2></div>
+        <button class="icon-button dialog-close" type="button" data-close="deviceApprovalDialog" aria-label="Tutup">×</button>
+      </div>
+      <p class="modal-description">Pastikan kamu mengenali perangkat ini sebelum menyetujuinya. Setelah disetujui, perangkat tersebut akan mendapat akses ke akun SYNTRIX.</p>
+      <div class="unlocked-message">
+        <strong id="deviceApprovalName">Perangkat baru</strong>
+      </div>
+      <div class="modal-actions">
+        <button class="button button-quiet" type="button" data-close="deviceApprovalDialog">Batal</button>
+        <button id="deviceApprovalConfirm" class="button button-primary" type="button">Ya, ini perangkat saya</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="keyDialog" class="modal">
     <form id="keyForm" class="modal-card">
       <div class="modal-header"><div><span class="eyebrow">End-to-end encryption</span><h2 id="keyDialogTitle">Aktifkan E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>

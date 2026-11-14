@@ -108,6 +108,7 @@ const registerForm = $('#registerForm');
 const contactDialog = $('#contactDialog');
 const e2eeUnlockDialog = $('#e2eeUnlockDialog');
 const messageUnlockDialog = $('#messageUnlockDialog');
+const deviceApprovalDialog = $('#deviceApprovalDialog');
 const keyDialog = $('#keyDialog');
 const inspectorDialog = $('#inspectorDialog');
 const navRail = $('#navRail');
@@ -1312,25 +1313,29 @@ $('#deviceGateLogout').addEventListener('click', async () => {
   }
 });
 
-// "Ini aku", "Bukan aku" and "Keluarkan perangkat" act on exactly one device.
+// "Ini aku" asks for a second confirmation before changing device trust.
 async function resolveDevice(button) {
   const { deviceAction, deviceId } = button.dataset;
   if (!deviceId) return;
+
+  if (deviceAction === 'ack') {
+    const label = button.closest('.device-card')?.querySelector('.device-card-head > strong')?.textContent?.trim();
+    $('#deviceApprovalName').textContent = label || 'Perangkat baru';
+    deviceApprovalDialog.dataset.deviceId = deviceId;
+    openDialog(deviceApprovalDialog);
+    return;
+  }
+
   if (deviceAction === 'remove'
     && !window.confirm('Keluarkan perangkat ini dari akunmu? Sesinya akan langsung berakhir.')) return;
 
   const buttons = button.closest('.device-card')?.querySelectorAll('button') ?? [button];
   buttons.forEach((item) => { item.disabled = true; });
   try {
-    if (deviceAction === 'ack') {
-      const changed = await acknowledgeDevice(deviceId);
-      showToast(changed ? 'Oke, perangkat itu ditandai sebagai kamu.' : 'Perangkat itu sudah diproses.', 'success');
-    } else {
-      const result = await rejectDevice(deviceId);
-      showToast(result?.removed
-        ? 'Perangkat itu langsung dikeluarkan. Sebaiknya ganti kunci pesan dan password.'
-        : 'Perangkat itu sudah tidak ada.', 'success');
-    }
+    const result = await rejectDevice(deviceId);
+    showToast(result?.removed
+      ? 'Perangkat itu langsung dikeluarkan. Sebaiknya ganti kunci pesan dan password.'
+      : 'Perangkat itu sudah tidak ada.', 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal memproses perangkat.'), 'error');
   } finally {
@@ -1338,6 +1343,31 @@ async function resolveDevice(button) {
     await refreshDevices();
   }
 }
+
+$('#deviceApprovalConfirm').addEventListener('click', async () => {
+  const button = $('#deviceApprovalConfirm');
+  const targetId = deviceApprovalDialog.dataset.deviceId;
+  if (!targetId) {
+    closeDialog(deviceApprovalDialog);
+    return;
+  }
+
+  setBusy(button, true, 'Menyetujui...');
+  try {
+    const changed = await acknowledgeDevice(targetId);
+    closeDialog(deviceApprovalDialog);
+    showToast(changed ? 'Oke, perangkat itu ditandai sebagai kamu.' : 'Perangkat itu sudah diproses.', 'success');
+  } catch (error) {
+    showToast(friendlyError(error, 'Gagal menyetujui perangkat.'), 'error');
+  } finally {
+    setBusy(button, false);
+    await refreshDevices();
+  }
+});
+
+deviceApprovalDialog.addEventListener('close', () => {
+  delete deviceApprovalDialog.dataset.deviceId;
+});
 
 function isChatRoute() {
   return window.location.pathname.replace(/\/+$/, '') === '/chat';
@@ -1755,7 +1785,7 @@ document.querySelectorAll('[data-close]').forEach((button) => {
   button.addEventListener('click', () => closeDialog(document.getElementById(button.dataset.close)));
 });
 
-for (const dialog of [contactDialog, e2eeUnlockDialog, messageUnlockDialog, keyDialog, inspectorDialog]) {
+for (const dialog of [contactDialog, e2eeUnlockDialog, messageUnlockDialog, deviceApprovalDialog, keyDialog, inspectorDialog]) {
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) closeDialog(dialog);
   });
