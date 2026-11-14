@@ -134,7 +134,8 @@ function setAppView(view) {
   if (!allowedViews.includes(view)) return;
 
   appView.dataset.view = view;
-  // Returning to Contacts always restores the expanded directory stage.
+  // One layout state drives directory, conversation and full-page workspace transitions.
+  appView.dataset.layout = view === 'contacts' ? 'directory' : 'page';
   appView.classList.remove('has-chat');
 
   navRail.querySelectorAll('.nav-item[data-view]').forEach((button) => {
@@ -639,6 +640,7 @@ async function selectContact(contactId) {
 
   state.activeContactId = contactId;
   if (appView.dataset.view !== 'contacts') setAppView('contacts');
+  appView.dataset.layout = 'conversation';
   appView.classList.add('has-chat');
   window.requestAnimationFrame(updateNavActivePill);
   $('#emptyState').hidden = true;
@@ -1962,7 +1964,9 @@ document.addEventListener('keydown', (event) => {
   }
   if (event.key === 'Escape') {
     $('#sidebar').classList.remove('mobile-open');
-    if (!document.querySelector('dialog[open]')) appView.classList.remove('has-chat');
+    if (!document.querySelector('dialog[open]') && appView.dataset.layout === 'conversation') {
+      setAppView('contacts');
+    }
   }
 });
 

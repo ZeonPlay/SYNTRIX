@@ -2213,32 +2213,165 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
 }
 
 
-/* On first open, the directory drawer enters from the far-right edge and
-   settles into its existing left-side track. The track widths stay responsive. */
-@media (min-width: 701px) {
-  .app-shell.has-chat .directory-inner {
-    transform-origin: top right;
-    will-change: transform;
-    animation: directory-arrive-from-right .76s var(--ease) both;
-  }
-
-  @keyframes directory-arrive-from-right {
-    from {
-      transform: translate3d(calc(100vw - 100% - var(--nav-width)), 0, 0) scale(.985);
-    }
-    to {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-  }
+/* ==========================================================================
+   Unified workspace layout
+   - directory: expanded directory over the still-mounted workspace
+   - conversation: compact directory drawer + visible conversation workspace
+   - page: full workspace for Security / Settings while the drawer retracts
+   Keep the DOM mounted so the three states can interpolate without remounting.
+   ========================================================================== */
+.app-shell {
+  --directory-drawer-width: 314px;
+  grid-template-columns: 260px 0px minmax(0, 1fr);
+  transition: grid-template-columns .76s var(--ease);
 }
 
+.app-shell .directory-view {
+  grid-column: 2 / 4;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  justify-self: start;
+  overflow: hidden;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0);
+  transition:
+    width .76s var(--ease),
+    opacity .24s ease,
+    transform .76s var(--ease),
+    visibility 0s linear 0s;
+}
+
+.app-shell .workspace {
+  position: relative;
+  grid-column: 3;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(12px, 0, 0);
+  transition:
+    opacity .3s ease,
+    transform .76s var(--ease),
+    visibility 0s linear .76s,
+    background-color .3s ease;
+}
+
+.app-shell[data-layout="conversation"] {
+  grid-template-columns: 80px var(--directory-drawer-width) minmax(0, 1fr);
+}
+
+.app-shell[data-layout="conversation"] .directory-view {
+  width: var(--directory-drawer-width);
+  overflow: hidden;
+}
+
+.app-shell[data-layout="conversation"] .workspace,
+.app-shell[data-layout="page"] .workspace {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity .36s ease .08s,
+    transform .76s var(--ease),
+    visibility 0s linear 0s,
+    background-color .3s ease;
+}
+
+.app-shell[data-layout="page"] {
+  grid-template-columns: 260px 0px minmax(0, 1fr);
+}
+
+.app-shell[data-layout="page"] .directory-view {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(-10px, 0, 0);
+  transition:
+    width .76s var(--ease),
+    opacity .2s ease,
+    transform .76s var(--ease),
+    visibility 0s linear .76s;
+}
+
+/* Security and Settings remain mounted above the conversation surface and
+   cross-fade when their navigation item changes. */
+.app-shell .page-view {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 3;
+  transition:
+    opacity .24s ease,
+    visibility 0s linear .24s;
+}
+
+.app-shell[data-view="security"] #securityView,
+.app-shell[data-view="settings"] #settingsView {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity .24s ease,
+    visibility 0s linear 0s;
+}
+
+.app-shell[data-view="security"] .workspace,
+.app-shell[data-view="settings"] .workspace {
+  grid-column: 3;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* Keep the drawer width synchronized with the existing responsive grid tracks. */
+@media (max-width: 1100px) and (min-width: 851px) {
+  .app-shell { --directory-drawer-width: 286px; }
+}
 @media (max-width: 850px) and (min-width: 701px) {
-  .app-shell.has-chat { --nav-width: 72px; }
+  .app-shell { --directory-drawer-width: 250px; }
+  .app-shell[data-layout="conversation"] {
+    grid-template-columns: 72px var(--directory-drawer-width) minmax(0, 1fr);
+  }
 }
 
-@media (max-width: 700px), (prefers-reduced-motion: reduce) {
-  .app-shell.has-chat .directory-inner {
-    animation: none !important;
-    will-change: auto;
+@media (max-width: 700px) {
+  .app-shell .directory-view,
+  .app-shell[data-layout="conversation"] .directory-view,
+  .app-shell[data-layout="page"] .directory-view {
+    width: 100%;
+    max-width: none;
+    transform: none;
+    transition: none;
+  }
+  .app-shell[data-layout="page"] .directory-view {
+    display: none;
+  }
+  .app-shell .page-view {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell,
+  .app-shell .directory-view,
+  .app-shell .workspace,
+  .app-shell .directory-inner,
+  .app-shell .page-view {
+    transition-duration: .01ms !important;
+    transition-delay: 0ms !important;
   }
 }
