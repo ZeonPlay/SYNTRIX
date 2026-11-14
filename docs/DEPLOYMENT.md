@@ -6,32 +6,39 @@ SYNTRIX is a static website. It does not need a Flask/Gunicorn server, a Socket.
 
 1. Open your Supabase project.
 2. Run the migrations in this exact order, once each, in **SQL Editor**:
-   1. `20261111122920_syntrix_initial_schema.sql`
-   2. `20261112000000_syntrix_hardening.sql`
-   3. `20261114000000_syntrix_device_alerts.sql`
-   4. `20261114000001_fix_profiles_messages_rls_recursion.sql`
-   5. `20261114142010_syntrix_key_bundle_e2ee.sql`
-   6. `20261115000000_syntrix_device_tracking.sql`
-   7. `20261116000000_syntrix_device_security_v2.sql`
-   8. `20261116000001_syntrix_server_side_device_approval.sql`
-   9. `20261116000002_syntrix_device_revocation_signal.sql`
-   10. `20261116000003_syntrix_guard_legacy_workspace_rpcs.sql`
-   11. `20261117000000_syntrix_e2ee_and_delete.sql`
-   12. `20261118000000_syntrix_e2ee_hard_delete.sql`
-   13. `20261119000000_syntrix_security_hardening.sql`
 
-   The list is sorted by file name, so it is also the order `supabase db reset` uses. The last migration is idempotent: it drops the unused legacy RPCs (`reset_my_key_bundle`, `enable_e2ee`, ...) and restores the strict, session-bound device-approval gate that `20261116000000` had weakened. On a database that is already deployed, run just that file. Device approval is strict: only an account with no device rows gets an auto-trusted first device. If every trusted device is lost, recovery is manual in SQL (set `acknowledged_at` on a `user_devices` row).
+   | #  | Migration |
+   |----|-----------|
+   | 1  | `20261111122920_syntrix_initial_schema.sql` |
+   | 2  | `20261112000000_syntrix_hardening.sql` |
+   | 3  | `20261114000000_syntrix_device_alerts.sql` |
+   | 4  | `20261114000001_fix_profiles_messages_rls_recursion.sql` |
+   | 5  | `20261114142010_syntrix_key_bundle_e2ee.sql` |
+   | 6  | `20261115000000_syntrix_device_tracking.sql` |
+   | 7  | `20261116000000_syntrix_device_security_v2.sql` |
+   | 8  | `20261116000001_syntrix_server_side_device_approval.sql` |
+   | 9  | `20261116000002_syntrix_device_revocation_signal.sql` |
+   | 10 | `20261116000003_syntrix_guard_legacy_workspace_rpcs.sql` |
+   | 11 | `20261117000000_syntrix_e2ee_and_delete.sql` |
+   | 12 | `20261118000000_syntrix_e2ee_hard_delete.sql` |
+   | 13 | `20261119000000_syntrix_security_hardening.sql` |
 
-   The hard-delete migration permanently removes existing non-E2EE messages, removes per-user soft hiding, changes `delete_message_for_everyone` to physically delete rows, and configures Realtime DELETE events. It is intentionally destructive.
+   The list is sorted by file name, so it is also the order `supabase db reset` applies.
 
-   The key-bundle migration makes `private.user_keys` the single E2EE backup store. The passphrase never goes to Supabase; the browser stores only a wrapped private-key backup, its salt, and the PBKDF2 iteration count. It also removes the temporary alternate E2EE RPCs that used a server-checked derived verifier.
+   **Notes on specific migrations**
 
-   The device-security migration sets `pgrst.db_pre_request` for the `authenticator` role. It replaces any pre-request function you configured yourself. To undo that setting: `alter role authenticator reset pgrst.db_pre_request; notify pgrst, 'reload config';`.
+   - **Hard delete (12)** permanently removes existing non-E2EE messages, removes per-user soft hiding, changes `delete_message_for_everyone` to physically delete rows, and configures Realtime DELETE events. It is intentionally destructive.
+   - **Key bundle (5)** makes `private.user_keys` the single E2EE backup store. The passphrase never goes to Supabase; the browser stores only a wrapped private-key backup, its salt, and the PBKDF2 iteration count.
+   - **Device security (7–10)** sets `pgrst.db_pre_request` for the `authenticator` role. It replaces any pre-request function you configured yourself. To undo: `alter role authenticator reset pgrst.db_pre_request; notify pgrst, 'reload config';`.
+   - **Security hardening (13)** is idempotent. It drops the unused legacy RPCs (`reset_my_key_bundle`, `enable_e2ee`, and others) and restores the strict, session-bound device-approval gate that migration 7 had weakened. On a database that is already deployed, run just this file.
+
+   **Device approval is strict.** Only an account with no device rows gets an auto-trusted first device. If every trusted device is lost, recovery is manual in SQL: set `acknowledged_at` on one `user_devices` row.
+
 3. Confirm that `profiles`, `contacts`, and `messages` appear in Table Editor. Wrapped private-key backups are stored in the unexposed `private.user_keys` table.
 4. Open **Project Settings → API** and copy the Project URL and publishable key.
 5. Put those public values in `src/config.js`. Never use a `service_role` or secret API key in client code.
 6. In **Authentication → URL Configuration**, add your local development URL and Cloudflare Pages domain to allowed redirect URLs.
-7. In **Project Settings → API → Exposed schemas**, expose the `public` schema and the tables/RPC functions created by these migrations. Do not remove their column grants or RLS policies.
+7. In **Integrations → Data API**, expose the `public` schema and the tables/RPC functions created by these migrations. Do not remove their column grants or RLS policies.
 8. Under **Realtime → Settings**, disable public access so the private Presence channel requires authenticated authorization.
 
 ## 2. Push this repository to GitHub
@@ -51,16 +58,17 @@ Push the project to `ZeonPlay/SYNTRIX`. The repository root should contain `inde
 
 ## 4. First-time verification
 
-- Create a test account. If email confirmation is enabled, confirm the address before signing in.
-- Activate E2EE with a passphrase of at least 10 characters. The passphrase stays in the browser; Supabase only receives the wrapped key bundle.
-- Existing accounts with a row in `private.user_keys` should unlock that saved bundle rather than generate a new identity.
-- Create a second test account in a private/incognito window or another browser and activate E2EE on that account too.
-- Add the second account by handle. Verify both profiles have a public key before attempting to send.
-- Send `HELLO 123`. Confirm the receiver can decrypt it after unlocking E2EE with their own passphrase.
-- Refresh both browsers, unlock E2EE again, and verify conversation history can be decrypted.
-- Send a message from each participant. Delete each other's messages in turn. Verify the message row disappears from the Supabase `messages` table and both clients remove the bubble through the Realtime delete event.
-- Test with a third account. It must not be able to list or decrypt messages from the unrelated conversation.
-- Device security: sign in with the same account in a second browser. Check the trusted-device approval and revocation flow.
+1. Create a test account. If email confirmation is enabled, confirm the address before signing in.
+2. Activate E2EE with a passphrase of at least 12 characters. The passphrase stays in the browser; Supabase only receives the wrapped key bundle.
+3. Existing accounts with a row in `private.user_keys` should unlock that saved bundle rather than generate a new identity.
+4. Create a second test account in a private/incognito window or another browser and activate E2EE on that account too.
+5. Add the second account by handle. Verify both profiles have a public key before attempting to send.
+6. Send `HELLO 123`. Confirm the receiver can decrypt it after unlocking E2EE with their own passphrase.
+7. Refresh both browsers, unlock E2EE again, and verify conversation history can be decrypted.
+8. Send a message from each participant. Delete each other's messages in turn. Verify the message row disappears from the Supabase `messages` table and both clients remove the bubble through the Realtime delete event.
+9. Test with a third account. It must not be able to list or decrypt messages from the unrelated conversation.
+10. Device security: sign in with the same account in a second browser. It must show the "Konfirmasi perangkat" screen and load no data until a trusted device approves it. Then check the approval and revocation flow.
+11. Try changing the E2EE passphrase with a wrong current passphrase. It must be rejected.
 
 ## Notes about permanent deletion
 
