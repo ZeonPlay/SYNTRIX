@@ -55,6 +55,17 @@ test('E2EE round-trip works for sender and recipient, including passphrase-wrapp
   assert.equal(aliceOpened, 'HELLO SYNTRIX');
   assert.equal(bobOpened, 'HELLO SYNTRIX');
 
+  const maximumMessage = await encryptE2eePayload({
+    plaintext: 'A'.repeat(500),
+    privateKey: alice.privateKey,
+    ownPublicKeyB64: alice.publicKeyB64,
+    recipientPublicKeyB64: bob.publicKeyB64,
+    senderId: message.sender_id,
+    receiverId: message.receiver_id,
+  });
+  assert.equal(maximumMessage.payloadBits.length % 10, 0);
+  assert.ok(maximumMessage.payloadBits.length <= 15000, '500-character ciphertext envelope must fit the SQL payload limit');
+
   const unlocked = await unlockE2eePrivateKey(
     'alice strong passphrase',
     alice.saltB64,
