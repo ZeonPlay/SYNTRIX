@@ -284,6 +284,11 @@ function normalizeContacts(profiles) {
     }));
 }
 
+function avatarHueFor(identifier) {
+  return [...String(identifier || '')]
+    .reduce((sum, character) => sum + character.charCodeAt(0), 0) % 360;
+}
+
 function sortMessages() {
   state.messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
@@ -296,7 +301,9 @@ function renderAccount() {
   $('#myAvatar').textContent = initials(name);
   $('#settingsName').textContent = name;
   $('#settingsHandle').textContent = `@${handle}`;
-  $('#settingsAvatar').textContent = initials(name);
+  const settingsAvatar = $('#settingsAvatar');
+  settingsAvatar.textContent = initials(name);
+  settingsAvatar.style.setProperty('--avatar-hue', avatarHueFor(state.user?.id || state.profile?.id || name));
 }
 
 function renderKeyStatus() {
@@ -350,7 +357,7 @@ function updateContactItem(item, contact) {
   item.setAttribute('aria-label', `Open conversation with ${contact.display_name}`);
 
   const avatar = item.querySelector('.contact-avatar');
-  const avatarHue = [...String(contact.id)].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 360;
+  const avatarHue = avatarHueFor(contact.id);
   avatar.textContent = initials(contact.display_name);
   avatar.style.setProperty('--avatar-hue', avatarHue);
 
@@ -400,7 +407,6 @@ function renderContacts() {
     contact.display_name.toLowerCase().includes(query) ||
     contact.handle.toLowerCase().includes(query)
   );
-  $('#contactCount').textContent = String(contacts.length);
 
   if (filtered.length === 0) {
     const empty = list.querySelector('.list-empty') || document.createElement('div');
