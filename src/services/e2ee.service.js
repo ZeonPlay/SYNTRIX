@@ -21,6 +21,7 @@ export async function getE2eeState() {
     salt: bundle?.kdf_salt ?? null,
     iterations: bundle?.kdf_iterations ?? null,
     public_key: bundle?.public_key ?? null,
+    wrapped_private_key: bundle?.wrapped_private_key ?? null,
   };
 }
 
