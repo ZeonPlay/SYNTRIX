@@ -434,8 +434,7 @@ function renderContacts() {
     return new Date(bMessage?.created_at || 0) - new Date(aMessage?.created_at || 0);
   });
   const filtered = contacts.filter((contact) =>
-    contact.display_name.toLowerCase().includes(query) ||
-    contact.handle.toLowerCase().includes(query)
+    contact.display_name.toLowerCase().includes(query)
   );
   $('#contactCount').textContent = String(contacts.length);
   list.replaceChildren();
@@ -468,7 +467,6 @@ function renderContacts() {
       <span class="contact-detail">
         <span class="contact-name-row">
           <strong>${escapeHTML(contact.display_name)}</strong>
-          <span class="contact-handle">@${escapeHTML(contact.handle)}</span>
         </span>
         <span class="contact-status-line ${isOnline ? 'online' : ''}">${isOnline ? 'Online' : 'Offline'}</span>
         <span class="contact-preview">${escapeHTML(contactPreview(contact.id))}</span>
@@ -609,7 +607,7 @@ function updateConversationHeader() {
   const contact = state.contacts.find((item) => item.id === state.activeContactId);
   if (!contact) return;
   $('#chatAvatar').textContent = initials(contact.display_name);
-  $('#chatName').textContent = `${contact.display_name} · @${contact.handle}`;
+  $('#chatName').textContent = contact.display_name;
   const online = state.onlineUsers.has(contact.id);
   $('#chatStatus').textContent = online ? 'Online' : 'Offline';
   $('#chatStatusDot').classList.toggle('online', online);
@@ -863,8 +861,9 @@ async function loadWorkspace() {
   state.keyExists = Boolean(keyBundle);
   renderKeyStatus();
   renderMessages();
-  // First use: create the key. Otherwise unlock the stored one for this session.
-  openSessionUnlock();
+  // Only a first-time user is asked right away (to create the key). An existing key is
+  // asked for when a locked message is opened or a message is sent.
+  if (!state.keyExists) openKeyDialog('create');
 
   state.disconnectRealtime?.();
   state.disconnectRealtime = connectRealtime({
@@ -1297,7 +1296,7 @@ $('#contactForm').addEventListener('submit', async (event) => {
     renderContacts();
     closeDialog(contactDialog);
     await selectContact(profile.id);
-    showToast(`@${handle} ditambahkan ke kontak.`, 'success');
+    showToast(`${profile.display_name} ditambahkan ke kontak.`, 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Tidak bisa menambahkan kontak.'), 'error');
   } finally {

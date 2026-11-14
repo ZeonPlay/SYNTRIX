@@ -18,7 +18,7 @@
     } catch (_) {}
   </script>
   <link rel="stylesheet" href="./src/styles.css?v=e2ee-v20">
-  <script type="module" src="/src/app.js?v=e2ee-v14"></script>
+  <script type="module" src="/src/app.js?v=e2ee-v16"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -131,7 +131,6 @@
             <div id="contactList" class="contact-list" aria-label="Contact list">
               <div class="list-empty">Kontak akan muncul di sini. Tambahkan kontak untuk memulai.</div>
             </div>
-            <div class="directory-list-footer"><span class="directory-footer-dot"></span> PRIVATE CONTACT DIRECTORY</div>
           </section>
 
           <aside class="directory-welcome" aria-label="Mulai percakapan">
@@ -176,7 +175,6 @@
           </div>
         </header>
 
-        <div class="conversation-banner"><span class="banner-symbol">⌁</span><span><strong>Digital signal channel</strong> Pesan dienkripsi end-to-end di browsermu, lalu dibingkai 10-bit dan dikodekan dengan NRZ-I.</span><span class="banner-learn">10-BIT FRAMES</span></div>
         <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
         <form id="messageForm" class="composer">
           <div class="composer-inner">
@@ -185,7 +183,6 @@
             <span id="messageCounter" class="message-counter">0 / 500</span>
             <button id="sendButton" class="send-button" type="submit" aria-label="Send message"><span>Kirim</span><b aria-hidden="true">↗</b></button>
           </div>
-          <div class="composer-hint"><span><kbd>Enter</kbd> untuk mengirim <i>·</i> Printable ASCII only</span><span>Maks. 500 karakter</span></div>
         </form>
       </section>
 
@@ -216,7 +213,7 @@
         <div class="page-inner">
           <span class="eyebrow"><span class="eyebrow-dot"></span> ACCOUNT PREFERENCES</span>
           <h1 id="settingsTitle">Pengaturan</h1>
-          <div class="page-card settings-profile"><div id="settingsAvatar" class="avatar">S</div><div><strong id="settingsName">SYNTRIX User</strong><span id="settingsHandle">@username</span></div></div>
+          <div class="page-card settings-profile"><div id="settingsAvatar" class="avatar">S</div><div><strong id="settingsName">SYNTRIX User</strong><span id="settingsHandle" hidden></span></div></div>
           <div class="page-card settings-item theme-setting">
             <div>
               <strong>Dark mode</strong>
