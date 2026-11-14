@@ -1,9 +1,7 @@
 import { supabase } from '../core/supabase.js';
-import { textToBitStream } from '../core/encoding.js';
 
-const PROFILE_FIELDS = 'id, handle, display_name';
-// payload_bits is deliberately NOT selectable; it is only returned by get_message_bits().
-const MESSAGE_FIELDS = 'id, sender_id, receiver_id, frame_count, created_at, read_at';
+const PROFILE_FIELDS = 'id, handle, display_name, public_key';
+const MESSAGE_FIELDS = 'id, sender_id, receiver_id, frame_count, created_at, read_at, enc_version, deleted_at';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function assertUuid(value) {
@@ -45,7 +43,6 @@ export async function saveContact(ownerId, contactId) {
   const { error } = await supabase
     .from('contacts')
     .insert({ owner_id: ownerId, contact_id: contactId });
-  // A repeated add is harmless; the primary key protects duplicates.
   if (error && error.code !== '23505') throw error;
 }
 
@@ -54,7 +51,7 @@ export async function listRecentMessages(userId) {
   const { data, error } = await supabase
     .from('messages')
     .select(MESSAGE_FIELDS)
-    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+    .or('sender_id.eq.' + userId + ',receiver_id.eq.' + userId)
     .order('created_at', { ascending: false })
     .limit(1000);
   if (error) throw error;
@@ -67,7 +64,9 @@ export async function listConversation(userId, partnerId) {
   const { data, error } = await supabase
     .from('messages')
     .select(MESSAGE_FIELDS)
-    .or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`)
+    .or(
+      'and(sender_id.eq.' + userId + ',receiver_id.eq.' + partnerId + '),and(sender_id.eq.' + partnerId + ',receiver_id.eq.' + userId + ')',
+    )
     .order('created_at', { ascending: false })
     .limit(300);
   if (error) throw error;
@@ -84,25 +83,39 @@ export async function fetchMessageMeta(messageId) {
   return data;
 }
 
-export async function insertMessage(senderId, receiverId, text) {
-  const payloadBits = textToBitStream(text);
+export async function insertMessage(senderId, receiverId, payloadBits) {
   const { data, error } = await supabase
     .from('messages')
-    .insert({ sender_id: senderId, receiver_id: receiverId, payload_bits: payloadBits })
+    .insert({
+      sender_id: senderId,
+      receiver_id: receiverId,
+      payload_bits: payloadBits,
+      enc_version: 1,
+    })
     .select(MESSAGE_FIELDS)
     .single();
   if (error) throw error;
   return data;
 }
 
-/** Returns the stored bitstream, or null when the key is wrong / locked. */
-export async function fetchMessageBits(messageId, key) {
-  const { data, error } = await supabase.rpc('get_message_bits', {
+export async function fetchMessagePayloads(messageIds) {
+  if (!Array.isArray(messageIds) || messageIds.length === 0) return [];
+  const rows = [];
+  for (let offset = 0; offset < messageIds.length; offset += 500) {
+    const batch = messageIds.slice(offset, offset + 500);
+    const { data, error } = await supabase.rpc('get_message_payloads', { p_ids: batch });
+    if (error) throw error;
+    rows.push(...(data ?? []));
+  }
+  return rows;
+}
+
+export async function deleteMessageForEveryone(messageId) {
+  const { data, error } = await supabase.rpc('delete_message_for_everyone', {
     p_message_id: messageId,
-    p_key: key,
   });
   if (error) throw error;
-  return typeof data === 'string' && data.length > 0 ? data : null;
+  return data === true;
 }
 
 export async function markConversationRead(userId, partnerId) {

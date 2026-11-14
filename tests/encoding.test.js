@@ -59,3 +59,11 @@ test('rejects empty, non-ASCII, and overlong messages', () => {
   assert.throws(() => textToBitStream('é'), /ASCII/i);
   assert.throws(() => textToBitStream('A'.repeat(501)), /maksimal/i);
 });
+
+test('allows a separately bounded E2EE envelope without changing the normal chat limit', () => {
+  const envelope = 'A'.repeat(1500);
+  const framed = textToBitStream(envelope, 1500);
+  assert.equal(framed.length, 15000);
+  assert.throws(() => textToBitStream('A'.repeat(1501), 1500), /1500/);
+  assert.throws(() => textToBitStream('A'.repeat(501)), /500/);
+});
