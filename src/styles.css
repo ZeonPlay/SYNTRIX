@@ -684,7 +684,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 }
 .directory-inner {
   width: min(100%,1120px);
-  transition: padding .72s var(--ease), width .72s var(--ease);
+  transition: opacity .14s ease, padding .72s var(--ease), width .72s var(--ease);
 }
 .directory-header {
   max-height: 46px;
@@ -2111,4 +2111,12 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
     opacity .25s ease,
     transform .62s var(--ease),
     background-color .3s ease;
+}
+
+/* A brief, low-contrast fade masks the sharpest part of the desktop
+   directory-to-chat layout change. The layout still morphs underneath it. */
+@media (min-width: 701px) {
+  .app-shell.is-contact-switching .directory-inner {
+    opacity: .84;
+  }
 }
