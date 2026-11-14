@@ -30,6 +30,7 @@ const state = {
   messageViewModes: new Map(), bootingUserId: null, sending: false,
   e2eeState: null, e2eeSession: null, e2eeUnlocked: false, deletingMessageIds: new Set(),
   deviceRowId: null, knownPendingIds: null, endingSession: false,
+  workspaceLoaded: false, workspaceLoading: false,
 };
 
 const THEME_STORAGE_KEY = 'syntrix-theme';
@@ -101,6 +102,7 @@ themeToggle?.addEventListener('change', () => {
 
 const authView = $('#authView');
 const appView = $('#appView');
+const deviceGateView = $('#deviceGateView');
 const loginForm = $('#loginForm');
 const registerForm = $('#registerForm');
 const contactDialog = $('#contactDialog');
@@ -179,6 +181,8 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/failed to fetch|networkerror|load failed/i.test(message)) return 'Tidak dapat terhubung ke server. Periksa internet dan konfigurasi Supabase.';
   if (/row-level security|permission denied/i.test(message)) return 'Akses database ditolak. Periksa migration dan kebijakan RLS Supabase.';
   if (/device_not_trusted/i.test(message)) return 'Perangkat ini belum dikonfirmasi sebagai milikmu, jadi belum bisa mengelola perangkat lain.';
+  if (/device_not_approved/i.test(message)) return 'Perangkat ini belum disetujui. Tunggu konfirmasi dari perangkat yang sudah dikenal.';
+  if (/device_identity_mismatch/i.test(message)) return 'Identitas perangkat berubah. Keluar, lalu masuk kembali dari browser ini.';
   if (/session_revoked/i.test(message)) return 'Sesi ini sudah dikeluarkan dari perangkat lain.';
   if (/device_limit/i.test(message)) return 'Terlalu banyak perangkat tercatat di akun ini. Keluarkan perangkat yang tidak dipakai.';
   if (/cannot_reject_self/i.test(message)) return 'Perangkat yang sedang kamu pakai tidak bisa dikeluarkan dari sini. Gunakan tombol Keluar.';
@@ -1007,13 +1011,15 @@ function renderDevices(devices) {
 }
 
 async function refreshDevices() {
-  if (!state.user) return;
+  if (!state.user) return [];
   try {
     const devices = await fetchDevices();
     if (state.user) renderDevices(devices);
+    return devices;
   } catch (error) {
     if (isSessionRevoked(error)) await endRevokedSession();
     else console.error('Device list failed:', error);
+    return [];
   }
 }
 
@@ -1040,6 +1046,40 @@ let deviceHeartbeatTimer = null;
 let deviceTickRunning = false;
 let deviceRegistrationWarningShown = false;
 let deviceStorageWarningShown = false;
+
+function showDeviceApprovalGate(device = null) {
+  authView.hidden = true;
+  appView.hidden = true;
+  deviceGateView.hidden = false;
+  const message = $('#deviceGateMessage');
+  const status = $('#deviceGateStatus');
+  if (device?.status === 'pending') {
+    message.textContent = 'Login berhasil, tetapi perangkat ini belum disetujui. Data profil, kontak, pesan, dan private key tetap terkunci.';
+    status.textContent = 'Status: menunggu persetujuan dari perangkat yang sudah dikenal.';
+  } else if (device?.status === 'trusted') {
+    message.textContent = 'Perangkat disetujui. Menyiapkan ruang chat…';
+    status.textContent = 'Status: dikenal.';
+  } else {
+    message.textContent = 'SYNTRIX sedang memeriksa identitas perangkat ini.';
+    status.textContent = 'Memeriksa status perangkat…';
+  }
+}
+
+async function openApprovedWorkspace() {
+  if (!state.user || state.workspaceLoaded || state.workspaceLoading) return;
+  state.workspaceLoading = true;
+  deviceGateView.hidden = true;
+  appView.hidden = false;
+  try {
+    await loadWorkspace();
+    state.workspaceLoaded = true;
+  } catch (error) {
+    showToast(friendlyError(error, 'Tidak dapat memuat workspace.'), 'error');
+    console.error(error);
+  } finally {
+    state.workspaceLoading = false;
+  }
+}
 
 function stopDeviceHeartbeat() {
   if (deviceHeartbeatTimer) window.clearInterval(deviceHeartbeatTimer);
@@ -1082,8 +1122,17 @@ async function deviceTick({ reportFailure = false } = {}) {
       deviceStorageWarningShown = false;
     }
 
-    await refreshDevices();
-    return true;
+    const devices = await refreshDevices();
+    const currentDevice = devices.find((device) => device.is_current);
+    if (!currentDevice) throw new Error('device_registration_missing');
+
+    if (currentDevice.status === 'trusted') {
+      await openApprovedWorkspace();
+      return true;
+    }
+
+    showDeviceApprovalGate(currentDevice);
+    return false;
   } catch (error) {
     if (isSessionRevoked(error)) {
       await endRevokedSession();
@@ -1119,9 +1168,30 @@ window.addEventListener('online', () => {
 });
 
 async function syncDevices() {
-  await deviceTick({ reportFailure: true });
+  const approved = await deviceTick({ reportFailure: true });
+  // Pending devices still heartbeat so approval is noticed without reloading.
   if (state.user && !state.endingSession) startDeviceHeartbeat();
+  return approved;
 }
+
+$('#deviceGateRetry').addEventListener('click', async () => {
+  const button = $('#deviceGateRetry');
+  button.disabled = true;
+  button.textContent = 'Memeriksa…';
+  await deviceTick({ reportFailure: true });
+  button.disabled = false;
+  button.textContent = 'Periksa lagi';
+});
+
+$('#deviceGateLogout').addEventListener('click', async () => {
+  const button = $('#deviceGateLogout');
+  button.disabled = true;
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  if (error) {
+    button.disabled = false;
+    showToast(friendlyError(error, 'Gagal keluar dari akun.'), 'error');
+  }
+});
 
 // "Ini aku", "Bukan aku" and "Keluarkan perangkat" act on exactly one device.
 async function resolveDevice(button) {
@@ -1156,23 +1226,22 @@ function isChatRoute() {
 
 async function enterApp(user) {
   if (!user || state.bootingUserId === user.id) return;
-  if (state.user?.id === user.id && !appView.hidden) return;
+  if (state.user?.id === user.id && (!appView.hidden || !deviceGateView.hidden)) return;
   state.bootingUserId = user.id;
   state.user = user;
-  authView.hidden = true;
-  appView.hidden = false;
+  state.workspaceLoaded = false;
+  state.workspaceLoading = false;
+  showDeviceApprovalGate();
   window.requestAnimationFrame(updateNavActivePill);
   $('#emptyState').hidden = false;
   $('#conversationView').hidden = true;
   $('#messages').replaceChildren();
   try {
-    // Register this browser as soon as authentication succeeds. Device tracking
-    // must not be skipped just because a later workspace/E2EE request fails.
+    // The server decides whether this session is trusted. Pending sessions
+    // stay on the approval screen and never load workspace data.
     await syncDevices();
-    if (!state.user || state.user.id !== user.id) return;
-    await loadWorkspace();
   } catch (error) {
-    showToast(friendlyError(error, 'Tidak dapat memuat workspace.'), 'error');
+    showToast(friendlyError(error, 'Tidak dapat memeriksa perangkat.'), 'error');
     console.error(error);
   } finally {
     state.bootingUserId = null;
@@ -1185,6 +1254,9 @@ async function leaveApp() {
   window.clearTimeout(deviceRefreshTimer);
   state.deviceRowId = null;
   state.knownPendingIds = null;
+  state.workspaceLoaded = false;
+  state.workspaceLoading = false;
+  deviceGateView.hidden = true;
   deviceRegistrationWarningShown = false;
   deviceStorageWarningShown = false;
   renderDevices([]);
