@@ -6,12 +6,12 @@ export const MAX_MESSAGE_LENGTH = 500;
  * SYNTRIX uses printable 7-bit ASCII. A frame is:
  * start(0) + data(7) + even-parity(1) + stop(1) = 10 bits.
  */
-export function buildFrames(text) {
+export function buildFrames(text, maxLength = MAX_MESSAGE_LENGTH) {
   if (typeof text !== 'string' || text.length === 0) {
     throw new Error('Pesan tidak boleh kosong.');
   }
-  if (text.length > MAX_MESSAGE_LENGTH) {
-    throw new Error(`Pesan maksimal ${MAX_MESSAGE_LENGTH} karakter.`);
+  if (!Number.isInteger(maxLength) || maxLength < 1 || text.length > maxLength) {
+    throw new Error('Payload melebihi batas ' + maxLength + ' karakter.');
   }
   if (!/^[\x20-\x7E]+$/.test(text)) {
     throw new Error('Gunakan karakter ASCII yang dapat dicetak. Emoji dan huruf non-ASCII belum didukung.');
@@ -28,8 +28,8 @@ export function buildFrames(text) {
   });
 }
 
-export function textToBitStream(text) {
-  return buildFrames(text).map((frame) => frame.bits).join('');
+export function textToBitStream(text, maxLength = MAX_MESSAGE_LENGTH) {
+  return buildFrames(text, maxLength).map((frame) => frame.bits).join('');
 }
 
 export function validateBitStream(bits) {
