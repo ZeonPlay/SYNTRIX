@@ -618,7 +618,7 @@ function openE2eeUnlockDialog() {
   $('#e2eeUnlockPassphrase').focus();
 }
 
-async function handleMessageDelete(messageId) {
+async async function handleMessageDelete(messageId) {
   if (!messageId || state.deletingMessageIds.has(messageId)) return;
   const exists = state.messages.some((message) => message.id === messageId);
   if (!exists) return;
@@ -709,7 +709,7 @@ function handleMessageUpdate(message) {
   if (state.activeContactId) renderMessages();
 }
 
-async function loadWorkspace() {
+async async function loadWorkspace() {
   const userId = state.user.id;
   const [profile, contactIds, messages] = await Promise.all([
     getProfile(userId), listContactIds(userId), listRecentMessages(userId),
