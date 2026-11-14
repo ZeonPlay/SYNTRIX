@@ -709,7 +709,7 @@ function handleMessageUpdate(message) {
   if (state.activeContactId) renderMessages();
 }
 
-async async function loadWorkspace() {
+async function loadWorkspace() {
   const userId = state.user.id;
   const [profile, contactIds, messages] = await Promise.all([
     getProfile(userId), listContactIds(userId), listRecentMessages(userId),
