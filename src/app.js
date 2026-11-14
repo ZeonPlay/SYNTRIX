@@ -189,6 +189,10 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/session_revoked/i.test(message)) return 'Sesi ini sudah dikeluarkan dari perangkat lain.';
   if (/device_limit/i.test(message)) return 'Terlalu banyak perangkat tercatat di akun ini. Keluarkan perangkat yang tidak dipakai.';
   if (/cannot_reject_self/i.test(message)) return 'Perangkat yang sedang kamu pakai tidak bisa dikeluarkan dari sini. Gunakan tombol Keluar.';
+  if (/e2ee_required/i.test(message)) return 'Pesan harus dienkripsi. Aktifkan dan buka E2EE terlebih dahulu.';
+  if (/e2ee_not_ready/i.test(message)) return 'Kontak ini belum mengaktifkan E2EE. Minta kontak mengaktifkannya sebelum mengirim pesan.';
+  if (/e2ee_not_enabled/i.test(message)) return 'E2EE belum diaktifkan di akun ini.';
+  if (/message_not_found/i.test(message)) return 'Pesan sudah dihapus dari percakapan.';
   console.warn('Unhandled error:', error);
   return fallback;
 }
@@ -286,6 +290,7 @@ function normalizeContacts(profiles) {
     .filter((profile) => profile && profile.id !== state.user.id && !seen.has(profile.id) && seen.add(profile.id))
     .map((profile) => ({
       id: profile.id, handle: profile.handle, display_name: profile.display_name,
+      public_key: profile.public_key ?? null,
     }));
 }
 
@@ -307,9 +312,13 @@ function renderAccount() {
 function renderKeyStatus() {
   const status = $('#keyStatus');
   if (!status) return;
-  status.textContent = state.keyReady
-    ? 'Aktif. Isi pesan hanya terbuka dengan kuncimu.'
-    : 'Belum diatur. Buat kunci agar pesan bisa dibuka.';
+  if (!state.e2eeState?.enabled) {
+    status.textContent = 'Belum aktif. Aktifkan E2EE untuk mulai mengirim pesan.';
+  } else if (state.e2eeUnlocked) {
+    status.textContent = 'Aktif dan terbuka di perangkat ini. Private key tetap terenkripsi di server.';
+  } else {
+    status.textContent = 'Aktif, tetapi terkunci di perangkat ini. Buka dengan passphrase E2EE.';
+  }
 }
 
 function contactPreview(contactId) {
@@ -443,38 +452,41 @@ function renderMessages({ scrollToBottom = false } = {}) {
   if (messages.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-messages';
-    empty.innerHTML = '<strong>No transmissions yet</strong>Write the first message below. It will be framed and encoded before it is stored.';
+    empty.innerHTML = '<strong>No transmissions yet</strong>Write the first encrypted message below. Only the two participants can decrypt it.';
     container.append(empty);
     return;
   }
 
   for (const message of messages) {
     const mine = message.sender_id === state.user.id;
-    const isUnlocked = state.decodedMessages.has(message.id);
+    const isUnlocked = state.e2eeUnlocked && state.decodedMessages.has(message.id);
     const decoded = state.decodedMessages.get(message.id);
     const frameCount = message.frame_count;
     const bits = state.bitsByMessage.get(message.id);
     const displayMode = isUnlocked ? (state.messageViewModes.get(message.id) || 'decoded') : 'signal';
     const showSignal = !isUnlocked || displayMode === 'signal';
     const row = document.createElement('article');
-    row.className = `message-row${mine ? ' mine' : ''}`;
+    row.className = 'message-row' + (mine ? ' mine' : '');
+    row.dataset.messageId = message.id;
     const timestamp = formatTime(message.created_at);
-    const action = isUnlocked
-      ? `
-        <button class="inspect-button" type="button" data-action="toggle-view" data-message-id="${message.id}">${showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I'}</button>
-      `
-      : `<button class="inspect-button" type="button" data-action="unlock" data-message-id="${message.id}">Masukkan kunci</button>`;
+    const viewAction = isUnlocked
+      ? '<button class="inspect-button" type="button" data-action="toggle-view" data-message-id="' + message.id + '">' +
+        (showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I') + '</button>'
+      : '<button class="inspect-button" type="button" data-action="unlock-e2ee" data-message-id="' + message.id + '">Buka E2EE</button>';
 
-    row.innerHTML = `
-      <span class="message-author">${mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')}</span>
-      <div class="message-bubble">
-        ${showSignal
+    row.innerHTML =
+      '<span class="message-author">' + (mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')) + '</span>' +
+      '<div class="message-bubble">' +
+        (showSignal
           ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I waveform"></canvas></div>'
-          : '<div class="decode-result"><span class="decoded-text"></span></div>'}
-        <div class="message-actions">${action}</div>
-      </div>
-      <div class="message-bottom"><span>${escapeHTML(timestamp)}</span>${mine && message.read_at ? '<span class="message-read">· Read</span>' : ''}</div>
-    `;
+          : '<div class="decode-result"><span class="decoded-text"></span></div>') +
+        '<div class="message-actions">' + viewAction +
+          '<button class="message-delete-button" type="button" data-action="delete" data-message-id="' + message.id + '" aria-label="Hapus pesan untuk kedua pihak">Hapus pesan</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="message-bottom"><span>' + escapeHTML(timestamp) + '</span>' +
+        (mine && message.read_at ? '<span class="message-read">· Read</span>' : '') +
+      '</div>';
 
     if (showSignal) {
       const signalBits = isUnlocked && bits ? bits : createLockedSignalPreview(frameCount);
