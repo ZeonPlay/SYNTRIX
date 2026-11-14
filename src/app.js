@@ -7,13 +7,18 @@ import {
   $, escapeHTML, formatTime, initials, openDialog, closeDialog, setBusy, showToast,
 } from './core/dom.js';
 import {
-  changeUnlockKey, getProfile, hasUnlockKey, setUnlockKey, signIn, signOut, signUp,
+  getProfile, signIn, signOut, signUp,
 } from './services/auth.service.js';
 import {
-  fetchMessageBits, fetchMessageMeta, findProfileByHandle, getProfilesByIds, insertMessage,
-  listContactIds, listRecentMessages, markConversationRead, saveContact,
+  deleteMessageForEveryone, fetchMessageMeta, fetchMessagePayloads,
+  findProfileByHandle, getProfilesByIds, insertMessage, listContactIds,
+  listRecentMessages, markConversationRead, saveContact,
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
+import {
+  changeE2eePassphrase, decryptE2eePayload, enableE2ee, encryptE2eePayload,
+  getE2eeState, unlockE2ee,
+} from './services/e2ee.service.js';
 import {
   acknowledgeDevice, fetchDevices, isSessionRevoked, registerDevice, rejectDevice,
 } from './services/device.service.js';
@@ -21,7 +26,8 @@ import {
 const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
   onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(), bitsByMessage: new Map(),
-  messageViewModes: new Map(), unlockTarget: null, bootingUserId: null, sending: false, keyReady: false,
+  messageViewModes: new Map(), bootingUserId: null, sending: false,
+  e2eeState: null, e2eeSession: null, e2eeUnlocked: false, deletingMessageIds: new Set(),
   deviceRowId: null, knownPendingIds: null, endingSession: false,
 };
 
