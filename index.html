@@ -224,7 +224,7 @@
     <form id="keyForm" class="modal-card">
       <div class="modal-header"><div><span class="eyebrow">End-to-end encryption</span><h2 id="keyDialogTitle">Aktifkan E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
       <p class="modal-description">Passphrase dipakai di perangkat untuk membuat kunci pembungkus private key. Simpan baik-baik: server tidak dapat memulihkan passphrase atau membaca pesanmu.</p>
-      <label id="oldKeyField" class="field" hidden><span id="oldKeyLabel">Kunci pembuka lama</span><input id="oldUnlockKey" type="password" autocomplete="current-password" maxlength="72" placeholder="Masukkan kunci lama"></label>
+      <label id="oldKeyField" class="field" hidden><span id="oldKeyLabel">Kunci pembuka lama</span><input id="oldUnlockKey" type="password" autocomplete="current-password" maxlength="128" placeholder="Masukkan kunci atau passphrase lama"></label>
       <label class="field"><span id="keyLabel">Passphrase E2EE baru</span><input id="newUnlockKey" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="Minimal 10 karakter"></label>
       <label class="field"><span>Konfirmasi passphrase</span><input id="confirmUnlockKey" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="Ketik ulang passphrase"></label>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Nanti</button><button id="keySubmit" class="button button-primary" type="submit">Aktifkan E2EE</button></div>
