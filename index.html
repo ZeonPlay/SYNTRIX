@@ -58,6 +58,22 @@
     </section>
   </main>
 
+  <main id="deviceGateView" class="device-gate-view" hidden>
+    <section class="device-gate-card" aria-labelledby="deviceGateTitle">
+      <span class="eyebrow"><span class="eyebrow-dot"></span> DEVICE VERIFICATION</span>
+      <div class="device-gate-icon" aria-hidden="true">⌁</div>
+      <h1 id="deviceGateTitle">Konfirmasi perangkat dulu</h1>
+      <p id="deviceGateMessage">SYNTRIX sedang memeriksa identitas perangkat ini.</p>
+      <p class="device-gate-note">Buka SYNTRIX dari perangkat yang sudah dikenal, lalu pilih <strong>“Ini aku”</strong> pada menu Keamanan.</p>
+      <p class="device-gate-recovery">Salah menekan <strong>“Bukan aku”</strong>? Masuk lagi dari browser yang sama. Perangkat akan didaftarkan ulang sebagai pending dan tetap meminta persetujuan.</p>
+      <div class="device-gate-actions">
+        <button id="deviceGateRetry" class="button button-primary" type="button">Periksa lagi</button>
+        <button id="deviceGateLogout" class="button button-quiet" type="button">Keluar</button>
+      </div>
+      <small id="deviceGateStatus" role="status">Memeriksa status perangkat…</small>
+    </section>
+  </main>
+
   <main id="appView" class="app-shell" data-view="contacts" hidden>
     <aside id="navRail" class="nav-rail" aria-label="Main navigation">
       <a class="brand-lockup" href="/" aria-label="SYNTRIX home">
