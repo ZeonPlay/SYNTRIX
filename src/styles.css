@@ -173,9 +173,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .directory-count { margin-left: auto; color: #9aa3b5; font: 9px var(--mono); letter-spacing: .08em; }
 .directory-content { display: grid; grid-template-columns: minmax(0,500px) minmax(300px,350px); justify-content: center; align-items: start; gap: 27px; width: 100%; margin: 25px auto 0; }
 .directory-list-column { display: flex; flex-direction: column; min-width: 0; }
-.directory-list-heading { display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 3px 2px 13px; }
-.directory-overline { color: #9aa2b3; font: 8px var(--mono); letter-spacing: .12em; }
-.directory-list-heading h2 { margin: 4px 0 0; color: var(--navy); font-size: 17px; font-weight: 800; letter-spacing: -.035em; }
 .add-contact-button { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border: 1px solid #dfe5ef; border-radius: 11px; background: #fff; color: #59627d; font-size: 10px; cursor: pointer; transition: border-color .2s,background .2s,transform .2s; }
 .add-contact-button:hover { transform: translateY(-1px); border-color: #bfc5f7; background: #f6f6ff; color: var(--indigo); }
 .add-contact-button > span { font-size: 17px; line-height: 1; }
@@ -439,8 +436,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .directory-header h1 { font-size: 17px; }
   .directory-count { font-size: 8px; }
   .directory-content { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
-  .directory-list-heading { display: flex; }
-  .directory-list-heading h2 { font-size: 15px; }
   .search-field { min-height: 48px; border-radius: 13px; }
   .contact-list { overflow: visible; }
   .directory-welcome { min-height: 240px; padding: 20px; border-radius: 18px; }
@@ -687,11 +682,11 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
   transition: opacity .14s ease, padding .72s var(--ease), width .72s var(--ease);
 }
 .directory-header {
-  max-height: 46px;
-  overflow: hidden;
-  transform: translateY(0);
+  max-height: none;
+  overflow: visible;
+  transform: none;
   opacity: 1;
-  transition: max-height .55s var(--ease), opacity .22s ease, transform .55s var(--ease), margin .55s var(--ease);
+  transition: none;
 }
 .directory-content {
   grid-template-columns: minmax(0,1fr) minmax(0,350px);
@@ -733,29 +728,25 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
   margin: 0;
 }
 .app-shell.has-chat .directory-header {
-  max-height: 0;
+  max-height: none;
+  width: 100%;
   margin: 0;
-  opacity: 0;
-  transform: translateY(-9px);
-  pointer-events: none;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
+.app-shell.has-chat .directory-header .directory-add-button { margin-left: auto; }
 .app-shell.has-chat .directory-content {
   display: grid;
   grid-template-columns: minmax(0,1fr) 0px;
   gap: 0;
   max-width: none;
   min-height: 0;
-  margin: 0;
+  margin: 10px 0 0;
 }
 .app-shell.has-chat .directory-list-column {
   max-width: none;
   min-height: 0;
-}
-.app-shell.has-chat .directory-list-heading {
-  max-height: 52px;
-  padding: 3px 13px 13px 2px;
-  opacity: 1;
-  transform: translateY(0);
 }
 .app-shell.has-chat .directory-welcome {
   width: 0;
