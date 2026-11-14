@@ -567,9 +567,59 @@ function updateConversationHeader() {
   $('#chatStatusDot').classList.toggle('online', online);
 }
 
+let contactSwitchInProgress = false;
+
+function waitForDirectoryFade(element) {
+  return new Promise((resolve) => {
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      element.removeEventListener('transitionend', onTransitionEnd);
+      window.clearTimeout(fallback);
+      resolve();
+    };
+    const onTransitionEnd = (event) => {
+      if (event.target === element && event.propertyName === 'opacity') finish();
+    };
+    const fallback = window.setTimeout(finish, 190);
+    element.addEventListener('transitionend', onTransitionEnd);
+  });
+}
+
+async function beginContactSwitchFade() {
+  const canFade = window.innerWidth > 700 &&
+    appView.dataset.view === 'contacts' &&
+    !appView.classList.contains('has-chat') &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!canFade) return false;
+  if (contactSwitchInProgress) return null;
+
+  const directoryInner = appView.querySelector('.directory-inner');
+  if (!directoryInner) return false;
+
+  contactSwitchInProgress = true;
+  appView.classList.add('is-contact-switching');
+  await waitForDirectoryFade(directoryInner);
+  return true;
+}
+
+function endContactSwitchFade() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      appView.classList.remove('is-contact-switching');
+      contactSwitchInProgress = false;
+    });
+  });
+}
+
 async function selectContact(contactId) {
   const contact = state.contacts.find((item) => item.id === contactId);
-  if (!contact) return;
+  if (!contact || contactSwitchInProgress) return;
+
+  const fadeStarted = await beginContactSwitchFade();
+  if (fadeStarted === null) return;
 
   state.activeContactId = contactId;
   if (appView.dataset.view !== 'contacts') setAppView('contacts');
@@ -582,6 +632,7 @@ async function selectContact(contactId) {
   renderContacts();
   renderMessages({ scrollToBottom: true });
   void loadConversationSignals(contactId);
+  if (fadeStarted) endContactSwitchFade();
 
   const unseen = state.messages.some((message) =>
     message.sender_id === contactId &&
