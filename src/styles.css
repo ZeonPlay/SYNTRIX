@@ -735,6 +735,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
   transform: none;
   pointer-events: auto;
 }
+.app-shell.has-chat .directory-header { padding-right: 13px; }
 .app-shell.has-chat .directory-header .directory-add-button { margin-left: auto; }
 .app-shell.has-chat .directory-content {
   display: grid;
