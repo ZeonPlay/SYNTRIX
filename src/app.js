@@ -181,6 +181,8 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/failed to fetch|networkerror|load failed/i.test(message)) return 'Tidak dapat terhubung ke server. Periksa internet dan konfigurasi Supabase.';
   if (/row-level security|permission denied/i.test(message)) return 'Akses database ditolak. Periksa migration dan kebijakan RLS Supabase.';
   if (/device_not_trusted/i.test(message)) return 'Perangkat ini belum dikonfirmasi sebagai milikmu, jadi belum bisa mengelola perangkat lain.';
+  if (/device_not_approved/i.test(message)) return 'Perangkat ini belum disetujui. Tunggu konfirmasi dari perangkat yang sudah dikenal.';
+  if (/device_identity_mismatch/i.test(message)) return 'Identitas perangkat berubah. Keluar, lalu masuk kembali dari browser ini.';
   if (/session_revoked/i.test(message)) return 'Sesi ini sudah dikeluarkan dari perangkat lain.';
   if (/device_limit/i.test(message)) return 'Terlalu banyak perangkat tercatat di akun ini. Keluarkan perangkat yang tidak dipakai.';
   if (/cannot_reject_self/i.test(message)) return 'Perangkat yang sedang kamu pakai tidak bisa dikeluarkan dari sini. Gunakan tombol Keluar.';
@@ -1227,6 +1229,8 @@ async function enterApp(user) {
   if (state.user?.id === user.id && (!appView.hidden || !deviceGateView.hidden)) return;
   state.bootingUserId = user.id;
   state.user = user;
+  state.workspaceLoaded = false;
+  state.workspaceLoading = false;
   showDeviceApprovalGate();
   window.requestAnimationFrame(updateNavActivePill);
   $('#emptyState').hidden = false;
