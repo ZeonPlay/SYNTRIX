@@ -21,7 +21,7 @@ import {
   getE2eeState, unlockE2ee,
 } from './services/e2ee.service.js';
 import {
-  acknowledgeDevice, fetchDevices, isSessionRevoked, registerDevice, rejectDevice,
+  acknowledgeDevice, fetchDevices, hasPersistentDeviceId, isSessionRevoked, registerDevice, rejectDevice,
 } from './services/device.service.js';
 
 const state = {
@@ -1038,6 +1038,8 @@ function handleDeviceEvent({ row } = {}) {
 const DEVICE_HEARTBEAT_MS = 30_000;
 let deviceHeartbeatTimer = null;
 let deviceTickRunning = false;
+let deviceRegistrationWarningShown = false;
+let deviceStorageWarningShown = false;
 
 function stopDeviceHeartbeat() {
   if (deviceHeartbeatTimer) window.clearInterval(deviceHeartbeatTimer);
@@ -1063,15 +1065,39 @@ async function endRevokedSession() {
 
 // Keeps last_seen_at and the location current, notices a revoked session, and
 // re-reads alerts even if the realtime event for a new device was missed.
-async function deviceTick() {
-  if (deviceTickRunning || !state.user) return;
+async function deviceTick({ reportFailure = false } = {}) {
+  if (deviceTickRunning || !state.user) return false;
   deviceTickRunning = true;
   try {
     state.deviceRowId = await registerDevice();
+    deviceRegistrationWarningShown = false;
+
+    if (!hasPersistentDeviceId() && !deviceStorageWarningShown) {
+      deviceStorageWarningShown = true;
+      showToast(
+        'Browser ini tidak menyimpan identitas perangkat. Login berikutnya mungkin terbaca sebagai perangkat baru.',
+        'error'
+      );
+    } else if (hasPersistentDeviceId()) {
+      deviceStorageWarningShown = false;
+    }
+
     await refreshDevices();
+    return true;
   } catch (error) {
-    if (isSessionRevoked(error)) await endRevokedSession();
-    else console.warn('Device heartbeat failed:', error.message);
+    if (isSessionRevoked(error)) {
+      await endRevokedSession();
+    } else {
+      console.warn('Device heartbeat failed:', error.message);
+      if (reportFailure && !deviceRegistrationWarningShown) {
+        deviceRegistrationWarningShown = true;
+        showToast(
+          'Login berhasil, tetapi perangkat belum berhasil dicatat. Periksa koneksi lalu muat ulang halaman.',
+          'error'
+        );
+      }
+    }
+    return false;
   } finally {
     deviceTickRunning = false;
   }
@@ -1093,7 +1119,7 @@ window.addEventListener('online', () => {
 });
 
 async function syncDevices() {
-  await deviceTick();
+  await deviceTick({ reportFailure: true });
   if (state.user && !state.endingSession) startDeviceHeartbeat();
 }
 
@@ -1140,8 +1166,11 @@ async function enterApp(user) {
   $('#conversationView').hidden = true;
   $('#messages').replaceChildren();
   try {
-    await loadWorkspace();
+    // Register this browser as soon as authentication succeeds. Device tracking
+    // must not be skipped just because a later workspace/E2EE request fails.
     await syncDevices();
+    if (!state.user || state.user.id !== user.id) return;
+    await loadWorkspace();
   } catch (error) {
     showToast(friendlyError(error, 'Tidak dapat memuat workspace.'), 'error');
     console.error(error);
@@ -1156,6 +1185,8 @@ async function leaveApp() {
   window.clearTimeout(deviceRefreshTimer);
   state.deviceRowId = null;
   state.knownPendingIds = null;
+  deviceRegistrationWarningShown = false;
+  deviceStorageWarningShown = false;
   renderDevices([]);
   state.disconnectRealtime?.();
   state.disconnectRealtime = null;

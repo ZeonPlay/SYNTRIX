@@ -3,19 +3,28 @@ import { parseUserAgent } from '../core/useragent.js';
 
 const STORAGE_KEY = 'syntrix-device-id';
 let memoryId = null;
+let persistentDeviceId = false;
 
 export function getDeviceId() {
   try {
     let id = localStorage.getItem(STORAGE_KEY);
-    if (!id) {
+    if (!id || id.length < 8 || id.length > 64) {
       id = crypto.randomUUID();
       localStorage.setItem(STORAGE_KEY, id);
     }
+    persistentDeviceId = true;
     return id;
   } catch {
+    // Keep the current tab usable, but do not pretend this ID will survive a
+    // reload. The UI warns the user that the browser cannot remember this device.
+    persistentDeviceId = false;
     memoryId ||= crypto.randomUUID();
     return memoryId;
   }
+}
+
+export function hasPersistentDeviceId() {
+  return persistentDeviceId;
 }
 
 // Details sent with every heartbeat. The browser can only describe itself, so
