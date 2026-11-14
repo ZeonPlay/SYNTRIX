@@ -2012,3 +2012,28 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
     transition-delay: 0s;
   }
 }
+
+
+/* Own-message delete controls intentionally match incoming-message controls. */
+.message-row.mine .message-delete-button {
+  border: 1px solid rgba(194,67,86,.34);
+  background: #fff0f2;
+  color: #a92f48;
+}
+.message-row.mine .message-delete-button:hover:not(:disabled),
+.message-row.mine .message-delete-button:focus-visible:not(:disabled) {
+  border-color: #c9435b;
+  background: #c9435b;
+  color: #fff;
+}
+html[data-theme="dark"] .message-row.mine .message-delete-button {
+  border: 1px solid rgba(255,141,160,.38);
+  background: rgba(185,55,79,.17);
+  color: #ffb9c5;
+}
+html[data-theme="dark"] .message-row.mine .message-delete-button:hover:not(:disabled),
+html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:not(:disabled) {
+  border-color: #ef899b;
+  background: #c9435b;
+  color: #fff;
+}
