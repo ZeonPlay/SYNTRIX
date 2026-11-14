@@ -1257,7 +1257,6 @@ $('#addContactBtn').addEventListener('click', () => {
   $('#contactHandle').focus();
 });
 $('#emptyAddContactBtn').addEventListener('click', () => $('#addContactBtn').click());
-$('#drawerAddContactBtn').addEventListener('click', () => $('#addContactBtn').click());
 
 $('#contactForm').addEventListener('submit', async (event) => {
   event.preventDefault();
