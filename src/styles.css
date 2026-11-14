@@ -224,7 +224,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 /* Chat stage: the directory becomes a side drawer */
 .app-shell.has-chat .directory-view { grid-column: 2; overflow: hidden; border-right: 1px solid #e8ebf2; background: #fafbfe; }
 .app-shell.has-chat .directory-inner { width: 100%; min-height: 0; padding: 19px 0 16px 15px; }
-.app-shell.has-chat .directory-header { display: none; }
+
 .app-shell.has-chat .directory-content { display: flex; flex: 1; flex-direction: column; justify-content: flex-start; gap: 0; min-height: 0; margin: 0; }
 .app-shell.has-chat .directory-list-column { flex: 1; min-height: 0; }
 .app-shell.has-chat .directory-list-heading { display: flex; padding-right: 13px; }
@@ -696,7 +696,7 @@ html[data-theme="dark"] .app-shell:not(.has-chat)[data-view="settings"] {
 .directory-content {
   grid-template-columns: minmax(0,1fr) minmax(0,350px);
   max-width: 880px;
-  transition: margin .62s var(--ease), gap .62s var(--ease);
+  transition: grid-template-columns .72s var(--ease), margin .62s var(--ease), gap .62s var(--ease);
 }
 .directory-list-column {
   width: 100%;
@@ -2074,4 +2074,41 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
     padding: 0;
     border-radius: 50%;
   }
+}
+
+/* Stable directory morph: preserve contact DOM nodes and interpolate only
+   their geometry when the shell enters chat mode. */
+.search-field {
+  transition:
+    min-height .62s var(--ease),
+    margin .62s var(--ease),
+    padding .62s var(--ease),
+    border-radius .62s var(--ease),
+    border-color .2s,
+    box-shadow .2s;
+}
+.contact-list {
+  transition: gap .62s var(--ease), margin .62s var(--ease), padding .62s var(--ease);
+}
+.contact-item {
+  transition:
+    min-height .62s var(--ease),
+    padding .62s var(--ease),
+    gap .62s var(--ease),
+    transform .32s var(--ease),
+    border-color .25s,
+    background .25s,
+    box-shadow .25s,
+    border-radius .4s var(--ease);
+}
+.directory-welcome {
+  transition:
+    width .62s var(--ease),
+    max-height .62s var(--ease),
+    min-height .62s var(--ease),
+    padding .62s var(--ease),
+    border-width .62s var(--ease),
+    opacity .25s ease,
+    transform .62s var(--ease),
+    background-color .3s ease;
 }
