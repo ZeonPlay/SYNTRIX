@@ -32,18 +32,6 @@ const state = {
   deviceRowId: null, knownPendingIds: null, endingSession: false,
 };
 
-// A safe sample waveform is shown while the real payload is protected by the key.
-// The real NRZ-I waveform is rendered only after the payload has been authorized.
-const LOCKED_SIGNAL_SAMPLE = textToBitStream('NRZI SAMPLE');
-
-function createLockedSignalPreview(frameCount) {
-  const previewFrames = Math.min(Math.max(Number(frameCount) || 1, 1), 24);
-  const previewLength = previewFrames * 10;
-  return LOCKED_SIGNAL_SAMPLE
-    .repeat(Math.ceil(previewLength / LOCKED_SIGNAL_SAMPLE.length))
-    .slice(0, previewLength);
-}
-
 const THEME_STORAGE_KEY = 'syntrix-theme';
 const themeToggle = $('#themeToggle');
 const themeModeLabel = $('#themeModeLabel');
@@ -114,6 +102,7 @@ const loginForm = $('#loginForm');
 const registerForm = $('#registerForm');
 const contactDialog = $('#contactDialog');
 const e2eeUnlockDialog = $('#e2eeUnlockDialog');
+const messageUnlockDialog = $('#messageUnlockDialog');
 const keyDialog = $('#keyDialog');
 const inspectorDialog = $('#inspectorDialog');
 const navRail = $('#navRail');
@@ -373,13 +362,10 @@ function renderContacts() {
       <span class="contact-detail">
         <span class="contact-name-row">
           <strong>${escapeHTML(contact.display_name)}</strong>
-          <span class="contact-handle">@${escapeHTML(contact.handle)}</span>
-        </span>
+            </span>
         <span class="contact-status-line ${isOnline ? 'online' : ''}">${isOnline ? 'Online' : 'Offline'}</span>
         <span class="contact-preview">${escapeHTML(contactPreview(contact.id))}</span>
       </span>
-      <span class="active-cutout active-cutout-top" aria-hidden="true"></span>
-      <span class="active-cutout active-cutout-bottom" aria-hidden="true"></span>
       ${lastTime ? `<time class="contact-time">${escapeHTML(lastTime)}</time>` : ''}
       ${unread ? `<span class="unread-count">${unread > 99 ? '99+' : unread}</span>` : ''}
     `;
@@ -460,26 +446,29 @@ function renderMessages({ scrollToBottom = false } = {}) {
 
   for (const message of messages) {
     const mine = message.sender_id === state.user.id;
-    const isUnlocked = state.e2eeUnlocked && state.decodedMessages.has(message.id);
+    const isDecoded = state.decodedMessages.has(message.id);
     const decoded = state.decodedMessages.get(message.id);
-    const frameCount = message.frame_count;
     const bits = state.bitsByMessage.get(message.id);
-    const displayMode = isUnlocked ? (state.messageViewModes.get(message.id) || 'decoded') : 'signal';
-    const showSignal = !isUnlocked || displayMode === 'signal';
+    const displayMode = isDecoded ? (state.messageViewModes.get(message.id) || 'decoded') : 'signal';
+    const showSignal = !isDecoded || displayMode === 'signal';
     const row = document.createElement('article');
     row.className = 'message-row' + (mine ? ' mine' : '');
     row.dataset.messageId = message.id;
     const timestamp = formatTime(message.created_at);
-    const viewAction = isUnlocked
+    const viewAction = isDecoded
       ? '<button class="inspect-button" type="button" data-action="toggle-view" data-message-id="' + message.id + '">' +
-        (showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal NRZ-I') + '</button>'
-      : '<button class="inspect-button" type="button" data-action="unlock-e2ee" data-message-id="' + message.id + '">Buka E2EE</button>';
+        (showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal') + '</button>'
+      : '<button class="inspect-button" type="button" data-action="unlock-message" data-message-id="' + message.id + '">Masukkan kunci</button>';
 
     row.innerHTML =
       '<span class="message-author">' + (mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')) + '</span>' +
       '<div class="message-bubble">' +
         (showSignal
-          ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I waveform"></canvas></div>'
+          ? '<div class="wave-mini-wrap">' +
+            (bits
+              ? '<canvas class="wave-mini" aria-label="Encrypted NRZ-I signal"></canvas>'
+              : '<span class="wave-mini-pending">Memuat sinyal terenkripsi…</span>') +
+            '</div>'
           : '<div class="decode-result"><span class="decoded-text"></span></div>') +
         '<div class="message-actions">' + viewAction +
           '<button class="message-delete-button" type="button" data-action="delete" data-message-id="' + message.id + '" aria-label="Hapus pesan untuk kedua pihak">Hapus pesan</button>' +
@@ -489,10 +478,9 @@ function renderMessages({ scrollToBottom = false } = {}) {
         (mine && message.read_at ? '<span class="message-read">· Read</span>' : '') +
       '</div>';
 
-    if (showSignal) {
-      const signalBits = isUnlocked && bits ? bits : createLockedSignalPreview(frameCount);
-      renderMiniSignal(row.querySelector('canvas'), signalBits);
-    } else {
+    if (showSignal && bits) {
+      renderMiniSignal(row.querySelector('canvas'), bits);
+    } else if (!showSignal) {
       row.querySelector('.decoded-text').textContent = decoded;
     }
     container.append(row);
@@ -508,7 +496,7 @@ function updateConversationHeader() {
   const contact = state.contacts.find((item) => item.id === state.activeContactId);
   if (!contact) return;
   $('#chatAvatar').textContent = initials(contact.display_name);
-  $('#chatName').textContent = `${contact.display_name} · @${contact.handle}`;
+  $('#chatName').textContent = contact.display_name;
   const online = state.onlineUsers.has(contact.id);
   $('#chatStatus').textContent = online ? 'Online' : 'Offline';
   $('#chatStatusDot').classList.toggle('online', online);
@@ -528,6 +516,7 @@ async function selectContact(contactId) {
   updateConversationHeader();
   renderContacts();
   renderMessages({ scrollToBottom: true });
+  void loadConversationSignals(contactId);
 
   const unseen = state.messages.some((message) =>
     message.sender_id === contactId &&
@@ -577,35 +566,23 @@ function upsertMessage(message) {
   return true;
 }
 
-async function decryptStoredMessages(targetMessages = state.messages) {
-  if (!state.e2eeUnlocked || !state.e2eeSession?.privateKey) return;
-  const pending = targetMessages.filter((message) =>
-    message?.enc_version === 1 && !state.decodedMessages.has(message.id)
-  );
-  if (pending.length === 0) return;
+async function loadConversationSignals(contactId = state.activeContactId) {
+  if (!contactId || !state.user) return;
+  const pending = state.messages.filter((message) => (
+    (message.sender_id === state.user.id && message.receiver_id === contactId) ||
+    (message.sender_id === contactId && message.receiver_id === state.user.id)
+  ) && message.enc_version === 1 && !message.deleted_at && !state.bitsByMessage.has(message.id));
 
-  const payloads = await fetchMessagePayloads(pending.map((message) => message.id));
-  const byId = new Map(payloads.map((row) => [row.id, row.payload_bits]));
-  for (const message of pending) {
-    const payloadBits = byId.get(message.id);
-    if (!payloadBits) continue;
-    const peerId = partnerId(message);
-    const peer = state.contacts.find((contact) => contact.id === peerId);
-    try {
-      const plaintext = await decryptE2eePayload({
-        payloadBits,
-        privateKey: state.e2eeSession.privateKey,
-        ownPublicKeyB64: state.e2eeSession.publicKeyB64,
-        peerPublicKeyB64: peer?.public_key,
-        userId: state.user.id,
-        message,
-      });
-      state.bitsByMessage.set(message.id, payloadBits);
-      state.decodedMessages.set(message.id, plaintext);
-      state.messageViewModes.set(message.id, 'decoded');
-    } catch (error) {
-      console.warn('Unable to decrypt message ' + message.id + ':', error);
+  if (pending.length === 0) return;
+  try {
+    // E2EE ciphertext is safe to display as a waveform before the user decrypts it.
+    const payloads = await fetchMessagePayloads(pending.map((message) => message.id));
+    for (const payload of payloads) {
+      if (payload?.id && payload.payload_bits) state.bitsByMessage.set(payload.id, payload.payload_bits);
     }
+    if (state.activeContactId === contactId) renderMessages();
+  } catch (error) {
+    console.warn('Unable to load encrypted signal payloads:', error.message);
   }
 }
 
@@ -682,9 +659,7 @@ async function handleIncomingMessage(rawMessage) {
   const inserted = upsertMessage(message);
   const otherId = partnerId(message);
   await ensureContactForUser(otherId);
-  if (state.e2eeUnlocked && message.enc_version === 1) {
-    await decryptStoredMessages([message]);
-  }
+  if (state.activeContactId === otherId) void loadConversationSignals(otherId);
 
   if (message.receiver_id === state.user.id && state.activeContactId === otherId) {
     try {
@@ -755,8 +730,8 @@ async function loadWorkspace() {
       console.warn('Unable to restore local E2EE key:', error.message);
     }
     state.e2eeUnlocked = Boolean(state.e2eeSession?.privateKey);
-    if (!state.e2eeUnlocked) openE2eeUnlockDialog();
-    else await decryptStoredMessages();
+    // Do not ask for the key just to enter the chat. Reading a message has its
+    // own per-message prompt; sending asks for the key only when necessary.
   }
   renderKeyStatus();
 
@@ -1232,8 +1207,8 @@ $('#messageForm').addEventListener('submit', async (event) => {
     const message = await insertMessage(state.user.id, contact.id, encrypted.payloadBits);
     upsertMessage(message);
     state.bitsByMessage.set(message.id, encrypted.payloadBits);
-    state.decodedMessages.set(message.id, plaintext);
-    state.messageViewModes.set(message.id, 'decoded');
+    // Outgoing messages stay locked too; the sender must enter the E2EE key
+    // for this individual message when they want to read it.
     $('#messageInput').value = '';
     $('#messageCounter').textContent = '0 / ' + MAX_MESSAGE_LENGTH;
     renderMessages();
@@ -1266,13 +1241,64 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
     }
     closeDialog(e2eeUnlockDialog);
     $('#e2eeUnlockForm').reset();
-    await decryptStoredMessages();
     renderKeyStatus();
     renderMessages();
     renderContacts();
     showToast('E2EE berhasil dibuka di perangkat ini.', 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal membuka E2EE.'), 'error');
+  } finally {
+    setBusy(button, false);
+  }
+});
+
+$('#messageUnlockForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = $('#messageUnlockForm');
+  const messageId = form.dataset.messageId;
+  const message = state.messages.find((item) => item.id === messageId);
+  if (!message || message.deleted_at) {
+    showToast('Pesan sudah tidak tersedia.', 'error');
+    closeDialog(messageUnlockDialog);
+    return;
+  }
+
+  const passphrase = $('#messageUnlockPassphrase').value;
+  const button = $('#messageUnlockSubmit');
+  setBusy(button, true, 'Membuka pesan...');
+  try {
+    // The passphrase only unwraps this account's private key in this browser.
+    // It is deliberately not cached or sent to Supabase.
+    const messageSession = await unlockE2ee(passphrase);
+    let payloadBits = state.bitsByMessage.get(message.id);
+    if (!payloadBits) {
+      const payloads = await fetchMessagePayloads([message.id]);
+      payloadBits = payloads.find((item) => item.id === message.id)?.payload_bits;
+    }
+    if (!payloadBits) throw new Error('Payload sinyal pesan tidak ditemukan.');
+
+    const peer = state.contacts.find((contact) => contact.id === partnerId(message));
+    if (!peer?.public_key) throw new Error('Public key kontak tidak tersedia.');
+    const plaintext = await decryptE2eePayload({
+      payloadBits,
+      privateKey: messageSession.privateKey,
+      ownPublicKeyB64: messageSession.publicKeyB64,
+      peerPublicKeyB64: peer.public_key,
+      userId: state.user.id,
+      message,
+    });
+
+    state.bitsByMessage.set(message.id, payloadBits);
+    state.decodedMessages.set(message.id, plaintext);
+    state.messageViewModes.set(message.id, 'decoded');
+    closeDialog(messageUnlockDialog);
+    form.reset();
+    form.dataset.messageId = '';
+    renderMessages();
+    renderContacts();
+    showToast('Pesan berhasil dibuka.', 'success');
+  } catch (error) {
+    showToast(friendlyError(error, 'Kunci E2EE salah atau pesan tidak dapat dibuka.'), 'error');
   } finally {
     setBusy(button, false);
   }
@@ -1328,7 +1354,6 @@ $('#keyForm').addEventListener('submit', async (event) => {
     $('#keyForm').reset();
     $('#keyForm').dataset.mode = 'enable';
     closeDialog(keyDialog);
-    await decryptStoredMessages();
     renderKeyStatus();
     renderMessages();
     renderContacts();
@@ -1384,7 +1409,7 @@ document.querySelectorAll('[data-close]').forEach((button) => {
   button.addEventListener('click', () => closeDialog(document.getElementById(button.dataset.close)));
 });
 
-for (const dialog of [contactDialog, e2eeUnlockDialog, keyDialog, inspectorDialog]) {
+for (const dialog of [contactDialog, e2eeUnlockDialog, messageUnlockDialog, keyDialog, inspectorDialog]) {
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) closeDialog(dialog);
   });
@@ -1545,8 +1570,12 @@ $('#messages').addEventListener('click', async (event) => {
   if (!button) return;
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
   if (!message) return;
-  if (button.dataset.action === 'unlock-e2ee') {
-    openE2eeUnlockDialog();
+  if (button.dataset.action === 'unlock-message') {
+    const form = $('#messageUnlockForm');
+    form.reset();
+    form.dataset.messageId = message.id;
+    openDialog(messageUnlockDialog);
+    $('#messageUnlockPassphrase').focus();
     return;
   }
   if (button.dataset.action === 'delete') {
