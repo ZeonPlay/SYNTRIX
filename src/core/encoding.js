@@ -11,7 +11,7 @@ export function buildFrames(text, maxLength = MAX_MESSAGE_LENGTH) {
     throw new Error('Pesan tidak boleh kosong.');
   }
   if (!Number.isInteger(maxLength) || maxLength < 1 || text.length > maxLength) {
-    throw new Error('Payload melebihi batas ' + maxLength + ' karakter.');
+    throw new Error('Payload maksimal ' + maxLength + ' karakter.');
   }
   if (!/^[\x20-\x7E]+$/.test(text)) {
     throw new Error('Gunakan karakter ASCII yang dapat dicetak. Emoji dan huruf non-ASCII belum didukung.');
