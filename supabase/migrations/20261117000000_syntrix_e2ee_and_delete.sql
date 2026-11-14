@@ -52,22 +52,28 @@ alter table public.messages
 -- A deleted message keeps its row (so Realtime can tell the other side) but loses its payload.
 alter table public.messages alter column payload_bits drop not null;
 
--- Drop the old size check (<= 5000 bits), whatever it is named, and replace it.
-do $$
+-- Drop old payload-size checks regardless of their name or old limit
+-- (some existing SYNTRIX databases used 5000 or 8000 bits).
+do $
 declare
   r record;
+  v_definition text;
 begin
   for r in
-    select c.conname
+    select c.conname, pg_get_constraintdef(c.oid) as definition
     from pg_constraint c
     where c.conrelid = 'public.messages'::regclass
       and c.contype = 'c'
-      and pg_get_constraintdef(c.oid) ilike '%5000%'
   loop
-    execute format('alter table public.messages drop constraint %I', r.conname);
+    v_definition := lower(r.definition);
+    if v_definition like '%payload_bits%'
+       and (v_definition like '%char_length%' or v_definition like '%length(%')
+       and v_definition not like '%is_valid_syntrix_bits%' then
+      execute format('alter table public.messages drop constraint %I', r.conname);
+    end if;
   end loop;
 end;
-$$;
+$;
 
 -- E2EE envelopes are base64 and longer than plain ASCII frames: up to 1500 frames.
 alter table public.messages drop constraint if exists messages_payload_size_check;
@@ -121,6 +127,57 @@ drop trigger if exists messages_require_e2ee on public.messages;
 create trigger messages_require_e2ee
   before insert on public.messages
   for each row execute function private.messages_require_e2ee();
+
+-- Compatibility helper for databases where the legacy unlock RPC was
+-- already removed but private.user_security still contains bcrypt hashes.
+-- The raw passphrase is checked only during first-time E2EE activation;
+-- subsequent backup access checks the derived E2EE auth token.
+create or replace function private.check_unlock_key(p_uid uuid, p_key text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_hash text;
+  v_failed smallint;
+  v_locked_until timestamptz;
+  v_new_failed integer;
+begin
+  if p_uid is null or p_key is null then
+    return false;
+  end if;
+
+  select s.unlock_key_hash, s.failed_attempts, s.locked_until
+    into v_hash, v_failed, v_locked_until
+    from private.user_security s
+   where s.user_id = p_uid
+   for update;
+
+  if not found or v_hash is null then
+    return false;
+  end if;
+  if v_locked_until is not null and v_locked_until > now() then
+    return false;
+  end if;
+
+  if octet_length(p_key) <= 72 and extensions.crypt(p_key, v_hash) = v_hash then
+    update private.user_security
+       set failed_attempts = 0, locked_until = null
+     where user_id = p_uid;
+    return true;
+  end if;
+
+  v_new_failed := case when octet_length(p_key) > 72 then 5 else coalesce(v_failed, 0) + 1 end;
+  update private.user_security
+     set failed_attempts = case when v_new_failed >= 5 then 0 else v_new_failed end,
+         locked_until = case when v_new_failed >= 5 then now() + interval '5 minutes' else null end,
+         lockouts = case when v_new_failed >= 5 then least(lockouts + 1, 32767) else lockouts end
+   where user_id = p_uid;
+  return false;
+end;
+$;
+revoke all on function private.check_unlock_key(uuid, text) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- 3. E2EE functions
@@ -330,8 +387,18 @@ $$;
 
 -- The old raw-key functions would desynchronise the key from the wrapped private key.
 -- Activation and passphrase changes now go through enable_e2ee / change_e2ee_passphrase.
-revoke execute on function public.set_message_unlock_key(text) from authenticated;
-revoke execute on function public.change_message_unlock_key(text, text) from authenticated;
+-- Some existing projects no longer have these legacy RPCs. Revoke them
+-- only when they actually exist, so the E2EE migration remains portable.
+do $
+begin
+  if to_regprocedure('public.set_message_unlock_key(text)') is not null then
+    execute 'revoke execute on function public.set_message_unlock_key(text) from authenticated';
+  end if;
+  if to_regprocedure('public.change_message_unlock_key(text,text)') is not null then
+    execute 'revoke execute on function public.change_message_unlock_key(text,text) from authenticated';
+  end if;
+end;
+$;
 
 -- ---------------------------------------------------------------------
 -- 4. Message deletion
