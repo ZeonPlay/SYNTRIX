@@ -266,6 +266,21 @@ const pairs = [
   ['Showing the first 120 characters; the complete list is available in the frame table.', 'Menampilkan 120 karakter pertama; daftar lengkap tersedia di tabel frame.'],
   ['Each frame = start bit + 7 data bits + even parity + stop bit.', 'Setiap frame = bit awal + 7 bit data + paritas genap + bit akhir.'],
   ['H = HIGH and L = LOW. A transmitted 1 changes the level; a 0 keeps it.', 'H = HIGH dan L = LOW. Bit 1 mengubah level; bit 0 mempertahankan level.']
+
+  ['Open SYNTRIX from a trusted device, then select', 'Buka SYNTRIX dari perangkat yang sudah dikenal, lalu pilih'],
+  ['from the Security menu.', 'pada menu Keamanan.'],
+  ['Did you accidentally select', 'Salah menekan'],
+  ['? Sign in again from the same browser. The device will be registered again as pending and will still require approval.', '? Masuk lagi dari browser yang sama. Perangkat akan didaftarkan ulang sebagai pending dan tetap meminta persetujuan.'],
+  ['Start a Conversation', 'Mulai Percakapan'],
+  ['Select a contact on the left to start a chat and open the real-time messaging space.', 'Klik kontak di sebelah kiri untuk memulai chat dan membuka ruang pesan real-time.'],
+  ['A new device signed in to your account', 'Ada perangkat baru masuk ke akunmu'],
+  ['If this was you, select "This is me". If not, select "Not me": that device will be signed out of SYNTRIX immediately. Afterward, consider changing your message key and password.', 'Kalau itu kamu, pilih "Ini aku". Kalau bukan, pilih "Bukan aku": perangkat itu langsung dikeluarkan dari SYNTRIX. Setelah itu, sebaiknya ganti kunci pesan dan password.'],
+  ['This account is also being used on another device. The account owner must select "This is me" for this device from a trusted device. If rejected, you will be signed out automatically.', 'Akun ini juga dipakai di perangkat lain. Pemilik akun perlu memilih "Ini aku" untuk perangkat ini dari perangkat yang sudah dikenal. Kalau ditolak, kamu akan otomatis keluar.'],
+  ['The ECDH key pair is generated in your browser. The private key is wrapped with AES-GCM using a key derived from your passphrase with PBKDF2, then the encrypted backup is stored on the server. Your passphrase and plaintext private key are never sent to Supabase.', 'Pasangan kunci ECDH dibuat di browser. Private key dibungkus AES-GCM menggunakan kunci yang diturunkan dari passphrase dengan PBKDF2, lalu backup terenkripsi disimpan di server. Passphrase dan private key plaintext tidak dikirim ke Supabase.'],
+  ['Add a contact', 'Tambahkan kontak'],
+  ['The passphrase is used on this device to create a wrapping key for your private key. Keep it safe: the server cannot recover your passphrase or read your messages.', 'Passphrase dipakai di perangkat untuk membuat kunci pembungkus private key. Simpan baik-baik: server tidak dapat memulihkan passphrase atau membaca pesanmu.'],
+  ['You have a new message.', 'Pesan baru diterima.'],
+  ['Unknown', 'Tidak diketahui']
 ];
 
 const english = new Map(pairs.map(([en, id]) => [id, en]));
@@ -302,6 +317,10 @@ function translateDynamic(value, target) {
     if (match) return match[1] + ' (approximate)';
     match = value.match(/^Frame tidak valid: (.+)$/);
     if (match) return 'Invalid frame: ' + match[1];
+    match = value.match(/^Handle @(.+) tidak ditemukan\.$/);
+    if (match) return 'Handle @' + match[1] + ' was not found.';
+    match = value.match(/^@(.+) ditambahkan ke kontak\.$/);
+    if (match) return '@' + match[1] + ' was added to your contacts.';
   } else {
     match = value.match(/^(\d+) new devices? signed in to your account$/);
     if (match) return match[1] + ' perangkat baru masuk ke akunmu';
@@ -315,6 +334,10 @@ function translateDynamic(value, target) {
     if (match) return match[1] + ' (perkiraan)';
     match = value.match(/^Invalid frame: (.+)$/);
     if (match) return 'Frame tidak valid: ' + match[1];
+    match = value.match(/^Handle @(.+) was not found\.$/);
+    if (match) return 'Handle @' + match[1] + ' tidak ditemukan.';
+    match = value.match(/^@(.+) was added to your contacts\.$/);
+    if (match) return '@' + match[1] + ' ditambahkan ke kontak.';
   }
   return value;
 }
