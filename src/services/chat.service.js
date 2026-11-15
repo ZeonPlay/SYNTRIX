@@ -11,6 +11,12 @@ function assertUuid(value) {
   return value;
 }
 
+export async function syncConversationContacts() {
+  const { data, error } = await supabase.rpc('sync_my_conversation_contacts');
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function listContactIds(userId) {
   const { data, error } = await supabase
     .from('contacts')
