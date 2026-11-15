@@ -2401,3 +2401,20 @@ html[data-theme="dark"] .unlocked-message {
 html[data-theme="dark"] .unlocked-message > strong {
   color: var(--ink);
 }
+
+/* Keep the selected contact pill fully inside the drawer instead of letting
+   its right edge merge into, or get clipped by, the directory container. */
+@media (min-width: 701px) {
+  .app-shell.has-chat .directory-inner {
+    padding-right: 14px;
+  }
+
+  .app-shell.has-chat .contact-list {
+    padding-right: 3px;
+  }
+
+  .app-shell.has-chat .contact-item.is-active {
+    border-right: 1px solid var(--line-strong);
+    border-radius: 15px;
+  }
+}
