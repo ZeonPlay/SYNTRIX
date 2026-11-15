@@ -393,27 +393,28 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .inspector-table tr:last-child td { border-bottom: 0; }
 .button-spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(79,70,229,.2); border-top-color: var(--indigo); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-/* Native non-modal dialog keeps notifications in the top layer, above pop-up forms. */
-dialog.toast-layer {
+/* SYNTRIX Toast Notification — standalone component */
+#syntrixToastLayer {
   position: fixed;
-  top: max(16px, env(safe-area-inset-top, 0px));
-  right: max(16px, env(safe-area-inset-right, 0px));
+  inset: auto 22px auto auto;
+  top: max(22px, env(safe-area-inset-top, 0px));
+  z-index: 2147483647;
   width: min(390px, calc(100vw - 32px));
-  min-width: 0;
   max-width: none;
   max-height: none;
   margin: 0;
   padding: 0;
   overflow: visible;
   border: 0;
-  border-radius: 0;
   background: transparent;
-  color: inherit;
+  color: #f4f7fb;
   box-shadow: none;
   pointer-events: none;
 }
-dialog.toast-layer::backdrop { background: transparent; }
-.toast-region {
+
+#syntrixToastLayer::backdrop { background: transparent; }
+
+#syntrixToastRegion {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -421,40 +422,116 @@ dialog.toast-layer::backdrop { background: transparent; }
   width: 100%;
   pointer-events: none;
 }
-.toast {
+
+.syntrix-toast {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 11px;
   width: 100%;
-  max-width: 100%;
-  padding: 14px 16px;
-  border: 1px solid #d9e0eb;
-  border-left: 3px solid #5146e5;
-  border-radius: 13px;
-  background: #fff;
-  color: #25263d;
+  min-height: 64px;
+  padding: 13px 14px;
+  border: 1px solid #35465b;
+  border-left: 3px solid #8290a6;
+  border-radius: 14px;
+  background: #172333;
+  color: #f4f7fb;
+  font-family: Inter, "DM Sans", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 550;
-  line-height: 1.55;
-  letter-spacing: -.005em;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-align: left;
   overflow-wrap: anywhere;
   opacity: 0;
-  transform: translate3d(calc(100% + 22px), -9px, 0) scale(.985);
-  box-shadow: 0 16px 42px rgba(20,25,60,.2);
-  pointer-events: none;
-  transition: opacity .22s ease, transform .38s cubic-bezier(.22,1,.36,1);
+  transform: translate3d(calc(100% + 28px), -8px, 0);
+  box-shadow: 0 14px 38px rgba(7, 13, 23, .3);
+  pointer-events: auto;
+  transition:
+    opacity .2s ease,
+    transform .38s cubic-bezier(.22, 1, .36, 1);
+  will-change: opacity, transform;
 }
-.toast-visible { opacity: 1; transform: translate3d(0,0,0) scale(1); }
-.toast-error {
-  border-color: #f0c7ce;
-  border-left-color: #d9485b;
-  background: #fff5f6;
-  color: #8e2638;
+
+.syntrix-toast.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
-.toast-success {
-  border-color: #c5e6d8;
-  border-left-color: #168b68;
-  background: #fbfffd;
-  color: #185b47;
+
+.syntrix-toast__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #53657b;
+  border-radius: 10px;
+  background: #2b3a4e;
+  color: #d9e3f0;
+  font: 700 15px/1 Inter, "DM Sans", system-ui, sans-serif;
 }
-.toast-info { border-left-color: #5146e5; }
+
+.syntrix-toast__message {
+  min-width: 0;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.syntrix-toast__close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #aab7c8;
+  font: 400 20px/1 system-ui, sans-serif;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease;
+}
+
+.syntrix-toast__close:hover {
+  background: #35465b;
+  color: #fff;
+}
+
+.syntrix-toast--success { border-left-color: #45c69a; }
+.syntrix-toast--success .syntrix-toast__icon {
+  border-color: #367d68;
+  background: #203f39;
+  color: #76e0b6;
+}
+.syntrix-toast--error { border-left-color: #f07183; }
+.syntrix-toast--error .syntrix-toast__icon {
+  border-color: #8b4b5b;
+  background: #492b37;
+  color: #ff9dab;
+}
+.syntrix-toast--info { border-left-color: #8d8aff; }
+.syntrix-toast--info .syntrix-toast__icon {
+  border-color: #56558f;
+  background: #303253;
+  color: #b8b5ff;
+}
+
+@media (max-width: 600px) {
+  #syntrixToastLayer {
+    inset: auto 12px auto auto;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    width: calc(100vw - 24px);
+  }
+  .syntrix-toast {
+    grid-template-columns: 32px minmax(0, 1fr) 24px;
+    min-height: 60px;
+    padding: 12px;
+    font-size: 12.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .syntrix-toast { transition-duration: .01ms; }
+}
 
 /* Responsive */
 @media (max-width: 1100px) {
@@ -527,11 +604,6 @@ dialog.toast-layer::backdrop { background: transparent; }
   .modal-card { padding: 20px; }
   .inspector-card { max-height: calc(100dvh - 20px); }
   .inspector-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  dialog.toast-layer {
-    top: max(10px, env(safe-area-inset-top, 0px));
-    right: max(10px, env(safe-area-inset-right, 0px));
-    width: calc(100vw - 20px);
-  }
 }
 @media (max-width: 390px) {
   .directory-header h1 { font-size: 15px; }
@@ -1633,28 +1705,7 @@ html[data-theme="dark"] .signal-scroll {
   border-color: #3a4d63;
   background: #172534;
 }
-html[data-theme="dark"] .toast {
-  border-color: #3a4b60;
-  background: #202d3d;
-  color: #e4ebf4;
-  box-shadow: 0 16px 42px rgba(0,0,0,.42);
-}
-html[data-theme="dark"] .toast-info { border-left-color: #aaa7ff; }
-html[data-theme="dark"] .toast-error {
-  border-color: #754451;
-  border-left-color: #f07183;
-  background: #38252e;
-  color: #ffc1ca;
-}
-html[data-theme="dark"] .toast-success {
-  border-color: #356b59;
-  border-left-color: #53c49b;
-  background: #1d352f;
-  color: #b6f1d7;
-}
-@media (prefers-reduced-motion: reduce) {
-  .toast { transition-duration: .01ms; }
-}
+
 
 /* Theme control */
 .settings-item > .theme-setting-control {
