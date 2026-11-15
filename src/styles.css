@@ -2392,3 +2392,12 @@ html[data-theme="dark"] .message-row.mine .message-delete-button:focus-visible:n
   }
 }
 
+/* Device approval name: keep the label readable on the dark dialog surface. */
+html[data-theme="dark"] .unlocked-message {
+  border-color: var(--line-strong);
+  background: var(--chat-surface);
+  color: var(--ink);
+}
+html[data-theme="dark"] .unlocked-message > strong {
+  color: var(--ink);
+}
