@@ -2422,3 +2422,40 @@ html[data-theme="dark"] .unlocked-message > strong {
     border-radius: 15px;
   }
 }
+
+
+/* Language preference */
+.language-select {
+  min-width: 150px;
+  max-width: 48%;
+  min-height: 38px;
+  padding: 0 32px 0 11px;
+  border: 1px solid rgba(120, 135, 155, .38);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.language-select:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+.language-select option {
+  background: #fff;
+  color: #1d2939;
+}
+html[data-theme="dark"] .language-select {
+  border-color: rgba(150, 170, 195, .32);
+  background: rgba(19, 29, 44, .72);
+  color: #e5edf6;
+}
+html[data-theme="dark"] .language-select option {
+  background: #182231;
+  color: #e5edf6;
+}
+@media (max-width: 420px) {
+  .language-select { min-width: 126px; }
+}

@@ -23,6 +23,10 @@ import {
 import {
   acknowledgeDevice, fetchDevices, hasPersistentDeviceId, isSessionRevoked, registerDevice, rejectDevice,
 } from './services/device.service.js';
+import { initializeI18n } from './i18n.js';
+
+initializeI18n();
+const currentLocale = () => document.documentElement.lang === 'id' ? 'id-ID' : 'en-US';
 
 const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
@@ -1118,9 +1122,8 @@ async function loadWorkspace() {
   });
 }
 
-const relativeTimeFormat = new Intl.RelativeTimeFormat('id-ID', { numeric: 'auto' });
-
 function formatRelative(date) {
+  const relativeTimeFormat = new Intl.RelativeTimeFormat(currentLocale(), { numeric: 'auto' });
   const seconds = Math.round((date.getTime() - Date.now()) / 1000);
   for (const [unit, size] of [['day', 86400], ['hour', 3600], ['minute', 60]]) {
     if (Math.abs(seconds) >= size) return relativeTimeFormat.format(Math.round(seconds / size), unit);
@@ -1131,7 +1134,7 @@ function formatRelative(date) {
 function formatDeviceTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  const absolute = date.toLocaleString('id-ID', {
+  const absolute = date.toLocaleString(currentLocale(), {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
   return `${absolute} (${formatRelative(date)})`;
@@ -1142,7 +1145,7 @@ function formatDevicePlace(device) {
   let country = '';
   if (device.country) {
     try {
-      country = new Intl.DisplayNames(['id'], { type: 'region' }).of(device.country) || device.country;
+      country = new Intl.DisplayNames([document.documentElement.lang], { type: 'region' }).of(device.country) || device.country;
     } catch {
       country = device.country;
     }
@@ -1876,13 +1879,15 @@ $('#deleteAccountBtn').addEventListener('click', () => {
   $('#deleteAccountConfirm').focus();
 });
 
+const deleteAccountConfirmationText = () => document.documentElement.lang === 'id' ? 'HAPUS AKUN' : 'DELETE ACCOUNT';
+
 $('#deleteAccountConfirm').addEventListener('input', (event) => {
-  $('#deleteAccountSubmit').disabled = event.target.value.trim() !== 'HAPUS AKUN';
+  $('#deleteAccountSubmit').disabled = event.target.value.trim() !== deleteAccountConfirmationText();
 });
 
 $('#deleteAccountForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  if ($('#deleteAccountConfirm').value.trim() !== 'HAPUS AKUN') return;
+  if ($('#deleteAccountConfirm').value.trim() !== deleteAccountConfirmationText()) return;
   const button = $('#deleteAccountSubmit');
   setBusy(button, true, 'Menghapus akun...');
   try {

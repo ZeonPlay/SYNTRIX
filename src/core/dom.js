@@ -16,13 +16,13 @@ export function formatTime(value) {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(date);
+  return new Intl.DateTimeFormat(document.documentElement.lang === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' }).format(date);
 }
 
 export function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('id-ID', {
+  return new Intl.DateTimeFormat(document.documentElement.lang === 'id' ? 'id-ID' : 'en-US', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   }).format(date);
 }
