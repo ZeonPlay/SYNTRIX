@@ -11,7 +11,7 @@ import {
 } from './services/auth.service.js';
 import {
   deleteMessageForEveryone, fetchMessageMeta, fetchMessagePayloads,
-  findProfileByHandle, getProfilesByIds, insertMessage,
+  addContactByHandle, getProfilesByIds, insertMessage,
   listRecentMessages, markConversationRead, syncConversationContacts,
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
@@ -180,6 +180,8 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/rate[ _]?limit/i.test(message)) return 'Terlalu banyak percobaan. Coba lagi nanti.';
   if (/database error saving new user/i.test(message)) return 'Pendaftaran gagal. Coba handle lain.';
   if (/failed to fetch|networkerror|load failed/i.test(message)) return 'Tidak dapat terhubung ke server. Periksa internet dan konfigurasi Supabase.';
+  if (/contact_not_found/i.test(message)) return 'Handle tersebut tidak ditemukan. Pastikan handle yang dimasukkan benar.';
+  if (/contact_self/i.test(message)) return 'Kamu tidak bisa menambahkan akun sendiri.';
   if (/sender_e2ee_required/i.test(message)) return 'Aktifkan kunci E2EE akunmu sebelum mengirim pesan.';
   if (/receiver_e2ee_required/i.test(message)) return 'Pengguna tujuan belum membuat kunci E2EE, jadi pesan belum dapat dikirim.';
   if (/row-level security|permission denied/i.test(message)) return 'Akses database ditolak. Periksa migration dan kebijakan RLS Supabase.';
@@ -1544,16 +1546,11 @@ $('#contactForm').addEventListener('submit', async (event) => {
 
   setBusy(button, true, 'Looking up...');
   try {
-    const profile = await findProfileByHandle(handle);
+    const profile = await addContactByHandle(handle);
     if (!profile) {
       showToast(`Handle @${handle} tidak ditemukan.`, 'error');
       return;
     }
-    if (profile.id === state.user.id) {
-      showToast('Kamu tidak bisa menambahkan akun sendiri.', 'error');
-      return;
-    }
-    await saveContact(state.user.id, profile.id);
     if (!state.contacts.some((item) => item.id === profile.id)) state.contacts.push(profile);
     renderContacts();
     closeDialog(contactDialog);
