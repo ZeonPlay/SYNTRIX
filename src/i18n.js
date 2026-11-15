@@ -280,10 +280,18 @@ const pairs = [
   ['Add a contact', 'Tambahkan kontak'],
   ['The passphrase is used on this device to create a wrapping key for your private key. Keep it safe: the server cannot recover your passphrase or read your messages.', 'Passphrase dipakai di perangkat untuk membuat kunci pembungkus private key. Simpan baik-baik: server tidak dapat memulihkan passphrase atau membaca pesanmu.'],
   ['You have a new message.', 'Pesan baru diterima.'],
-  ['Unknown', 'Tidak diketahui']
-
+  ['Unknown', 'Tidak diketahui'],
   ['Monitor signed-in devices and manage the passphrase that wraps your E2EE private key.', 'Pantau perangkat yang masuk dan kelola passphrase yang membungkus private key E2EE milikmu.']
 ];
+
+// Fail with a useful message if a translation entry is malformed instead
+// of letting Map construction crash with an opaque destructuring error.
+for (let index = 0; index < pairs.length; index += 1) {
+  const pair = pairs[index];
+  if (!Array.isArray(pair) || pair.length !== 2 || pair.some((value) => typeof value !== 'string')) {
+    throw new TypeError(`Invalid language entry at index ${index}; expected [English, Indonesian].`);
+  }
+}
 
 const english = new Map(pairs.map(([en, id]) => [id, en]));
 const indonesian = new Map(pairs);
