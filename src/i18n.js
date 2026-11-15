@@ -202,7 +202,7 @@ const pairs = [
   ['Unable to check the device.', 'Tidak dapat memeriksa perangkat.'],
   ['Unable to check the sign-in session.', 'Gagal memeriksa sesi login.'],
   ['Invalid handle format.', 'Format handle tidak valid.'],
-  ['Looking up...', 'Looking up...'],
+  ['Looking up...', 'Mencari...'],
   ['That handle was not found.', 'Handle tersebut tidak ditemukan.'],
   ['Unable to add the contact.', 'Tidak bisa menambahkan kontak.'],
   ['Please select a contact first.', 'Pilih kontak terlebih dahulu.'],
@@ -268,8 +268,8 @@ const pairs = [
   ['H = HIGH and L = LOW. A transmitted 1 changes the level; a 0 keeps it.', 'H = HIGH dan L = LOW. Bit 1 mengubah level; bit 0 mempertahankan level.']
 ];
 
-const english = new Map(pairs);
-const indonesian = new Map(pairs.map(([en, id]) => [id, en]));
+const english = new Map(pairs.map(([en, id]) => [id, en]));
+const indonesian = new Map(pairs);
 
 let language = 'en';
 let initialized = false;
@@ -295,7 +295,7 @@ function translateDynamic(value, target) {
     match = value.match(/^Perangkat baru masuk: (.+)\. Buka menu Keamanan untuk memeriksanya\.$/);
     if (match) return 'New device signed in: ' + match[1] + '. Open Security to review it.';
     match = value.match(/^(\d+) perangkat tercatat$/);
-    if (match) return match[1] + ' devices registered';
+    if (match) return match[1] + (match[1] === '1' ? ' device registered' : ' devices registered');
     match = value.match(/^Login (.+)$/);
     if (match) return 'Signed in ' + match[1];
     match = value.match(/^(.+) \(perkiraan\)$/);
