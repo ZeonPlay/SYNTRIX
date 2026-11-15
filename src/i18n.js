@@ -281,6 +281,8 @@ const pairs = [
   ['The passphrase is used on this device to create a wrapping key for your private key. Keep it safe: the server cannot recover your passphrase or read your messages.', 'Passphrase dipakai di perangkat untuk membuat kunci pembungkus private key. Simpan baik-baik: server tidak dapat memulihkan passphrase atau membaca pesanmu.'],
   ['You have a new message.', 'Pesan baru diterima.'],
   ['Unknown', 'Tidak diketahui']
+
+  ['Monitor signed-in devices and manage the passphrase that wraps your E2EE private key.', 'Pantau perangkat yang masuk dan kelola passphrase yang membungkus private key E2EE milikmu.']
 ];
 
 const english = new Map(pairs.map(([en, id]) => [id, en]));
