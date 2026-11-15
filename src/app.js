@@ -4,8 +4,9 @@ import {
   validateBitStream, MAX_MESSAGE_LENGTH,
 } from './core/encoding.js';
 import {
-  $, escapeHTML, formatTime, initials, openDialog, closeDialog, setBusy, showToast,
+  $, escapeHTML, formatTime, initials, openDialog, closeDialog, setBusy,
 } from './core/dom.js';
+import { showToast } from './core/toast.js';
 import {
   getProfile, signIn, signOut, signUp,
 } from './services/auth.service.js';
