@@ -11,11 +11,11 @@ import {
 } from './services/auth.service.js';
 import {
   deleteMessageForEveryone, fetchMessageMeta, fetchMessagePayloads,
-  findProfileByHandle, getProfilesByIds, insertMessage, listContactIds,
-  listRecentMessages, markConversationRead, saveContact,
+  findProfileByHandle, getProfilesByIds, insertMessage,
+  listRecentMessages, markConversationRead, syncConversationContacts,
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
-import { clearE2eeVault, getE2eeVault, saveE2eeVault } from './core/e2ee-vault.js';
+import { clearE2eeVault } from './core/e2ee-vault.js';
 import {
   changeE2eePassphrase, decryptE2eePayload, enableE2ee, encryptE2eePayload,
   getE2eeState, unlockE2ee,
@@ -28,7 +28,7 @@ const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
   onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(), bitsByMessage: new Map(),
   signalBitsByMessage: new Map(), messageViewModes: new Map(), bootingUserId: null, sending: false,
-  e2eeState: null, e2eeSession: null, e2eeUnlocked: false, deletingMessageIds: new Set(),
+  e2eeState: null, e2eeSession: null, e2eeUnlocked: false, pendingRevealMessageId: null, deletingMessageIds: new Set(),
   deviceRowId: null, knownPendingIds: null, endingSession: false,
   workspaceLoaded: false, workspaceLoading: false,
 };
@@ -542,12 +542,9 @@ function renderMessages({ scrollToBottom = false } = {}) {
     row.className = 'message-row' + (mine ? ' mine' : '');
     row.dataset.messageId = message.id;
     const timestamp = formatTime(message.created_at);
-    const viewAction = isDecoded
-      ? '<button class="inspect-button" type="button" data-action="toggle-view" data-message-id="' + message.id + '">' +
-        (showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal') + '</button>'
-      : state.e2eeUnlocked
-        ? ''
-        : '<button class="inspect-button" type="button" data-action="unlock-message" data-message-id="' + message.id + '">Buka E2EE</button>';
+    const viewAction = '<button class="inspect-button" type="button" data-action="' +
+      (isDecoded ? 'toggle-view' : 'reveal-message') + '" data-message-id="' + message.id + '">' +
+      (isDecoded ? (showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal') : 'Tampilkan pesan') + '</button>';
 
     row.innerHTML =
       '<span class="message-author">' + (mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')) + '</span>' +
@@ -684,11 +681,8 @@ async function selectContact(contactId) {
 async function ensureContactForUser(userId) {
   if (!userId || userId === state.user.id || state.contacts.some((item) => item.id === userId)) return;
   try {
-    const profiles = await getProfilesByIds([userId]);
-    const profile = profiles[0];
-    if (!profile) return;
-    await saveContact(state.user.id, userId);
-    state.contacts.push(profile);
+    const profiles = await syncConversationContacts();
+    normalizeContacts(profiles);
     renderContacts();
   } catch (error) {
     console.warn('Unable to add conversation contact:', error.message);
@@ -971,8 +965,10 @@ function handleMessageUpdate(message) {
 
 async function loadWorkspace() {
   const userId = state.user.id;
-  const [profile, contactIds, messages] = await Promise.all([
-    getProfile(userId), listContactIds(userId), listRecentMessages(userId),
+  // Unlock state is session-only: reload always requires the passphrase again.
+  await clearE2eeVault(userId).catch(() => undefined);
+  const [profile, messages, profiles] = await Promise.all([
+    getProfile(userId), listRecentMessages(userId), syncConversationContacts(),
   ]);
   state.profile = profile;
   state.messages = messages;
@@ -981,14 +977,7 @@ async function loadWorkspace() {
   state.signalBitsByMessage.clear();
   state.messageViewModes.clear();
 
-  const partnerIds = new Set(contactIds);
-  for (const message of messages) partnerIds.add(partnerId(message, userId));
-  partnerIds.delete(userId);
-
-  const profiles = await getProfilesByIds([...partnerIds]);
   normalizeContacts(profiles);
-  const knownContacts = new Set(contactIds);
-  await Promise.all([...partnerIds].filter((id) => !knownContacts.has(id)).map((id) => saveContact(userId, id)));
   sortMessages();
   renderAccount();
   renderContacts();
@@ -1004,19 +993,9 @@ async function loadWorkspace() {
     $('#keyLabel').textContent = 'Passphrase E2EE baru';
     openDialog(keyDialog);
   } else {
-    // Restore the already-unlocked CryptoKey from this browser's local vault.
-    // The cache is tied to the account and its current public identity key.
-    try {
-      state.e2eeSession = await getE2eeVault(userId, state.e2eeState.public_key);
-      if (state.e2eeSession) {
-        state.e2eeSession.wrappedKeyB64 = state.e2eeState.wrapped_private_key;
-      }
-    } catch (error) {
-      console.warn('Unable to restore local E2EE key:', error.message);
-    }
-    state.e2eeUnlocked = Boolean(state.e2eeSession?.privateKey);
-    // Do not ask for the key just to enter the chat. Reading a message has its
-    // own per-message prompt; sending asks for the key only when necessary.
+    // Private keys are not restored across a browser reload.
+    state.e2eeSession = null;
+    state.e2eeUnlocked = false;
   }
   renderKeyStatus();
 
@@ -1474,6 +1453,7 @@ async function leaveApp() {
   state.e2eeState = null;
   state.e2eeSession = null;
   state.e2eeUnlocked = false;
+  state.pendingRevealMessageId = null;
   if (signedOutUserId) {
     try {
       await clearE2eeVault(signedOutUserId);
@@ -1606,6 +1586,11 @@ $('#messageForm').addEventListener('submit', async (event) => {
     showToast('Pilih kontak terlebih dahulu.', 'error');
     return;
   }
+  if (!state.e2eeState?.enabled) {
+    showToast('Aktifkan E2EE terlebih dahulu sebelum mengirim pesan.', 'error');
+    openDialog(keyDialog);
+    return;
+  }
   if (!state.e2eeUnlocked || !state.e2eeSession?.privateKey) {
     openE2eeUnlockDialog();
     showToast('Buka E2EE di perangkat ini sebelum mengirim pesan.', 'info');
@@ -1663,18 +1648,17 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
       state.e2eeState,
     );
     state.e2eeUnlocked = true;
-    try {
-      await saveE2eeVault(state.user.id, state.e2eeSession);
-    } catch (error) {
-      console.warn('Private key unlocked, but local persistence failed:', error.message);
-      showToast('E2EE terbuka, tetapi browser tidak bisa menyimpan sesi kunci lokal.', 'info');
-    }
     closeDialog(e2eeUnlockDialog);
     $('#e2eeUnlockForm').reset();
     renderKeyStatus();
     renderMessages();
     renderContacts();
     if (state.activeContactId) await loadConversationSignals(state.activeContactId);
+    if (state.pendingRevealMessageId) {
+      state.messageViewModes.set(state.pendingRevealMessageId, 'decoded');
+      state.pendingRevealMessageId = null;
+      renderMessages();
+    }
     showToast('E2EE berhasil dibuka di perangkat ini.', 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal membuka E2EE.'), 'error');
@@ -1723,12 +1707,6 @@ $('#keyForm').addEventListener('submit', async (event) => {
     }
     state.e2eeState = await getE2eeState();
     state.e2eeUnlocked = true;
-    try {
-      await saveE2eeVault(state.user.id, state.e2eeSession);
-    } catch (error) {
-      console.warn('Private key activated, but local persistence failed:', error.message);
-      showToast('E2EE aktif, tetapi browser tidak bisa menyimpan sesi kunci lokal.', 'info');
-    }
     $('#oldKeyField').hidden = true;
     $('#keyForm').reset();
     $('#keyForm').dataset.mode = 'enable';
@@ -1788,9 +1766,16 @@ document.querySelectorAll('[data-close]').forEach((button) => {
   button.addEventListener('click', () => closeDialog(document.getElementById(button.dataset.close)));
 });
 
+keyDialog.addEventListener('cancel', (event) => {
+  if (!state.e2eeState?.enabled) event.preventDefault();
+});
+
 for (const dialog of [contactDialog, e2eeUnlockDialog, deviceApprovalDialog, keyDialog, inspectorDialog]) {
   dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) closeDialog(dialog);
+    if (event.target === dialog) {
+      if (dialog === keyDialog && !state.e2eeState?.enabled) return;
+      closeDialog(dialog);
+    }
   });
 }
 
@@ -1951,13 +1936,15 @@ $('#messages').addEventListener('click', async (event) => {
   if (!button) return;
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
   if (!message) return;
-  if (button.dataset.action === 'unlock-message') {
-    // One E2EE unlock applies to the whole device, not one prompt per message.
-    if (state.e2eeUnlocked && state.e2eeSession?.privateKey) {
-      void loadConversationSignals(partnerId(message));
-    } else {
+  if (button.dataset.action === 'reveal-message') {
+    state.pendingRevealMessageId = message.id;
+    if (!state.e2eeUnlocked || !state.e2eeSession?.privateKey) {
       openE2eeUnlockDialog();
+      return;
     }
+    await loadConversationSignals(partnerId(message));
+    state.messageViewModes.set(message.id, 'decoded');
+    renderMessages();
     return;
   }
   if (button.dataset.action === 'delete') {
@@ -1975,7 +1962,12 @@ $('#messages').addEventListener('click', async (event) => {
   }
   if (button.dataset.action === 'toggle-view') {
     if (!state.bitsByMessage.has(message.id) || !state.decodedMessages.has(message.id)) return;
-    const currentMode = state.messageViewModes.get(message.id) || 'decoded';
+    const currentMode = state.messageViewModes.get(message.id) || 'signal';
+    if (currentMode === 'signal' && (!state.e2eeUnlocked || !state.e2eeSession?.privateKey)) {
+      state.pendingRevealMessageId = message.id;
+      openE2eeUnlockDialog();
+      return;
+    }
     state.messageViewModes.set(message.id, currentMode === 'signal' ? 'decoded' : 'signal');
     renderMessages();
     return;
