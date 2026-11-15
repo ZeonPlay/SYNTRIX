@@ -204,6 +204,10 @@
             </div>
           </div>
           <div class="page-card settings-item"><div><strong>Tentang SYNTRIX</strong><span>Ruang belajar komunikasi data digital.</span></div><span class="version-label">v1.0.0</span></div>
+          <div class="page-card settings-item danger-zone">
+            <div><strong>Hapus akun</strong><span>Hapus akun dan seluruh data SYNTRIX secara permanen. Tindakan ini tidak dapat dibatalkan.</span></div>
+            <button id="deleteAccountBtn" class="button button-danger" type="button">Hapus akun</button>
+          </div>
         </div>
       </section>
     </section>
@@ -237,12 +241,12 @@
 
   <dialog id="keyDialog" class="modal">
     <form id="keyForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">End-to-end encryption</span><h2 id="keyDialogTitle">Aktifkan E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="keyDialog" aria-label="Close">×</button></div>
+      <div class="modal-header"><div><span class="eyebrow">End-to-end encryption</span><h2 id="keyDialogTitle">Aktifkan E2EE</h2></div></div>
       <p class="modal-description">Passphrase dipakai di perangkat untuk membuat kunci pembungkus private key. Simpan baik-baik: server tidak dapat memulihkan passphrase atau membaca pesanmu.</p>
       <label id="oldKeyField" class="field" hidden><span id="oldKeyLabel">Kunci pembuka lama</span><input id="oldUnlockKey" type="password" autocomplete="current-password" maxlength="128" placeholder="Masukkan kunci atau passphrase lama"></label>
       <label class="field"><span id="keyLabel">Passphrase E2EE baru</span><input id="newUnlockKey" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Minimal 12 karakter"></label>
       <label class="field"><span>Konfirmasi passphrase</span><input id="confirmUnlockKey" type="password" autocomplete="new-password" required minlength="12" maxlength="128" placeholder="Ketik ulang passphrase"></label>
-      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="keyDialog">Nanti</button><button id="keySubmit" class="button button-primary" type="submit">Aktifkan E2EE</button></div>
+      <div class="modal-actions"><button id="keySubmit" class="button button-primary" type="submit">Aktifkan E2EE</button></div>
     </form>
   </dialog>
 
@@ -252,6 +256,15 @@
       <p class="modal-description">Masukkan passphrase untuk membuka backup private key di perangkat ini. Passphrase tidak dikirim ke server.</p>
       <label class="field"><span>Passphrase E2EE</span><input id="e2eeUnlockPassphrase" type="password" autocomplete="current-password" required minlength="10" maxlength="128" placeholder="Passphrase E2EE kamu"></label>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="e2eeUnlockDialog">Nanti</button><button id="e2eeUnlockSubmit" class="button button-primary" type="submit">Buka private key</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteAccountDialog" class="modal">
+    <form id="deleteAccountForm" class="modal-card">
+      <div class="modal-header"><div><span class="eyebrow">TINDAKAN PERMANEN</span><h2>Hapus akun SYNTRIX?</h2></div><button class="icon-button dialog-close" type="button" data-close="deleteAccountDialog" aria-label="Tutup">×</button></div>
+      <p class="modal-description">Seluruh profil, daftar kontak, pesan, identitas E2EE, dan perangkat terdaftar akan dihapus permanen. Ketik <strong>HAPUS AKUN</strong> untuk melanjutkan.</p>
+      <label class="field"><span>Konfirmasi</span><input id="deleteAccountConfirm" type="text" autocomplete="off" required placeholder="HAPUS AKUN"></label>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="deleteAccountDialog">Batal</button><button id="deleteAccountSubmit" class="button button-danger" type="submit" disabled>Hapus permanen</button></div>
     </form>
   </dialog>
 
