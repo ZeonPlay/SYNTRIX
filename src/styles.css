@@ -2459,3 +2459,28 @@ html[data-theme="dark"] .language-select option {
 @media (max-width: 420px) {
   .language-select { min-width: 126px; }
 }
+
+/* Make the permanent account action clearly destructive on hover/focus. */
+.danger-zone #deleteAccountBtn:hover:not(:disabled),
+.danger-zone #deleteAccountBtn:focus-visible:not(:disabled) {
+  border-color: #b8384d;
+  background: #b8384d;
+  color: #fff;
+}
+
+.danger-zone #deleteAccountBtn:active:not(:disabled) {
+  border-color: #982b39;
+  background: #982b39;
+}
+
+html[data-theme="dark"] .danger-zone #deleteAccountBtn:hover:not(:disabled),
+html[data-theme="dark"] .danger-zone #deleteAccountBtn:focus-visible:not(:disabled) {
+  border-color: #d94b61;
+  background: #d94b61;
+  color: #fff;
+}
+
+html[data-theme="dark"] .danger-zone #deleteAccountBtn:active:not(:disabled) {
+  border-color: #b9364d;
+  background: #b9364d;
+}
