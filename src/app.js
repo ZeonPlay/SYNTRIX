@@ -707,16 +707,37 @@ async function loadConversationSignals(contactId = state.activeContactId) {
     (message.sender_id === contactId && message.receiver_id === state.user.id)
   ) && message.enc_version === 1 && !message.deleted_at);
 
-  const missingPayloads = conversation.filter((message) => !state.bitsByMessage.has(message.id));
-  if (!missingPayloads.length) return;
+  if (!conversation.length) return;
 
   try {
-    const payloads = await fetchMessagePayloads(missingPayloads.map((message) => message.id));
-    for (const payload of payloads) {
-      if (payload?.id && payload.payload_bits) state.bitsByMessage.set(payload.id, payload.payload_bits);
+    const missingPayloads = conversation.filter((message) => !state.bitsByMessage.has(message.id));
+    if (missingPayloads.length) {
+      const payloads = await fetchMessagePayloads(missingPayloads.map((message) => message.id));
+      for (const payload of payloads) {
+        if (payload?.id && payload.payload_bits) state.bitsByMessage.set(payload.id, payload.payload_bits);
+      }
+    }
+
+    // Prepare the ordinary plaintext NRZ-I waveform for this conversation,
+    // but keep every message in signal mode until its own reveal button is used.
+    if (state.e2eeUnlocked && state.e2eeSession?.privateKey) {
+      for (const message of conversation) {
+        if (state.decodedMessages.has(message.id)) continue;
+        try {
+          await decryptSingleMessage(message);
+          state.messageViewModes.set(message.id, 'signal');
+        } catch (error) {
+          console.warn('Unable to prepare message signal ' + message.id + ':', error.message);
+        }
+      }
+    }
+
+    if (state.activeContactId === contactId) {
+      renderMessages();
+      renderContacts();
     }
   } catch (error) {
-    console.warn('Unable to load message payloads:', error.message);
+    console.warn('Unable to load conversation signals:', error.message);
   }
 }
 
@@ -1643,6 +1664,7 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
     closeDialog(e2eeUnlockDialog);
     $('#e2eeUnlockForm').reset();
     renderKeyStatus();
+    if (state.activeContactId) await loadConversationSignals(state.activeContactId);
     if (state.pendingRevealMessageId) {
       const pending = state.messages.find((item) => item.id === state.pendingRevealMessageId);
       state.pendingRevealMessageId = null;
