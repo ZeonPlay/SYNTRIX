@@ -464,13 +464,15 @@ function currentConversationMessages() {
   );
 }
 
-function renderMiniSignal(canvas, bits) {
+function renderMiniSignal(canvas, bits, { encryptedPreview = false } = {}) {
   if (!canvas || !bits) return;
-  const previewBits = bits.slice(0, 24 * 10);
+  // A locked receiver sees at most the first 10 encrypted frames, scaled to fit.
+  // Once unlocked, the complete plaintext frame preview uses the normal bit width.
+  const previewBits = bits.slice(0, encryptedPreview ? 10 * 10 : 24 * 10);
   const levels = nrziEncode(previewBits);
-  const bitWidth = 5;
+  const bitWidth = encryptedPreview ? 2 : 5;
   const height = 46;
-  const width = Math.max(120, 12 + levels.length * bitWidth);
+  const width = Math.max(72, 12 + levels.length * bitWidth);
   const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
   canvas.width = Math.ceil(width * dpr);
   canvas.height = Math.ceil(height * dpr);
@@ -530,10 +532,12 @@ function renderMessages({ scrollToBottom = false } = {}) {
     const mine = message.sender_id === state.user.id;
     const isDecoded = state.decodedMessages.has(message.id);
     const decoded = state.decodedMessages.get(message.id);
+    const encryptedBits = state.bitsByMessage.get(message.id);
     const signalBits = state.signalBitsByMessage.get(message.id)
       || (isDecoded ? textToBitStream(decoded) : null);
     const displayMode = isDecoded ? (state.messageViewModes.get(message.id) || 'decoded') : 'signal';
-    const showSignal = isDecoded ? displayMode === 'signal' : Boolean(signalBits);
+    const visibleSignalBits = signalBits || encryptedBits;
+    const showSignal = isDecoded ? displayMode === 'signal' : Boolean(encryptedBits);
     const row = document.createElement('article');
     row.className = 'message-row' + (mine ? ' mine' : '');
     row.dataset.messageId = message.id;
@@ -549,12 +553,12 @@ function renderMessages({ scrollToBottom = false } = {}) {
       '<span class="message-author">' + (mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')) + '</span>' +
       '<div class="message-bubble">' +
         (showSignal
-          ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I signal of decoded message"></canvas></div>'
+          ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="' +
+            (isDecoded ? 'NRZ-I signal of decoded message' : 'Compact NRZ-I preview of encrypted payload') +
+            '"></canvas></div>'
           : isDecoded
             ? '<div class="decode-result"><span class="decoded-text"></span></div>'
-            : state.e2eeUnlocked
-              ? '<span class="wave-mini-pending">Mendekripsi pesan…</span>'
-              : '<div class="message-lockline"><span class="message-lockicon" aria-hidden="true">🔒</span><span>Pesan terenkripsi · buka E2EE untuk membaca</span></div>') +
+            : '<span class="wave-mini-pending">Memuat sinyal…</span>') +
         '<div class="message-actions">' + viewAction +
           '<button class="message-delete-button" type="button" data-action="delete" data-message-id="' + message.id + '" aria-label="Hapus pesan untuk kedua pihak">Hapus pesan</button>' +
         '</div>' +
@@ -563,8 +567,8 @@ function renderMessages({ scrollToBottom = false } = {}) {
         (mine && message.read_at ? '<span class="message-read">· Read</span>' : '') +
       '</div>';
 
-    if (showSignal && signalBits) {
-      renderMiniSignal(row.querySelector('canvas'), signalBits);
+    if (showSignal && visibleSignalBits) {
+      renderMiniSignal(row.querySelector('canvas'), visibleSignalBits, { encryptedPreview: !isDecoded });
     } else if (!showSignal && isDecoded) {
       row.querySelector('.decoded-text').textContent = decoded;
     }
@@ -704,7 +708,7 @@ function upsertMessage(message) {
 }
 
 async function loadConversationSignals(contactId = state.activeContactId) {
-  if (!contactId || !state.user || !state.e2eeUnlocked || !state.e2eeSession?.privateKey) return;
+  if (!contactId || !state.user) return;
 
   const conversation = state.messages.filter((message) => (
     (message.sender_id === state.user.id && message.receiver_id === contactId) ||
@@ -712,14 +716,10 @@ async function loadConversationSignals(contactId = state.activeContactId) {
   ) && message.enc_version === 1 && !message.deleted_at);
 
   if (conversation.length === 0) return;
-  const peer = state.contacts.find((contact) => contact.id === contactId);
-  if (!peer?.public_key) {
-    console.warn('Cannot decrypt conversation: contact public key is unavailable.');
-    return;
-  }
 
   try {
-    // Ciphertext is fetched only when the local E2EE private key is unlocked.
+    // Fetch the encrypted transport stream even while the local E2EE key is locked.
+    // The locked view shows only a compact ciphertext waveform preview, never plaintext.
     const missingPayloads = conversation.filter((message) => !state.bitsByMessage.has(message.id));
     if (missingPayloads.length) {
       const payloads = await fetchMessagePayloads(missingPayloads.map((message) => message.id));
@@ -728,27 +728,35 @@ async function loadConversationSignals(contactId = state.activeContactId) {
       }
     }
 
-    // Use the already-unlocked local key for every message, including after reload.
-    for (const message of conversation) {
-      if (state.decodedMessages.has(message.id)) continue;
-      const payloadBits = state.bitsByMessage.get(message.id);
-      if (!payloadBits) continue;
+    const canDecrypt = state.e2eeUnlocked && Boolean(state.e2eeSession?.privateKey);
+    if (canDecrypt) {
+      const peer = state.contacts.find((contact) => contact.id === contactId);
+      if (!peer?.public_key) {
+        console.warn('Cannot decrypt conversation: contact public key is unavailable.');
+      } else {
+        // Use the already-unlocked local key for every message, including after reload.
+        for (const message of conversation) {
+          if (state.decodedMessages.has(message.id)) continue;
+          const payloadBits = state.bitsByMessage.get(message.id);
+          if (!payloadBits) continue;
 
-      try {
-        const plaintext = await decryptE2eePayload({
-          payloadBits,
-          privateKey: state.e2eeSession.privateKey,
-          ownPublicKeyB64: state.e2eeSession.publicKeyB64,
-          peerPublicKeyB64: peer.public_key,
-          userId: state.user.id,
-          message,
-        });
-        state.decodedMessages.set(message.id, plaintext);
-        state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
-        // Show the communication-data waveform first; users can switch to text.
-        state.messageViewModes.set(message.id, 'signal');
-      } catch (error) {
-        console.warn('Unable to decrypt message ' + message.id + ':', error.message);
+          try {
+            const plaintext = await decryptE2eePayload({
+              payloadBits,
+              privateKey: state.e2eeSession.privateKey,
+              ownPublicKeyB64: state.e2eeSession.publicKeyB64,
+              peerPublicKeyB64: peer.public_key,
+              userId: state.user.id,
+              message,
+            });
+            state.decodedMessages.set(message.id, plaintext);
+            state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
+            // Once decrypted, replace the compact ciphertext preview with the real text waveform.
+            state.messageViewModes.set(message.id, 'signal');
+          } catch (error) {
+            console.warn('Unable to decrypt message ' + message.id + ':', error.message);
+          }
+        }
       }
     }
 
