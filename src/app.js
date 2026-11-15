@@ -787,6 +787,7 @@ async function decryptSingleMessage(message, revealSession = state.e2eeSession) 
 
 function openE2eeUnlockDialog({ messageId = null } = {}) {
   if (!state.e2eeState?.enabled) {
+    state.pendingRevealMessageId = null;
     openDialog(keyDialog);
     return;
   }
@@ -1706,6 +1707,11 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
   } finally {
     setBusy(button, false);
   }
+});
+
+e2eeUnlockDialog.addEventListener('close', () => {
+  // Closing the prompt without submitting must not leave a stale message queued.
+  state.pendingRevealMessageId = null;
 });
 
 $('#keyForm').addEventListener('submit', async (event) => {
