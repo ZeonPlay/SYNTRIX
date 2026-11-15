@@ -11,7 +11,7 @@ import {
 } from './services/auth.service.js';
 import {
   deleteMessageForEveryone, fetchMessageMeta, fetchMessagePayloads,
-  addContactByHandle, getProfilesByIds, insertMessage,
+  addContactByHandle, insertMessage,
   listRecentMessages, markConversationRead, syncConversationContacts,
 } from './services/chat.service.js';
 import { connectRealtime } from './services/realtime.service.js';
@@ -1636,7 +1636,9 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
       $('#e2eeUnlockPassphrase').value,
       state.e2eeState,
     );
-    await saveE2eeVault(state.user.id, state.e2eeSession);
+    await saveE2eeVault(state.user.id, state.e2eeSession).catch((error) => {
+      console.warn('E2EE key could not be cached for reload:', error.message);
+    });
     state.e2eeUnlocked = true;
     closeDialog(e2eeUnlockDialog);
     $('#e2eeUnlockForm').reset();
@@ -1699,7 +1701,9 @@ $('#keyForm').addEventListener('submit', async (event) => {
     }
     state.e2eeState = await getE2eeState();
     state.e2eeUnlocked = true;
-    await saveE2eeVault(state.user.id, state.e2eeSession);
+    await saveE2eeVault(state.user.id, state.e2eeSession).catch((error) => {
+      console.warn('E2EE key could not be cached for reload:', error.message);
+    });
     $('#oldKeyField').hidden = true;
     $('#keyForm').reset();
     $('#keyForm').dataset.mode = 'enable';
