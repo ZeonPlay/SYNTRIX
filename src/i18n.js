@@ -22,7 +22,7 @@ const pairs = [
   ['SYNTRIX is checking this device\'s identity.', 'SYNTRIX sedang memeriksa identitas perangkat ini.'],
   ['Open SYNTRIX on a trusted device, then select', 'Buka SYNTRIX dari perangkat tepercaya, lalu pilih'],
   ['“This is me”', '“Ini aku”'],
-  ['from the Security menu.', 'dari menu Keamanan.'],
+  ['from the Security menu.', 'pada menu Keamanan.'],
   ['Selected the wrong option', 'Salah memilih opsi'],
   ['“Not me”', '“Bukan aku”'],
   ['? Sign in again using the same browser. The device will be registered again as pending and will still require approval.', '? Masuk lagi menggunakan browser yang sama. Perangkat akan didaftarkan ulang sebagai pending dan tetap memerlukan persetujuan.'],
@@ -32,7 +32,7 @@ const pairs = [
   ['Main navigation', 'Navigasi utama'],
   ['DIGITAL SIGNAL', 'SINYAL DIGITAL'],
   ['Contact', 'Kontak'],
-  ['Contacts', 'Kontak'],
+  ['Contacts', 'Semua kontak'],
   ['Security', 'Keamanan'],
   ['Settings', 'Pengaturan'],
   ['Sign out of account', 'Keluar dari akun'],
@@ -57,17 +57,17 @@ const pairs = [
   ['Send', 'Kirim'],
   ['ACCOUNT PROTECTION', 'PERLINDUNGAN AKUN'],
   ['Monitor signed-in devices and manage the passphrase that protects your E2EE private key.', 'Pantau perangkat yang masuk dan kelola passphrase yang melindungi private key E2EE milikmu.'],
-  ['A new device signed in to your account', 'Ada perangkat baru yang masuk ke akunmu'],
-  ['If this was you, select "This is me". If not, select "Not me": that device will be signed out of SYNTRIX immediately. Afterward, consider changing your message key and password.', 'Kalau itu kamu, pilih "Ini aku". Jika bukan, pilih "Bukan aku": perangkat tersebut akan langsung dikeluarkan dari SYNTRIX. Setelah itu, pertimbangkan untuk mengganti kunci pesan dan kata sandi.'],
+  ['A new device signed in to your account', 'Ada perangkat baru masuk ke akunmu'],
+  ['If this was you, select "This is me". If not, select "Not me": that device will be signed out of SYNTRIX immediately. Afterward, consider changing your message key and password.', 'Kalau itu kamu, pilih "Ini aku". Kalau bukan, pilih "Bukan aku": perangkat itu langsung dikeluarkan dari SYNTRIX. Setelah itu, sebaiknya ganti kunci pesan dan password.'],
   ['This device has not been approved', 'Perangkat ini belum dikonfirmasi'],
-  ['This account is also being used on another device. The account owner must select "This is me" for this device from a trusted device. If rejected, you will be signed out automatically.', 'Akun ini juga digunakan di perangkat lain. Pemilik akun harus memilih "Ini aku" untuk perangkat ini dari perangkat tepercaya. Jika ditolak, kamu akan otomatis keluar.'],
+  ['This account is also being used on another device. The account owner must select "This is me" for this device from a trusted device. If rejected, you will be signed out automatically.', 'Akun ini juga dipakai di perangkat lain. Pemilik akun perlu memilih "Ini aku" untuk perangkat ini dari perangkat yang sudah dikenal. Kalau ditolak, kamu akan otomatis keluar.'],
   ['Signed-in devices', 'Perangkat yang masuk'],
   ['Loading…', 'Memuat…'],
   ['End-to-end encryption', 'Enkripsi end-to-end'],
   ['Checking…', 'Memeriksa…'],
   ['Manage E2EE', 'Atur E2EE'],
   ['Private key protection', 'Perlindungan private key'],
-  ['The ECDH key pair is generated in your browser. The private key is wrapped with AES-GCM using a key derived from your passphrase with PBKDF2, then the encrypted backup is stored on the server. Your passphrase and plaintext private key are never sent to Supabase.', 'Pasangan kunci ECDH dibuat di browser. Private key dibungkus AES-GCM menggunakan kunci yang diturunkan dari passphrase dengan PBKDF2, lalu backup terenkripsi disimpan di server. Passphrase dan private key dalam bentuk asli tidak pernah dikirim ke Supabase.'],
+  ['The ECDH key pair is generated in your browser. The private key is wrapped with AES-GCM using a key derived from your passphrase with PBKDF2, then the encrypted backup is stored on the server. Your passphrase and plaintext private key are never sent to Supabase.', 'Pasangan kunci ECDH dibuat di browser. Private key dibungkus AES-GCM menggunakan kunci yang diturunkan dari passphrase dengan PBKDF2, lalu backup terenkripsi disimpan di server. Passphrase dan private key plaintext tidak dikirim ke Supabase.'],
   ['ACCOUNT PREFERENCES', 'PREFERENSI AKUN'],
   ['SYNTRIX User', 'Pengguna SYNTRIX'],
   ['Dark mode', 'Mode gelap'],
@@ -257,7 +257,7 @@ const pairs = [
   ['Validation result', 'Hasil validasi'],
   ['Characters', 'Karakter'],
   ['Signal bits', 'Bit sinyal'],
-  ['Hex bytes', 'Byte heksadesimal'],
+  ['Hex bytes', 'Byte hex'],
   ['Frame size', 'Ukuran frame'],
   ['Each printable ASCII character uses one 10-bit frame: start bit ', 'Setiap karakter ASCII yang dapat dicetak menggunakan satu frame 10-bit: bit awal '],
   ['Waveform preview shows the first 120 frames to keep the browser responsive.', 'Pratinjau gelombang menampilkan 120 frame pertama agar browser tetap responsif.'],
@@ -293,8 +293,19 @@ for (let index = 0; index < pairs.length; index += 1) {
   }
 }
 
-const english = new Map(pairs.map(([en, id]) => [id, en]));
-const indonesian = new Map(pairs);
+const english = new Map();
+const indonesian = new Map();
+
+for (const [en, id] of pairs) {
+  if (indonesian.has(en) && indonesian.get(en) !== id) {
+    throw new TypeError(`Duplicate English translation key: ${en}`);
+  }
+  if (english.has(id) && english.get(id) !== en) {
+    throw new TypeError(`Duplicate Indonesian translation key: ${id}`);
+  }
+  indonesian.set(en, id);
+  english.set(id, en);
+}
 
 let language = 'en';
 let initialized = false;
@@ -352,7 +363,7 @@ function translateDynamic(value, target) {
   return value;
 }
 
-function translateValue(value, target = language) {
+export function translateValue(value, target = language) {
   const dictionary = target === 'id' ? indonesian : english;
   return dictionary.get(value) ?? translateDynamic(value, target);
 }
