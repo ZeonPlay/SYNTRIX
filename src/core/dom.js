@@ -77,7 +77,7 @@ export function openDialog(dialog) {
     // A modal opened after a toast must not cover the notification.
     const toastLayer = $('#toastLayer');
     const toastRegion = $('#toastRegion');
-    if (toastLayer?.open && toastRegion?.querySelector('.toast-visible')) {
+    if (toastLayer?.open && toastRegion?.querySelector('.toast')) {
       toastLayer.close();
       toastLayer.show();
     }
