@@ -1746,6 +1746,35 @@ $('#changeKeyBtn').addEventListener('click', () => {
   $('#keyLabel').textContent = 'Passphrase E2EE baru';
   openDialog(keyDialog);
 });
+$('#deleteAccountBtn').addEventListener('click', () => {
+  $('#deleteAccountForm').reset();
+  $('#deleteAccountSubmit').disabled = true;
+  openDialog($('#deleteAccountDialog'));
+  $('#deleteAccountConfirm').focus();
+});
+
+$('#deleteAccountConfirm').addEventListener('input', (event) => {
+  $('#deleteAccountSubmit').disabled = event.target.value.trim() !== 'HAPUS AKUN';
+});
+
+$('#deleteAccountForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if ($('#deleteAccountConfirm').value.trim() !== 'HAPUS AKUN') return;
+  const button = $('#deleteAccountSubmit');
+  setBusy(button, true, 'Menghapus akun...');
+  try {
+    const { data, error } = await supabase.rpc('delete_my_account');
+    if (error) throw error;
+    if (data !== true) throw new Error('Akun tidak berhasil dihapus.');
+    if (state.user?.id) await clearE2eeVault(state.user.id).catch(() => undefined);
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    window.location.replace('/');
+  } catch (error) {
+    showToast(friendlyError(error, 'Akun gagal dihapus.'), 'error');
+    setBusy(button, false);
+  }
+});
+
 $('#logoutBtn').addEventListener('click', async () => {
   const button = $('#logoutBtn');
   button.disabled = true;
