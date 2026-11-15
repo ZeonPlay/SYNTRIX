@@ -336,6 +336,10 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .button:hover:not(:disabled) { transform: translateY(-1px); }
 .button:disabled { opacity: .55; cursor: wait; }
 .button-primary { border-color: var(--navy); background: var(--navy); color: #fff; }
+.button-danger { border-color: #b83c4b; background: #b83c4b; color: #fff; }
+.button-danger:hover:not(:disabled) { border-color: #982b39; background: #982b39; }
+.danger-zone { border-color: rgba(184,60,75,.28); }
+.danger-zone strong { color: #b83c4b; }
 .button-primary:hover:not(:disabled) { border-color: var(--indigo); background: var(--indigo); }
 .button-secondary { border-color: var(--line-strong); background: #fff; color: var(--navy); }
 .button-secondary:hover:not(:disabled) { border-color: #c4c9f5; background: #f4f4ff; }
