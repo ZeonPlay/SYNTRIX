@@ -30,16 +30,30 @@ export function formatDate(value) {
 export function showToast(message, type = 'info') {
   const region = $('#toastRegion');
   if (!region) return;
+
+  // A non-modal dialog lives in the browser's top layer, above native modals.
+  // Reopening it also moves it above any dialog that was opened previously.
+  const layer = $('#toastLayer');
+  if (layer && typeof layer.show === 'function') {
+    if (layer.open) layer.close();
+    layer.show();
+  }
+
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
   toast.textContent = message;
   region.append(toast);
+
   requestAnimationFrame(() => toast.classList.add('toast-visible'));
+
   window.setTimeout(() => {
     toast.classList.remove('toast-visible');
-    window.setTimeout(() => toast.remove(), 220);
-  }, 3600);
+    window.setTimeout(() => {
+      toast.remove();
+      if (!region.querySelector('.toast') && layer?.open) layer.close();
+    }, 400);
+  }, 4200);
 }
 
 export function setBusy(button, busy, busyLabel = 'Memproses...') {
@@ -57,7 +71,17 @@ export function setBusy(button, busy, busyLabel = 'Memproses...') {
 
 export function openDialog(dialog) {
   if (!dialog) return;
-  if (typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal();
+  if (typeof dialog.showModal === 'function' && !dialog.open) {
+    dialog.showModal();
+
+    // A modal opened after a toast must not cover the notification.
+    const toastLayer = $('#toastLayer');
+    const toastRegion = $('#toastRegion');
+    if (toastLayer?.open && toastRegion?.querySelector('.toast-visible')) {
+      toastLayer.close();
+      toastLayer.show();
+    }
+  }
 }
 
 export function closeDialog(dialog) {
