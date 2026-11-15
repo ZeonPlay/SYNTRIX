@@ -536,8 +536,8 @@ function renderMessages({ scrollToBottom = false } = {}) {
     const decoded = state.decodedMessages.get(message.id);
     const signalBits = state.signalBitsByMessage.get(message.id)
       || (isDecoded ? textToBitStream(decoded) : null);
-    const displayMode = isDecoded ? (state.messageViewModes.get(message.id) || 'decoded') : 'decoded';
-    const showSignal = isDecoded && displayMode === 'signal';
+    const displayMode = state.messageViewModes.get(message.id) || 'signal';
+    const showSignal = Boolean(signalBits) && (!isDecoded || displayMode === 'signal');
     const row = document.createElement('article');
     row.className = 'message-row' + (mine ? ' mine' : '');
     row.dataset.messageId = message.id;
@@ -718,13 +718,25 @@ async function loadConversationSignals(contactId = state.activeContactId) {
       }
     }
 
-    // Prepare the ordinary plaintext NRZ-I waveform for this conversation,
-    // but keep every message in signal mode until its own reveal button is used.
+    // Generate the ordinary NRZ-I waveform using the locally unlocked key,
+    // but do not cache/display plaintext. Each message still requires its own
+    // passphrase confirmation before "Tampilkan Pesan" can reveal the text.
     if (state.e2eeUnlocked && state.e2eeSession?.privateKey) {
       for (const message of conversation) {
-        if (state.decodedMessages.has(message.id)) continue;
+        if (state.signalBitsByMessage.has(message.id)) continue;
+        const payloadBits = state.bitsByMessage.get(message.id);
+        const peer = state.contacts.find((contact) => contact.id === partnerId(message));
+        if (!payloadBits || !peer?.public_key) continue;
         try {
-          await decryptSingleMessage(message);
+          const plaintext = await decryptE2eePayload({
+            payloadBits,
+            privateKey: state.e2eeSession.privateKey,
+            ownPublicKeyB64: state.e2eeSession.publicKeyB64,
+            peerPublicKeyB64: peer.public_key,
+            userId: state.user.id,
+            message,
+          });
+          state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
           state.messageViewModes.set(message.id, 'signal');
         } catch (error) {
           console.warn('Unable to prepare message signal ' + message.id + ':', error.message);
@@ -741,9 +753,9 @@ async function loadConversationSignals(contactId = state.activeContactId) {
   }
 }
 
-async function decryptSingleMessage(message) {
-  if (!message || !state.e2eeSession?.privateKey) {
-    throw new Error('Buka E2EE terlebih dahulu.');
+async function decryptSingleMessage(message, revealSession = state.e2eeSession) {
+  if (!message || !revealSession?.privateKey) {
+    throw new Error('Masukkan passphrase E2EE untuk membuka pesan ini.');
   }
   if (state.decodedMessages.has(message.id)) return state.decodedMessages.get(message.id);
 
@@ -761,8 +773,8 @@ async function decryptSingleMessage(message) {
 
   const plaintext = await decryptE2eePayload({
     payloadBits,
-    privateKey: state.e2eeSession.privateKey,
-    ownPublicKeyB64: state.e2eeSession.publicKeyB64,
+    privateKey: revealSession.privateKey,
+    ownPublicKeyB64: revealSession.publicKeyB64,
     peerPublicKeyB64: peer.public_key,
     userId: state.user.id,
     message,
@@ -773,11 +785,18 @@ async function decryptSingleMessage(message) {
   return plaintext;
 }
 
-function openE2eeUnlockDialog() {
+function openE2eeUnlockDialog({ messageId = null } = {}) {
   if (!state.e2eeState?.enabled) {
     openDialog(keyDialog);
     return;
   }
+  state.pendingRevealMessageId = messageId;
+  const forMessage = Boolean(messageId);
+  $('#e2eeUnlockTitle').textContent = forMessage ? 'Tampilkan pesan' : 'Buka E2EE';
+  $('#e2eeUnlockDescription').textContent = forMessage
+    ? 'Masukkan passphrase E2EE untuk membuka pesan ini saja. Pesan lain tetap tersembunyi.'
+    : 'Masukkan passphrase untuk membuka private key di perangkat ini.';
+  $('#e2eeUnlockSubmit').textContent = forMessage ? 'Tampilkan pesan' : 'Buka E2EE';
   $('#e2eeUnlockForm').reset();
   openDialog(e2eeUnlockDialog);
   $('#e2eeUnlockPassphrase').focus();
@@ -1631,7 +1650,6 @@ $('#messageForm').addEventListener('submit', async (event) => {
     state.bitsByMessage.set(message.id, encrypted.payloadBits);
     // The sender already has the plaintext in memory; keep the display consistent
     // with messages decrypted using the local E2EE key after a reload.
-    state.decodedMessages.set(message.id, plaintext);
     state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
     state.messageViewModes.set(message.id, 'signal');
     $('#messageInput').value = '';
@@ -1651,12 +1669,27 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!state.e2eeState?.enabled) return;
   const button = $('#e2eeUnlockSubmit');
-  setBusy(button, true, 'Membuka private key...');
+  const pendingMessageId = state.pendingRevealMessageId;
+  setBusy(button, true, pendingMessageId ? 'Membuka pesan...' : 'Membuka private key...');
   try {
-    state.e2eeSession = await unlockE2ee(
-      $('#e2eeUnlockPassphrase').value,
-      state.e2eeState,
-    );
+    const enteredPassphrase = $('#e2eeUnlockPassphrase').value;
+    const openedSession = await unlockE2ee(enteredPassphrase, state.e2eeState);
+
+    if (pendingMessageId) {
+      const pending = state.messages.find((item) => item.id === pendingMessageId);
+      if (!pending) throw new Error('message_not_found');
+      await decryptSingleMessage(pending, openedSession);
+      state.messageViewModes.set(pending.id, 'decoded');
+      state.pendingRevealMessageId = null;
+      closeDialog(e2eeUnlockDialog);
+      $('#e2eeUnlockForm').reset();
+      renderMessages();
+      renderContacts();
+      showToast('Pesan berhasil dibuka.', 'success');
+      return;
+    }
+
+    state.e2eeSession = openedSession;
     await saveE2eeVault(state.user.id, state.e2eeSession).catch((error) => {
       console.warn('E2EE key could not be cached for reload:', error.message);
     });
@@ -1665,19 +1698,11 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
     $('#e2eeUnlockForm').reset();
     renderKeyStatus();
     if (state.activeContactId) await loadConversationSignals(state.activeContactId);
-    if (state.pendingRevealMessageId) {
-      const pending = state.messages.find((item) => item.id === state.pendingRevealMessageId);
-      state.pendingRevealMessageId = null;
-      if (pending) {
-        await decryptSingleMessage(pending);
-        state.messageViewModes.set(pending.id, 'decoded');
-      }
-    }
     renderMessages();
     renderContacts();
-    showToast('E2EE berhasil dibuka. Pesan bisa ditampilkan satu per satu.', 'success');
+    showToast('E2EE berhasil dibuka di perangkat ini.', 'success');
   } catch (error) {
-    showToast(friendlyError(error, 'Gagal membuka E2EE.'), 'error');
+    showToast(friendlyError(error, pendingMessageId ? 'Passphrase salah atau pesan tidak dapat dibuka.' : 'Gagal membuka E2EE.'), 'error');
   } finally {
     setBusy(button, false);
   }
@@ -1985,19 +2010,9 @@ $('#messages').addEventListener('click', async (event) => {
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
   if (!message) return;
   if (button.dataset.action === 'reveal-message') {
-    if (!state.e2eeUnlocked || !state.e2eeSession?.privateKey) {
-      state.pendingRevealMessageId = message.id;
-      openE2eeUnlockDialog();
-      return;
-    }
-    try {
-      await decryptSingleMessage(message);
-      state.messageViewModes.set(message.id, 'decoded');
-      renderMessages();
-      renderContacts();
-    } catch (error) {
-      showToast(friendlyError(error, 'Pesan tidak dapat dibuka.'), 'error');
-    }
+    // Verify the passphrase for every individual message, even if the device
+    // already has an unlocked key for sending and signal generation.
+    openE2eeUnlockDialog({ messageId: message.id });
     return;
   }
   if (button.dataset.action === 'delete') {
