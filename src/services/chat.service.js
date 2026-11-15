@@ -45,6 +45,13 @@ export async function findProfileByHandle(handle) {
   return data?.[0] ?? null;
 }
 
+export async function addContactByHandle(handle) {
+  const normalized = handle.trim().replace(/^@/, '').toLowerCase();
+  const { data, error } = await supabase.rpc('add_contact_by_handle', { p_handle: normalized });
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
 export async function saveContact(ownerId, contactId) {
   const { error } = await supabase
     .from('contacts')
