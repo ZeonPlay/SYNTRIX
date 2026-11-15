@@ -337,8 +337,8 @@ function contactPreview(contactId) {
   const message = latestMessageFor(contactId);
   if (!message) return 'Start a conversation';
   const decoded = state.decodedMessages.get(message.id);
-  if (decoded) return decoded;
-  return '🔒 Encrypted message';
+  if (decoded && state.messageViewModes.get(message.id) === 'decoded') return decoded;
+  return 'Pesan';
 }
 
 function createContactItem(contact) {
