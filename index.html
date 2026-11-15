@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="/src/theme-init.js"></script>
   <link rel="stylesheet" href="./src/styles.css?v=contact-pill-v1">
-  <script type="module" src="/src/app.js?v=per-message-key-v3"></script>
+  <script type="module" src="/src/app.js?v=per-message-key-v4"></script>
 </head>
 <body>
   <main id="authView" class="login-page">
@@ -252,8 +252,8 @@
 
   <dialog id="e2eeUnlockDialog" class="modal">
     <form id="e2eeUnlockForm" class="modal-card">
-      <div class="modal-header"><div><span class="eyebrow">Private key locked</span><h2>Buka E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="e2eeUnlockDialog" aria-label="Close">×</button></div>
-      <p class="modal-description">Masukkan passphrase untuk membuka backup private key di perangkat ini. Passphrase tidak dikirim ke server.</p>
+      <div class="modal-header"><div><span class="eyebrow">E2EE VERIFICATION</span><h2 id="e2eeUnlockTitle">Buka E2EE</h2></div><button class="icon-button dialog-close" type="button" data-close="e2eeUnlockDialog" aria-label="Close">×</button></div>
+      <p id="e2eeUnlockDescription" class="modal-description">Masukkan passphrase untuk membuka private key di perangkat ini. Passphrase tidak dikirim ke server.</p>
       <label class="field"><span>Passphrase E2EE</span><input id="e2eeUnlockPassphrase" type="password" autocomplete="current-password" required minlength="10" maxlength="128" placeholder="Passphrase E2EE kamu"></label>
       <div class="modal-actions"><button class="button button-quiet" type="button" data-close="e2eeUnlockDialog">Nanti</button><button id="e2eeUnlockSubmit" class="button button-primary" type="submit">Buka private key</button></div>
     </form>
