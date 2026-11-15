@@ -42,6 +42,13 @@ test('NRZ-I toggles only when the bit is one', () => {
   assert.deepEqual(nrziEncode('010110'), [1, 0, 0, 1, 0, 0]);
 });
 
+test('a single p becomes exactly one ten-bit frame and ten NRZ-I samples', () => {
+  const bits = textToBitStream('p');
+  assert.equal(bits, '0111000011');
+  assert.equal(bits.length, 10);
+  assert.deepEqual(nrziEncode(bits), [1, 0, 1, 0, 0, 0, 0, 0, 1, 0]);
+});
+
 test('rejects malformed frames and parity errors', () => {
   const valid = textToBitStream('A');
   assert.equal(validateBitStream(valid), null);
