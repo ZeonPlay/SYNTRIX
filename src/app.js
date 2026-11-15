@@ -107,7 +107,6 @@ const loginForm = $('#loginForm');
 const registerForm = $('#registerForm');
 const contactDialog = $('#contactDialog');
 const e2eeUnlockDialog = $('#e2eeUnlockDialog');
-const messageUnlockDialog = $('#messageUnlockDialog');
 const deviceApprovalDialog = $('#deviceApprovalDialog');
 const keyDialog = $('#keyDialog');
 const inspectorDialog = $('#inspectorDialog');
@@ -542,7 +541,9 @@ function renderMessages({ scrollToBottom = false } = {}) {
     const viewAction = isDecoded
       ? '<button class="inspect-button" type="button" data-action="toggle-view" data-message-id="' + message.id + '">' +
         (showSignal ? 'Tampilkan pesan' : 'Tampilkan sinyal') + '</button>'
-      : '<button class="inspect-button" type="button" data-action="unlock-message" data-message-id="' + message.id + '">Masukkan kunci</button>';
+      : state.e2eeUnlocked
+        ? ''
+        : '<button class="inspect-button" type="button" data-action="unlock-message" data-message-id="' + message.id + '">Buka E2EE</button>';
 
     row.innerHTML =
       '<span class="message-author">' + (mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')) + '</span>' +
@@ -551,7 +552,9 @@ function renderMessages({ scrollToBottom = false } = {}) {
           ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I signal of decoded message"></canvas></div>'
           : isDecoded
             ? '<div class="decode-result"><span class="decoded-text"></span></div>'
-            : '<div class="message-lockline"><span class="message-lockicon" aria-hidden="true">🔒</span><span>Pesan terenkripsi · buka kunci untuk membaca</span></div>') +
+            : state.e2eeUnlocked
+              ? '<span class="wave-mini-pending">Mendekripsi pesan…</span>'
+              : '<div class="message-lockline"><span class="message-lockicon" aria-hidden="true">🔒</span><span>Pesan terenkripsi · buka E2EE untuk membaca</span></div>') +
         '<div class="message-actions">' + viewAction +
           '<button class="message-delete-button" type="button" data-action="delete" data-message-id="' + message.id + '" aria-label="Hapus pesan untuk kedua pihak">Hapus pesan</button>' +
         '</div>' +
@@ -701,22 +704,60 @@ function upsertMessage(message) {
 }
 
 async function loadConversationSignals(contactId = state.activeContactId) {
-  if (!contactId || !state.user) return;
-  const pending = state.messages.filter((message) => (
+  if (!contactId || !state.user || !state.e2eeUnlocked || !state.e2eeSession?.privateKey) return;
+
+  const conversation = state.messages.filter((message) => (
     (message.sender_id === state.user.id && message.receiver_id === contactId) ||
     (message.sender_id === contactId && message.receiver_id === state.user.id)
-  ) && message.enc_version === 1 && !message.deleted_at && !state.bitsByMessage.has(message.id));
+  ) && message.enc_version === 1 && !message.deleted_at);
 
-  if (pending.length === 0) return;
+  if (conversation.length === 0) return;
+  const peer = state.contacts.find((contact) => contact.id === contactId);
+  if (!peer?.public_key) {
+    console.warn('Cannot decrypt conversation: contact public key is unavailable.');
+    return;
+  }
+
   try {
-    // E2EE ciphertext is safe to display as a waveform before the user decrypts it.
-    const payloads = await fetchMessagePayloads(pending.map((message) => message.id));
-    for (const payload of payloads) {
-      if (payload?.id && payload.payload_bits) state.bitsByMessage.set(payload.id, payload.payload_bits);
+    // Ciphertext is fetched only when the local E2EE private key is unlocked.
+    const missingPayloads = conversation.filter((message) => !state.bitsByMessage.has(message.id));
+    if (missingPayloads.length) {
+      const payloads = await fetchMessagePayloads(missingPayloads.map((message) => message.id));
+      for (const payload of payloads) {
+        if (payload?.id && payload.payload_bits) state.bitsByMessage.set(payload.id, payload.payload_bits);
+      }
     }
-    if (state.activeContactId === contactId) renderMessages();
+
+    // Use the already-unlocked local key for every message, including after reload.
+    for (const message of conversation) {
+      if (state.decodedMessages.has(message.id)) continue;
+      const payloadBits = state.bitsByMessage.get(message.id);
+      if (!payloadBits) continue;
+
+      try {
+        const plaintext = await decryptE2eePayload({
+          payloadBits,
+          privateKey: state.e2eeSession.privateKey,
+          ownPublicKeyB64: state.e2eeSession.publicKeyB64,
+          peerPublicKeyB64: peer.public_key,
+          userId: state.user.id,
+          message,
+        });
+        state.decodedMessages.set(message.id, plaintext);
+        state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
+        // Show the communication-data waveform first; users can switch to text.
+        state.messageViewModes.set(message.id, 'signal');
+      } catch (error) {
+        console.warn('Unable to decrypt message ' + message.id + ':', error.message);
+      }
+    }
+
+    if (state.activeContactId === contactId) {
+      renderMessages();
+      renderContacts();
+    }
   } catch (error) {
-    console.warn('Unable to load encrypted signal payloads:', error.message);
+    console.warn('Unable to load encrypted conversation payloads:', error.message);
   }
 }
 
@@ -1585,10 +1626,11 @@ $('#messageForm').addEventListener('submit', async (event) => {
     const message = await insertMessage(state.user.id, contact.id, encrypted.payloadBits);
     upsertMessage(message);
     state.bitsByMessage.set(message.id, encrypted.payloadBits);
-    // Sender-side preview uses plaintext frames; only the E2EE payload is uploaded.
+    // The sender already has the plaintext in memory; keep the display consistent
+    // with messages decrypted using the local E2EE key after a reload.
+    state.decodedMessages.set(message.id, plaintext);
     state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
-    // Outgoing messages stay locked too; the sender must enter the E2EE key
-    // for this individual message when they want to read it.
+    state.messageViewModes.set(message.id, 'signal');
     $('#messageInput').value = '';
     $('#messageCounter').textContent = '0 / ' + MAX_MESSAGE_LENGTH;
     renderMessages();
@@ -1624,62 +1666,10 @@ $('#e2eeUnlockForm').addEventListener('submit', async (event) => {
     renderKeyStatus();
     renderMessages();
     renderContacts();
+    if (state.activeContactId) await loadConversationSignals(state.activeContactId);
     showToast('E2EE berhasil dibuka di perangkat ini.', 'success');
   } catch (error) {
     showToast(friendlyError(error, 'Gagal membuka E2EE.'), 'error');
-  } finally {
-    setBusy(button, false);
-  }
-});
-
-$('#messageUnlockForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = $('#messageUnlockForm');
-  const messageId = form.dataset.messageId;
-  const message = state.messages.find((item) => item.id === messageId);
-  if (!message || message.deleted_at) {
-    showToast('Pesan sudah tidak tersedia.', 'error');
-    closeDialog(messageUnlockDialog);
-    return;
-  }
-
-  const passphrase = $('#messageUnlockPassphrase').value;
-  const button = $('#messageUnlockSubmit');
-  setBusy(button, true, 'Membuka pesan...');
-  try {
-    // The passphrase only unwraps this account's private key in this browser.
-    // It is deliberately not cached or sent to Supabase.
-    const messageSession = await unlockE2ee(passphrase);
-    let payloadBits = state.bitsByMessage.get(message.id);
-    if (!payloadBits) {
-      const payloads = await fetchMessagePayloads([message.id]);
-      payloadBits = payloads.find((item) => item.id === message.id)?.payload_bits;
-    }
-    if (!payloadBits) throw new Error('Payload sinyal pesan tidak ditemukan.');
-
-    const peer = state.contacts.find((contact) => contact.id === partnerId(message));
-    if (!peer?.public_key) throw new Error('Public key kontak tidak tersedia.');
-    const plaintext = await decryptE2eePayload({
-      payloadBits,
-      privateKey: messageSession.privateKey,
-      ownPublicKeyB64: messageSession.publicKeyB64,
-      peerPublicKeyB64: peer.public_key,
-      userId: state.user.id,
-      message,
-    });
-
-    state.bitsByMessage.set(message.id, payloadBits);
-    state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
-    state.decodedMessages.set(message.id, plaintext);
-    state.messageViewModes.set(message.id, 'decoded');
-    closeDialog(messageUnlockDialog);
-    form.reset();
-    form.dataset.messageId = '';
-    renderMessages();
-    renderContacts();
-    showToast('Pesan berhasil dibuka.', 'success');
-  } catch (error) {
-    showToast(friendlyError(error, 'Kunci E2EE salah atau pesan tidak dapat dibuka.'), 'error');
   } finally {
     setBusy(button, false);
   }
@@ -1790,7 +1780,7 @@ document.querySelectorAll('[data-close]').forEach((button) => {
   button.addEventListener('click', () => closeDialog(document.getElementById(button.dataset.close)));
 });
 
-for (const dialog of [contactDialog, e2eeUnlockDialog, messageUnlockDialog, deviceApprovalDialog, keyDialog, inspectorDialog]) {
+for (const dialog of [contactDialog, e2eeUnlockDialog, deviceApprovalDialog, keyDialog, inspectorDialog]) {
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) closeDialog(dialog);
   });
@@ -1954,11 +1944,12 @@ $('#messages').addEventListener('click', async (event) => {
   const message = state.messages.find((item) => item.id === button.dataset.messageId);
   if (!message) return;
   if (button.dataset.action === 'unlock-message') {
-    const form = $('#messageUnlockForm');
-    form.reset();
-    form.dataset.messageId = message.id;
-    openDialog(messageUnlockDialog);
-    $('#messageUnlockPassphrase').focus();
+    // One E2EE unlock applies to the whole device, not one prompt per message.
+    if (state.e2eeUnlocked && state.e2eeSession?.privateKey) {
+      void loadConversationSignals(partnerId(message));
+    } else {
+      openE2eeUnlockDialog();
+    }
     return;
   }
   if (button.dataset.action === 'delete') {
