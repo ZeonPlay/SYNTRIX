@@ -924,6 +924,67 @@ async function animateMessageDisintegration(row) {
   }
 }
 
+let contactDirectoryPollTimer = null;
+let contactDirectoryRefreshTimer = null;
+
+async function refreshContactDirectory() {
+  if (!state.user || !state.workspaceLoaded) return;
+
+  const previousIds = new Set(state.contacts.map((contact) => contact.id));
+  const profiles = await syncConversationContacts();
+  const currentIds = new Set(profiles.map((profile) => profile.id));
+  const removedIds = new Set([...previousIds].filter((id) => !currentIds.has(id)));
+
+  normalizeContacts(profiles);
+
+  if (removedIds.size) {
+    state.messages = state.messages.filter((message) => !removedIds.has(partnerId(message)));
+    for (const messageId of [...state.decodedMessages.keys()]) {
+      const message = state.messages.find((item) => item.id === messageId);
+      if (!message) {
+        state.decodedMessages.delete(messageId);
+        state.bitsByMessage.delete(messageId);
+        state.signalBitsByMessage.delete(messageId);
+        state.messageViewModes.delete(messageId);
+      }
+    }
+
+    state.onlineUsers = new Set(
+      [...state.onlineUsers].filter((userId) => currentIds.has(userId))
+    );
+
+    if (state.activeContactId && removedIds.has(state.activeContactId)) {
+      state.activeContactId = null;
+      if (appView.dataset.view === 'contacts') {
+        appView.dataset.layout = 'directory';
+        appView.classList.remove('has-chat');
+        $('#conversationView').hidden = true;
+        $('#emptyState').hidden = false;
+        window.requestAnimationFrame(updateNavActivePill);
+      }
+    }
+  }
+
+  renderContacts();
+  if (state.activeContactId) renderMessages();
+}
+
+function scheduleContactDirectoryRefresh(delay = 400) {
+  window.clearTimeout(contactDirectoryRefreshTimer);
+  contactDirectoryRefreshTimer = window.setTimeout(() => {
+    refreshContactDirectory().catch((error) => {
+      console.warn('Unable to refresh deleted contacts:', error.message);
+    });
+  }, delay);
+}
+
+function startContactDirectorySync() {
+  window.clearInterval(contactDirectoryPollTimer);
+  contactDirectoryPollTimer = window.setInterval(() => {
+    if (!document.hidden) scheduleContactDirectoryRefresh(0);
+  }, 30_000);
+}
+
 async function handleMessageDelete(messageId) {
   if (!messageId || state.deletingMessageIds.has(messageId)) return;
   const exists = state.messages.some((message) => message.id === messageId);
@@ -949,6 +1010,9 @@ async function handleMessageDelete(messageId) {
   state.deletingMessageIds.delete(messageId);
   renderMessages();
   renderContacts();
+  // Account deletion removes all messages in that conversation; reconcile
+  // the contact directory after the Realtime delete burst settles.
+  scheduleContactDirectoryRefresh();
 }
 
 async function handleIncomingMessage(rawMessage) {
@@ -1257,6 +1321,7 @@ async function openApprovedWorkspace() {
   try {
     await loadWorkspace();
     state.workspaceLoaded = true;
+    startContactDirectorySync();
   } catch (error) {
     showToast(friendlyError(error, 'Tidak dapat memuat workspace.'), 'error');
     console.error(error);
@@ -1345,6 +1410,10 @@ function startDeviceHeartbeat() {
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && deviceHeartbeatTimer) deviceTick();
+  if (!document.hidden && state.workspaceLoaded) scheduleContactDirectoryRefresh(0);
+});
+window.addEventListener('focus', () => {
+  if (state.workspaceLoaded) scheduleContactDirectoryRefresh(0);
 });
 // Coming back online is the moment a missed revocation is most likely.
 window.addEventListener('online', () => {
@@ -1465,6 +1534,10 @@ async function leaveApp() {
   const signedOutUserId = state.user?.id;
   stopDeviceHeartbeat();
   window.clearTimeout(deviceRefreshTimer);
+  window.clearInterval(contactDirectoryPollTimer);
+  window.clearTimeout(contactDirectoryRefreshTimer);
+  contactDirectoryPollTimer = null;
+  contactDirectoryRefreshTimer = null;
   state.deviceRowId = null;
   state.knownPendingIds = null;
   state.workspaceLoaded = false;
