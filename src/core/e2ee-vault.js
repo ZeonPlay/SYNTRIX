@@ -1,8 +1,7 @@
 const DB_NAME = 'syntrix-local-vault';
 const STORE_NAME = 'e2ee-keys';
 const DB_VERSION = 1;
-// An unlocked key left in this browser expires; after that the passphrase is asked again.
-const MAX_VAULT_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// Keep the non-extractable CryptoKey on this device until explicit logout.
 
 function openVault() {
   return new Promise((resolve, reject) => {
@@ -64,7 +63,6 @@ export async function getE2eeVault(userId, expectedPublicKeyB64) {
       || record.privateKey.type !== 'private'
       || record.privateKey.algorithm?.name !== 'ECDH'
       || !Number.isFinite(record.savedAt)
-      || Date.now() - record.savedAt > MAX_VAULT_AGE_MS
     ) return null;
     return {
       privateKey: record.privateKey,
