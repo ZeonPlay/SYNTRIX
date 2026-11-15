@@ -1,5 +1,16 @@
-/* SYNTRIX Toast Notification — standalone component */
+/* SYNTRIX Toast Notification — standalone component.
+   Its palette follows only the app's current theme flag; it does not inherit
+   modal, card, or other component styles. */
 #syntrixToastLayer {
+  --toast-surface: #ffffff;
+  --toast-border: #e3e7f0;
+  --toast-text: #25263d;
+  --toast-muted: #788198;
+  --toast-shadow: 0 14px 38px rgba(25, 24, 71, .16);
+  --toast-icon-surface: #f3f5fa;
+  --toast-icon-border: #dfe4ed;
+  --toast-close-hover: #eef1f8;
+
   position: fixed;
   inset: auto 22px auto auto;
   top: max(22px, env(safe-area-inset-top, 0px));
@@ -12,9 +23,20 @@
   overflow: visible;
   border: 0;
   background: transparent;
-  color: #f4f7fb;
+  color: var(--toast-text);
   box-shadow: none;
   pointer-events: none;
+}
+
+html[data-theme="dark"] #syntrixToastLayer {
+  --toast-surface: #202d3d;
+  --toast-border: #3a4b60;
+  --toast-text: #e4ebf4;
+  --toast-muted: #a3b0c2;
+  --toast-shadow: 0 16px 42px rgba(0, 0, 0, .42);
+  --toast-icon-surface: #2b3a4e;
+  --toast-icon-border: #53657b;
+  --toast-close-hover: #35465b;
 }
 
 #syntrixToastLayer::backdrop { background: transparent; }
@@ -36,11 +58,11 @@
   width: 100%;
   min-height: 64px;
   padding: 13px 14px;
-  border: 1px solid #35465b;
-  border-left: 3px solid #8290a6;
+  border: 1px solid var(--toast-border);
+  border-left: 3px solid #5146e5;
   border-radius: 14px;
-  background: #172333;
-  color: #f4f7fb;
+  background: var(--toast-surface);
+  color: var(--toast-text);
   font-family: Inter, "DM Sans", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 550;
@@ -50,7 +72,7 @@
   overflow-wrap: anywhere;
   opacity: 0;
   transform: translate3d(calc(100% + 28px), -8px, 0);
-  box-shadow: 0 14px 38px rgba(7, 13, 23, .3);
+  box-shadow: var(--toast-shadow);
   pointer-events: auto;
   transition:
     opacity .2s ease,
@@ -68,10 +90,10 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #53657b;
+  border: 1px solid var(--toast-icon-border);
   border-radius: 10px;
-  background: #2b3a4e;
-  color: #d9e3f0;
+  background: var(--toast-icon-surface);
+  color: var(--toast-muted);
   font: 700 15px/1 Inter, "DM Sans", system-ui, sans-serif;
 }
 
@@ -90,31 +112,52 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #aab7c8;
+  color: var(--toast-muted);
   font: 400 20px/1 system-ui, sans-serif;
   cursor: pointer;
   transition: background .16s ease, color .16s ease;
 }
 
 .syntrix-toast__close:hover {
-  background: #35465b;
-  color: #fff;
+  background: var(--toast-close-hover);
+  color: var(--toast-text);
 }
 
-.syntrix-toast--success { border-left-color: #45c69a; }
+/* Light theme status colors */
+.syntrix-toast--success { border-left-color: #168b68; }
 .syntrix-toast--success .syntrix-toast__icon {
+  border-color: #c5e6d8;
+  background: #ecf9f2;
+  color: #15785a;
+}
+.syntrix-toast--error { border-left-color: #d9485b; }
+.syntrix-toast--error .syntrix-toast__icon {
+  border-color: #f1c9ce;
+  background: #fff0f2;
+  color: #b7354b;
+}
+.syntrix-toast--info { border-left-color: #5146e5; }
+.syntrix-toast--info .syntrix-toast__icon {
+  border-color: #dcd9ff;
+  background: #f0efff;
+  color: #5146e5;
+}
+
+/* Dark theme status colors */
+html[data-theme="dark"] .syntrix-toast--success { border-left-color: #53c49b; }
+html[data-theme="dark"] .syntrix-toast--success .syntrix-toast__icon {
   border-color: #367d68;
   background: #203f39;
   color: #76e0b6;
 }
-.syntrix-toast--error { border-left-color: #f07183; }
-.syntrix-toast--error .syntrix-toast__icon {
+html[data-theme="dark"] .syntrix-toast--error { border-left-color: #f07183; }
+html[data-theme="dark"] .syntrix-toast--error .syntrix-toast__icon {
   border-color: #8b4b5b;
   background: #492b37;
   color: #ff9dab;
 }
-.syntrix-toast--info { border-left-color: #8d8aff; }
-.syntrix-toast--info .syntrix-toast__icon {
+html[data-theme="dark"] .syntrix-toast--info { border-left-color: #aaa7ff; }
+html[data-theme="dark"] .syntrix-toast--info .syntrix-toast__icon {
   border-color: #56558f;
   background: #303253;
   color: #b8b5ff;
