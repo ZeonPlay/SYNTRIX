@@ -23,7 +23,7 @@ import {
 import {
   acknowledgeDevice, fetchDevices, hasPersistentDeviceId, isSessionRevoked, registerDevice, rejectDevice,
 } from './services/device.service.js';
-import { initializeI18n } from './i18n.js';
+import { initializeI18n } from './i18n.js?v=language-dictionary-fix-v2';
 
 initializeI18n();
 const currentLocale = () => document.documentElement.lang === 'id' ? 'id-ID' : 'en-US';
