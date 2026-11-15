@@ -180,6 +180,8 @@ function friendlyError(error, fallback = 'Something went wrong. Please try again
   if (/rate[ _]?limit/i.test(message)) return 'Terlalu banyak percobaan. Coba lagi nanti.';
   if (/database error saving new user/i.test(message)) return 'Pendaftaran gagal. Coba handle lain.';
   if (/failed to fetch|networkerror|load failed/i.test(message)) return 'Tidak dapat terhubung ke server. Periksa internet dan konfigurasi Supabase.';
+  if (/sender_e2ee_required/i.test(message)) return 'Aktifkan kunci E2EE akunmu sebelum mengirim pesan.';
+  if (/receiver_e2ee_required/i.test(message)) return 'Pengguna tujuan belum membuat kunci E2EE, jadi pesan belum dapat dikirim.';
   if (/row-level security|permission denied/i.test(message)) return 'Akses database ditolak. Periksa migration dan kebijakan RLS Supabase.';
   if (/device_not_trusted/i.test(message)) return 'Perangkat ini belum dikonfirmasi sebagai milikmu, jadi belum bisa mengelola perangkat lain.';
   if (/device_not_approved/i.test(message)) return 'Perangkat ini belum disetujui. Tunggu konfirmasi dari perangkat yang sudah dikenal.';
