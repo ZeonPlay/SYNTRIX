@@ -265,7 +265,7 @@ const pairs = [
   ['One hexadecimal byte for each printable ASCII character.', 'Satu byte heksadesimal untuk setiap karakter ASCII yang dapat dicetak.'],
   ['Showing the first 120 characters; the complete list is available in the frame table.', 'Menampilkan 120 karakter pertama; daftar lengkap tersedia di tabel frame.'],
   ['Each frame = start bit + 7 data bits + even parity + stop bit.', 'Setiap frame = bit awal + 7 bit data + paritas genap + bit akhir.'],
-  ['H = HIGH and L = LOW. A transmitted 1 changes the level; a 0 keeps it.', 'H = HIGH dan L = LOW. Bit 1 mengubah level; bit 0 mempertahankan level.']
+  ['H = HIGH and L = LOW. A transmitted 1 changes the level; a 0 keeps it.', 'H = HIGH dan L = LOW. Bit 1 mengubah level; bit 0 mempertahankan level.'],
 
   ['Open SYNTRIX from a trusted device, then select', 'Buka SYNTRIX dari perangkat yang sudah dikenal, lalu pilih'],
   ['from the Security menu.', 'pada menu Keamanan.'],
