@@ -1,6 +1,6 @@
 import { supabase } from './core/supabase.js';
 import {
-  decodeBitStream, nrziEncode, summarizeFrames,
+  nrziEncode, summarizeFrames, textToBitStream,
   validateBitStream, MAX_MESSAGE_LENGTH,
 } from './core/encoding.js';
 import {
@@ -27,7 +27,7 @@ import {
 const state = {
   user: null, profile: null, contacts: [], messages: [], activeContactId: null,
   onlineUsers: new Set(), disconnectRealtime: null, decodedMessages: new Map(), bitsByMessage: new Map(),
-  messageViewModes: new Map(), bootingUserId: null, sending: false,
+  signalBitsByMessage: new Map(), messageViewModes: new Map(), bootingUserId: null, sending: false,
   e2eeState: null, e2eeSession: null, e2eeUnlocked: false, deletingMessageIds: new Set(),
   deviceRowId: null, knownPendingIds: null, endingSession: false,
   workspaceLoaded: false, workspaceLoading: false,
@@ -335,7 +335,7 @@ function contactPreview(contactId) {
   if (!message) return 'Start a conversation';
   const decoded = state.decodedMessages.get(message.id);
   if (decoded) return decoded;
-  return `🔒 Encoded transmission · ${message.frame_count} frames`;
+  return '🔒 Encrypted message';
 }
 
 function createContactItem(contact) {
@@ -531,9 +531,10 @@ function renderMessages({ scrollToBottom = false } = {}) {
     const mine = message.sender_id === state.user.id;
     const isDecoded = state.decodedMessages.has(message.id);
     const decoded = state.decodedMessages.get(message.id);
-    const bits = state.bitsByMessage.get(message.id);
+    const signalBits = state.signalBitsByMessage.get(message.id)
+      || (isDecoded ? textToBitStream(decoded) : null);
     const displayMode = isDecoded ? (state.messageViewModes.get(message.id) || 'decoded') : 'signal';
-    const showSignal = !isDecoded || displayMode === 'signal';
+    const showSignal = isDecoded ? displayMode === 'signal' : Boolean(signalBits);
     const row = document.createElement('article');
     row.className = 'message-row' + (mine ? ' mine' : '');
     row.dataset.messageId = message.id;
@@ -547,12 +548,10 @@ function renderMessages({ scrollToBottom = false } = {}) {
       '<span class="message-author">' + (mine ? 'You' : escapeHTML(state.contacts.find((c) => c.id === message.sender_id)?.display_name || 'Contact')) + '</span>' +
       '<div class="message-bubble">' +
         (showSignal
-          ? '<div class="wave-mini-wrap">' +
-            (bits
-              ? '<canvas class="wave-mini" aria-label="Encrypted NRZ-I signal"></canvas>'
-              : '<span class="wave-mini-pending">Memuat sinyal terenkripsi…</span>') +
-            '</div>'
-          : '<div class="decode-result"><span class="decoded-text"></span></div>') +
+          ? '<div class="wave-mini-wrap"><canvas class="wave-mini" aria-label="NRZ-I signal of decoded message"></canvas></div>'
+          : isDecoded
+            ? '<div class="decode-result"><span class="decoded-text"></span></div>'
+            : '<div class="message-lockline"><span class="message-lockicon" aria-hidden="true">🔒</span><span>Pesan terenkripsi · buka kunci untuk membaca</span></div>') +
         '<div class="message-actions">' + viewAction +
           '<button class="message-delete-button" type="button" data-action="delete" data-message-id="' + message.id + '" aria-label="Hapus pesan untuk kedua pihak">Hapus pesan</button>' +
         '</div>' +
@@ -561,9 +560,9 @@ function renderMessages({ scrollToBottom = false } = {}) {
         (mine && message.read_at ? '<span class="message-read">· Read</span>' : '') +
       '</div>';
 
-    if (showSignal && bits) {
-      renderMiniSignal(row.querySelector('canvas'), bits);
-    } else if (!showSignal) {
+    if (showSignal && signalBits) {
+      renderMiniSignal(row.querySelector('canvas'), signalBits);
+    } else if (!showSignal && isDecoded) {
       row.querySelector('.decoded-text').textContent = decoded;
     }
     container.append(row);
@@ -872,6 +871,7 @@ async function handleMessageDelete(messageId) {
   state.messages = state.messages.filter((message) => message.id !== messageId);
   state.decodedMessages.delete(messageId);
   state.bitsByMessage.delete(messageId);
+  state.signalBitsByMessage.delete(messageId);
   state.messageViewModes.delete(messageId);
   state.deletingMessageIds.delete(messageId);
   renderMessages();
@@ -929,6 +929,7 @@ async function loadWorkspace() {
   state.messages = messages;
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
+  state.signalBitsByMessage.clear();
   state.messageViewModes.clear();
 
   const partnerIds = new Set(contactIds);
@@ -1419,6 +1420,7 @@ async function leaveApp() {
   state.onlineUsers.clear();
   state.decodedMessages.clear();
   state.bitsByMessage.clear();
+  state.signalBitsByMessage.clear();
   state.messageViewModes.clear();
   state.e2eeState = null;
   state.e2eeSession = null;
@@ -1583,6 +1585,8 @@ $('#messageForm').addEventListener('submit', async (event) => {
     const message = await insertMessage(state.user.id, contact.id, encrypted.payloadBits);
     upsertMessage(message);
     state.bitsByMessage.set(message.id, encrypted.payloadBits);
+    // Sender-side preview uses plaintext frames; only the E2EE payload is uploaded.
+    state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
     // Outgoing messages stay locked too; the sender must enter the E2EE key
     // for this individual message when they want to read it.
     $('#messageInput').value = '';
@@ -1665,6 +1669,7 @@ $('#messageUnlockForm').addEventListener('submit', async (event) => {
     });
 
     state.bitsByMessage.set(message.id, payloadBits);
+    state.signalBitsByMessage.set(message.id, textToBitStream(plaintext));
     state.decodedMessages.set(message.id, plaintext);
     state.messageViewModes.set(message.id, 'decoded');
     closeDialog(messageUnlockDialog);
@@ -1857,20 +1862,22 @@ function drawSignal(canvas, bits, maxFrames = 120) {
 }
 
 function openInspector(storedMessage) {
-  const payload = state.bitsByMessage.get(storedMessage.id);
-  if (!payload) {
+  const encryptedPayload = state.bitsByMessage.get(storedMessage.id);
+  const decodedText = state.decodedMessages.get(storedMessage.id);
+  if (!encryptedPayload || typeof decodedText !== 'string') {
     showToast('Buka kunci pesan terlebih dahulu.', 'error');
     return;
   }
-  const issue = validateBitStream(payload);
+  const signalBits = state.signalBitsByMessage.get(storedMessage.id)
+    || textToBitStream(decodedText);
+  const issue = validateBitStream(signalBits);
   if (issue) {
     showToast(`Frame tidak valid: ${issue}`, 'error');
     return;
   }
 
-  const frames = summarizeFrames(payload);
-  const decodedText = state.decodedMessages.get(storedMessage.id) ?? decodeBitStream(payload);
-  const levels = nrziEncode(payload);
+  const frames = summarizeFrames(signalBits);
+  const levels = nrziEncode(signalBits);
   const content = $('#inspectorContent');
   const visibleFrames = frames.slice(0, 120);
   const truncated = frames.length > visibleFrames.length;
@@ -1882,7 +1889,7 @@ function openInspector(storedMessage) {
   content.innerHTML = `
     <div class="inspector-summary">
       <div class="metric-card"><span>Characters</span><strong>${frames.length}</strong></div>
-      <div class="metric-card"><span>Payload bits</span><strong>${payload.length}</strong></div>
+      <div class="metric-card"><span>Signal bits</span><strong>${signalBits.length}</strong></div>
       <div class="metric-card"><span>Hex bytes</span><strong>${frames.length}</strong></div>
       <div class="metric-card"><span>Frame size</span><strong>10 bit</strong></div>
     </div>
@@ -1898,7 +1905,7 @@ function openInspector(storedMessage) {
     <section class="inspector-section">
       <h3>NRZ-I waveform</h3>
       <div class="signal-scroll"><canvas id="inspectorSignal" class="signal-large"></canvas></div>
-      <p class="inspector-wave-note">${truncated ? 'Waveform preview shows the first 120 frames to keep the browser responsive.' : 'Complete waveform for this message.'} The initial signal level is HIGH.</p>
+      <p class="inspector-wave-note">${truncated ? 'Waveform preview shows the first 120 frames to keep the browser responsive.' : 'Complete waveform for this message.'} The initial signal level is HIGH. This waveform represents the decrypted text; the stored E2EE payload remains encrypted and has a different length.</p>
     </section>
     <section class="inspector-section">
       <h3>Hexadecimal bytes</h3>
@@ -1938,7 +1945,7 @@ function openInspector(storedMessage) {
     </section>
   `;
   openDialog(inspectorDialog);
-  drawSignal($('#inspectorSignal'), payload);
+  drawSignal($('#inspectorSignal'), signalBits);
 }
 
 $('#messages').addEventListener('click', async (event) => {
